@@ -1,0 +1,29 @@
+{
+  "name": "axon-bridge-server",
+  "version": "0.0.1",
+  "description": "The server-side application of Axon Bridge, a simple uniform interface for providing database services to Single Page Applications.",
+  "main": "server.js",
+  "author": {
+    "name": "Axon Interactive",
+    "email": "theteam@axoninteractive.ca",
+    "url":"axoninteractive.ca"
+  },
+  "repository":{
+    "type": "git",
+    "url":"https://sivyr@bitbucket.org/axoninteractive/bridge-server.git"
+    },
+  "private": true,
+  "license": "No License"
+  "dependencies": {
+   "express": "3.x",
+   "winston": ">=0.7.3"
+  },
+  "devDependencies": {
+    "mocha": "latest",
+    "supertest": "latest",
+    "chai": ">=1.9.1"
+  },
+  "scripts":{
+    "test": "make test"
+  }
+}
