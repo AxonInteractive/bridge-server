@@ -6,19 +6,29 @@ var express          = require('express'),
     serverLogger     = loggerObj.serverLogger,
     apiLogger        = loggerObj.apiLogger,
     consoleLogger    = loggerObj.consoleLogger,
+    app              = express(),
+    extentionObj     = null,
+    api              = null,
     crypto           = require('crypto'),
     database         = require('./database'),
-    filters          = require('./filters');
+    filters          = require('./filters'),
+    https            = require('https'),
+    privatekey       = fs.readFileSync('privatekey.pem', 'utf8'),
+    certificate      = fs.readFileSync('certificate.pem', 'utf8'),
+    httpsServer      = null;
 
-var app            = express(),
-    extentionObj   = null,
-    api            = null,
-
-    logStream      = {
+var logStream      = {
     write: function(message, encoding){
         serverLogger.verbose('Request: ' + message);
         }
+    },
+
+    credentials = {
+        key: privatekey,
+        cert: certificate
     };
+
+
 
 // Setting standard dictionary objects
     // logger references
@@ -50,10 +60,14 @@ if ('production' == app.get('env')) {
     app.use(express.errorHandler());
 }
 
+httpsServer = https.createServer(credentials, app);
+
 // The constructor of the object
 function start(){
     var port = process.env.PORT || 3000;
-    app.listen(port);
+    httpsServer.listen(port);
+    filters.start(app);
+    database.start(app);
     serverLogger.info("Express server listening on port %d in %s mode", port, app.settings.env);
    
 }
