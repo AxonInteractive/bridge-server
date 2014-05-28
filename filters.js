@@ -1,5 +1,7 @@
 "use strict";
 
+var cryptojs = require('crypto-js');
+
 var app    = null,
     crypto = require('crypto');
 
@@ -7,39 +9,42 @@ exports.start = function(application){
     app = application;
 };
 
-exports.authenticationFilter = function(req, res, next){
+exports.authenticationFilter = function(req, res, next, error){
 
-    app.get('database').query('SELECT * FROM users WHERE email = ?', ['first@domain.com'], function(err, rows){
+    app.get('database').query('SELECT * FROM users WHERE email = ?', [req.body.email], function(err, rows){
 
         if (err){
-            throw {
+            error( {
                 msg: err,
                 statusCode: 400
-            };
+            });
+            return;
         }
 
-        if (rows.length !== 1){
-            throw {
+        if (rows.length !== 1) {
+            error({
                 msg: "user not found or more than one user found for that email",
                 statusCode: 400
-            };
+            });
+            return;
         }
-
         var user = rows[0];
 
         var hmac = crypto.createHmac('sha256', user.PASSWORD);
-        hmac.update(req.body.content + req.body.email + req.body.time);
+        var concat = JSON.stringify(req.body.content) + (req.body.email) + req.body.time;
+        hmac.update( concat );
         var valHmac = hmac.digest('hex');
 
-        if (valHmac !== req.body.hmac){
-            throw {
+
+        if (valHmac !== req.body.hmac) {
+            error({
                 msg: "unauthorized",
                 statusCode: 401
-            };
+            });
+            return;
         }
-
         req.bridge.user = user;
-
+        
         next();
     });
 };
@@ -62,15 +67,16 @@ exports.registrationAuthenticationFilter = function(req, res, next){
     next();
 };
 
-exports.authorizationFilter = function(req, res, next){
+exports.authorizationFilter = function(req, res, next, error){
     var database = app.get('database');
     database.query("SELECT * FROM users WHERE email = ?", [req.body.email], function(err, rows){
         
         if (err){
-            throw {
+            error({
                 msg: err,
                 statusCode: 400
-            };
+            });
+            return;
         }
 
         if (rows.length !== 1){
@@ -173,9 +179,6 @@ exports.basicRequestFilter = function(req, res, next){
 
     req.bridge = {};
     res.content = {};
-
-    // Enable cross domain requests
-    res.setHeader('Access-Control-Allow-Origin', '*');
 
     next();
 };

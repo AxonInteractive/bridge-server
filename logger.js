@@ -51,8 +51,7 @@ function start(config, app) {
                 prettyPrint : true,
                 colorize    : true,
                 silent      : false,
-                timestamp   : false,
-                JSON        : true
+                timestamp   : false
             })
         ]
     }));

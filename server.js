@@ -29,16 +29,22 @@ app.enable('trust proxy');
     // database reference
 app.set('database', database);
 
+app.use(function(req, res, next){
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin ||'*');
+    app.get('consoleLogger').info("Applying allow origin header");
+    next();
+});
 // Setting up standard middle ware
     // Automatically parse the body to JSON
 app.use(express.json());
 app.use(express.urlencoded());
     // Provides faux HTTP method support.
 app.use(express.methodOverride());
+    // Server any static content under that client folder
+app.use(express.static('client'));
     // Use the router to route messages to the appropriate locations
 app.use(app.router);
-    // Server any static content under that client folder
-app.use(express.static(path.join(__dirname, 'client')));
+
 
 // development only settings
 if ('development' == app.get('env')) {
@@ -49,6 +55,8 @@ if ('development' == app.get('env')) {
 if ('production' == app.get('env')) {
     app.use(express.errorHandler());
 }
+
+
 
 // The constructor of the object
 function start(configPath){

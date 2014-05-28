@@ -101,8 +101,17 @@ exports.getRequestUser = function(req, res, next) {
             msg: "tried to do action without authorization",
             statusCode: 401
         };
-
-    res.content.user = req.bridge.user.APP_DATA;
+    try {
+        res.content.user = JSON.parse(req.bridge.user.APP_DATA);
+    }
+    catch(err){
+        app.get('consoleLogger').error('failed to parse APP DATA as json');
+        app.get('consoleLogger').error(req.bridge.user.APP_DATA);
+        throw {
+            msg: 'Failed to parse JSON from APP DATA',
+            statusCode: 500
+        };
+    }
     next();
 };
 
