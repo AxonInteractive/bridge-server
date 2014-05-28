@@ -174,6 +174,9 @@ exports.basicRequestFilter = function(req, res, next){
     req.bridge = {};
     res.content = {};
 
+    // Enable cross domain requests
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
     next();
 };
 

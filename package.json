@@ -17,10 +17,18 @@
   "dependencies": {
     "express": "3.x",
     "winston": "^0.7.3",
-    "mysql": "^2.3.0"
+    "mysql": "^2.3.0",
+    "jsonminify": "^0.2.3"
   },
   "devDependencies": {},
   "scripts": {
-    "test": "make test"
-  }
+    "test": "make test",
+    "start": "node server.js"
+  },
+  "readme": "ERROR: No README data found!",
+  "_id": "axon-bridge@0.0.1",
+  "dist": {
+    "shasum": "229aa2389f986f1fdae1e4c47183752674056d85"
+  },
+  "_from": "../bridge-server/"
 }

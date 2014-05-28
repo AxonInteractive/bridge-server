@@ -1,76 +1,89 @@
 "use strict";
 var winston = require('winston');
-var config  = require('./configs/loggerconfig');
 
-var apiLogger = new (winston.Logger) ({
-    transports: [
-        new winston.transports.Console({
-            level: config.logger.api.consoleLevel,
-            prettyPrint: true,
-            colorize: true,
-            silent: false,
-            timestamp: false
-        }),
+function start(config, app) {
+    app.set('apiLogger', new(winston.Logger)({
+        transports: [
+            new winston.transports.Console({
+                level       : config.api.consoleLevel,
+                prettyPrint : true,
+                colorize    : true,
+                silent      : false,
+                timestamp   : false
+            }),
 
-        new winston.transports.DailyRotateFile({
-            filename: config.logger.api.filename,
-            level: config.logger.api.level,
-            prettyPrint: true,
-            timestamp: true,
-            silent: false
-        })
-    ],
-});
+            new winston.transports.DailyRotateFile({
+                filename    : config.api.filename,
+                level       : config.api.level,
+                prettyPrint : true,
+                timestamp   : true,
+                silent      : false
+            })
+        ],
+    }));
 
-var serverLogger = new (winston.Logger) ({
-    transports: [
-        new winston.transports.Console({
-            level: config.logger.server.consoleLevel,
-            prettyPrint: true,
-            colorize: true,
-            silent: false,
-            timestamp: false
-        }),
-        
-        new winston.transports.DailyRotateFile({
-            filename: config.logger.server.filename,
-            level: config.logger.server.level,
-            prettyPrint: true,
-            timestamp: true,
-            silent: false
-        })
-    ],
+    app.set('serverLogger', new(winston.Logger)({
+        transports: [
+            new winston.transports.Console({
+                level       : config.server.consoleLevel,
+                prettyPrint : true,
+                colorize    : true,
+                silent      : false,
+                timestamp   : false
+            }),
 
-    exceptionHandlers: [
-        new winston.transports.DailyRotateFile({ filename: config.logger.exception.filename })
-    ]
-});
+            new winston.transports.DailyRotateFile({
+                filename    : config.server.filename,
+                level       : config.server.level,
+                prettyPrint : true,
+                timestamp   : true,
+                silent      : false
+            })
+        ],
 
-var consoleLogger = new (winston.Logger) ({
-    transports: [
-        new winston.transports.Console({
-            level: config.logger.console.level,
-            prettyPrint: true,
-            colorize: true,
-            silent: false,
-            timestamp: false
-        })
-    ]
-});
+        exceptionHandlers: [
+            new winston.transports.DailyRotateFile({
+                filename         : config.exception.filename,
+                handleExceptions : true
+            }),
 
-var debugLogger = new (winston.Logger) ({
-    transports: [
-        new winston.transports.File({
-            level: 'debug',
-            filename: 'logs/debug.log',
-            timestamp: true,
-            prettyPrint: true,
-            silent: false
-        })
-    ]
-});
+            new winston.transports.Console({
+                prettyPrint : true,
+                colorize    : true,
+                silent      : false,
+                timestamp   : false,
+                JSON        : true
+            })
+        ]
+    }));
 
-exports.apiLogger     = apiLogger;
-exports.serverLogger  = serverLogger;
-exports.consoleLogger = consoleLogger;
-exports.debugLogger   = debugLogger;
+    app.set('consoleLogger', new(winston.Logger)({
+        transports: [
+            new winston.transports.Console({
+                level       : config.console.level,
+                prettyPrint : true,
+                colorize    : true,
+                silent      : false,
+                timestamp   : false
+            })
+        ]
+    }));
+
+    app.set('debugLogger', new(winston.Logger)({
+        transports: [
+            new winston.transports.File({
+                level       : 'debug',
+                filename    : 'logs/debug.log',
+                timestamp   : true,
+                prettyPrint : true,
+                silent      : false
+            })
+        ]
+    }));
+
+    if (config.exception.writetoconsole === true) {
+
+    }
+}
+
+exports.start         = start;
