@@ -62,8 +62,13 @@ app.use(express.urlencoded());
 app.use(express.methodOverride());
     // Server any static content under that client folder
 app.use(express.static('client'));
-    // Use the router to route messages to the appropriate locations
-app.use(app.router);
+
+app.use(function(req, res, next) {
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    next();
+});
+
+
     // Standard Request Middleware for API Calls
 app.use('/api/*',function(req, res, next){
     var body    = req.body;
@@ -155,6 +160,9 @@ if ('development' == app.get('env')) {
 if ('production' == app.get('env')) {
     app.use(express.errorHandler());
 }
+
+// Use the router to route messages to the appropriate locations
+    app.use(app.router);
 
 // Setup the server for https mode
 if (config.server.mode === "https") {
