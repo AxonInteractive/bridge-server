@@ -70,6 +70,7 @@ app.use(function(req, res, next) {
 
 app.use(function(req, res, next){
     req.bridge = {};
+    next();
 });
 
 
