@@ -68,6 +68,10 @@ app.use(function(req, res, next) {
     next();
 });
 
+app.use(function(req, res, next){
+    req.bridge = {};
+});
+
 
     // Standard Request Middleware for API Calls
 app.use('/api/*',function(req, res, next){
