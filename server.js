@@ -40,7 +40,7 @@ exports.filters = filters;
 // Prepare a steam in which for express to be able to write to winston
 var logStream = {
     write: function(message, encoding) {
-        app.get('serverLogger').verbose('Request: ' + message);
+        app.get('logger').verbose('Request: ' + message);
     }
 };
 
