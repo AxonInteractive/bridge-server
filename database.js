@@ -1,9 +1,12 @@
 "use strict";
 
 var mysql      = require('mysql');
+var server     = require('./server');
 var connection = null;
-var app        = null;
+var app        = server.app;
 
+connection = mysql.createConnection(server.config.database);
+connection.connect();
 
 /**
  * gets the users using the filter object added on
@@ -13,7 +16,6 @@ var app        = null;
  * @return {Undefined}      Nothing.
  */
 exports.getUser = function(req, res, next) {
-
     var query = 'SELECT APP_DATA FROM users WHERE ';
     var values = [];
     var first = true;
@@ -32,7 +34,7 @@ exports.getUser = function(req, res, next) {
 
     connection.query(query, values, function(err, rows) {
         if (err) {
-            app.get('serverLogger').warn("Query failed: " + query + "\nWith error: " + err);
+            app.get('logger').warn("Query failed: " + query + "\nWith error: " + err);
             throw err;
         }
 
@@ -72,7 +74,7 @@ exports.getLoginPackage = function(req, res, next) {
 
         connection.query(artifactQuery, [user.ID], function(err, artifactRows) {
             if (err) {
-                app.get('serverLogger').warn("Query failed: " + artifactQuery + "\nWith error: " + err);
+                app.get('logger').warn("Query failed: " + artifactQuery + "\nWith error: " + err);
                 throw {
                     msg: err,
                     statusCode: 400
@@ -86,35 +88,6 @@ exports.getLoginPackage = function(req, res, next) {
     });
 };
 
-
-/**
- * Gets the app data from an authenticated user and attaches it to the response under response -> content -> user
- * @param  {Object}   req  The request object.
- * @param  {Object}   res  The response object.
- * @param  {Function} next The function to call when the filter is complete.
- * @return {Undefined}     Nothing
- */
-exports.getRequestUser = function(req, res, next) {
-
-    if (!req.bridge.user)
-        throw {
-            msg: "tried to do action without authorization",
-            statusCode: 401
-        };
-    try {
-        res.content.user = JSON.parse(req.bridge.user.APP_DATA);
-    }
-    catch(err){
-        app.get('consoleLogger').error('failed to parse APP DATA as json');
-        app.get('consoleLogger').error(req.bridge.user.APP_DATA);
-        throw {
-            msg: 'Failed to parse JSON from APP DATA',
-            statusCode: 500
-        };
-    }
-    next();
-};
-
 /**
  * query the database with the given query and values for the query.
  * @param  {String}    query  The mysql database query string with '?' for variables.
@@ -125,7 +98,7 @@ exports.getRequestUser = function(req, res, next) {
 exports.query = function(query, values, cb) {
     connection.query(query, values, function(err, rows) {
         if (err) {
-            app.get('serverLogger').warn("Query failed: " + query + "\nWith error: " + err);
+            app.get('logger').warn("Query failed: " + query + "\nWith error: " + err);
             cb(err);
         }
 
@@ -142,16 +115,3 @@ exports.close = function() {
     connection.end();
 };
 
-/**
- * Starts the database connection.
- * @param  {Object}    application The reference to the express app Object.
- * @return {Undefined}             Nothing.
- */
-exports.start = function(application) {
-    app = application;
-
-    connection = mysql.createConnection(app.get('DatabaseConfig'));
-
-    connection.connect();
-
-};

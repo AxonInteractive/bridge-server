@@ -1,13 +1,7 @@
 "use strict";
 
-var cryptojs = require('crypto-js');
-
-var app    = null,
+var app    = require('./server').app,
     crypto = require('crypto');
-
-exports.start = function(application){
-    app = application;
-};
 
 exports.authenticationFilter = function(req, res, next, error){
 
@@ -101,86 +95,6 @@ exports.authorizationFilter = function(req, res, next, error){
 
         next();
     });
-};
-
-exports.basicRequestFilter = function(req, res, next){
-    var body = req.body;
-    var content = body.content;
-    var email = body.email;
-    var time  = body.time;
-    var hmac = body.hmac;
-
-    // Check if the content exists
-    if (!varExists(content)){
-        throw {
-            msg: "content does not exist",
-            statusCode: 400
-        };
-    }
-
-    // Check the email field of the request
-    {
-        if (!varExists(email)){
-            throw { 
-                msg: "email does not exist",
-                statusCode: 400
-            };
-        }
-
-        var emailRegex = /^[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~])*@[a-zA-Z](-?[a-zA-Z0-9])*(\.[a-zA-Z](-?[a-zA-Z0-9])*)+$/g;
-        var reg = emailRegex.exec(email);
-
-        if (reg === null){
-            throw { 
-                msg: "email is not valid",
-                statusCode: 400
-            };
-
-        }
-    }
-    
-    // Check the time field of the message
-    {
-        if (!varExists(time)){
-            throw {
-                msg: "time does not exist",
-                statusCode: 400
-            };
-        }
-
-        var timeRegex = /^\d{4}-(0[1-9]|1[1-2])-([0-2]\d|3[0-1])T([0-1]\d|2[0-3]):[0-5]\d:[0-5]\d\.\d{3}Z/g;
-        var timeReg = timeRegex.exec(time);
-
-        if (timeReg === null){
-            throw {
-                msg: "time is not valid",
-                statusCode: 400
-            };
-        }
-    }
-
-    // Check the hmac field of the message
-    {
-        if (!varExists(hmac))
-            throw {
-                msg: "hmac does not exist",
-                statusCode: 400
-            };
-        
-       var sha256 = crypto.createHash('sha256');
-       var hash = sha256.update('something').digest('hex');
-
-        if (hash.length !== hmac.length)
-            throw {
-                msg: "password is not valid",
-                statusCode: 400
-            };
-    }
-
-    req.bridge = {};
-    res.content = {};
-
-    next();
 };
 
 exports.registrationDataVaildation = function(req, res, next){
@@ -359,6 +273,34 @@ exports.determineRequestFilters = function(req, res, next){
     next();
 };
 
+/**
+ * Gets the app data from an authenticated user and attaches it to the response under response -> content -> user
+ * @param  {Object}   req  The request object.
+ * @param  {Object}   res  The response object.
+ * @param  {Function} next The function to call when the filter is complete.
+ * @return {Undefined}     Nothing
+ */
+exports.getRequestUser = function(req, res, next) {
+
+    if (!req.bridge.user)
+        throw {
+            msg: "tried to do action without authorization",
+            statusCode: 401
+        };
+    try {
+        res.content.user = JSON.parse(req.bridge.user.APP_DATA);
+    }
+    catch(err){
+        app.get('consoleLogger').error('failed to parse APP DATA as json');
+        app.get('consoleLogger').error(req.bridge.user.APP_DATA);
+        throw {
+            msg: 'Failed to parse JSON from APP DATA',
+            statusCode: 500
+        };
+    }
+    next();
+};
+
 function varExists(variable){
     if (typeof variable === 'undefined'){
         return false;
@@ -367,9 +309,5 @@ function varExists(variable){
         return false;
     }
 
-    return true;
-}
-
-function checkDateFormat(date){
     return true;
 }

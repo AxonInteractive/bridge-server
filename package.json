@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://sivyr@bitbucket.org/axoninteractive/bridge-server.git"
+    "url": "git+ssh://git@bitbucket.org/axoninteractive/bridge-server.git"
   },
   "private": true,
   "license": "No License",
@@ -22,13 +22,6 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "make test",
-    "start": "node server.js"
-  },
-  "readme": "ERROR: No README data found!",
-  "_id": "axon-bridge@0.0.1",
-  "dist": {
-    "shasum": "229aa2389f986f1fdae1e4c47183752674056d85"
-  },
-  "_from": "../bridge-server/"
+    "test": "make test"
+  }
 }

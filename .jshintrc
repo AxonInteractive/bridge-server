@@ -1,5 +1,6 @@
 {
     "strict": true,
     "node": true,
-    "predef": [ ]
+    "predef": [ ],
+    "eqnull": true
 }
