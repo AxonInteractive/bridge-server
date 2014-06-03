@@ -298,6 +298,7 @@ exports.getRequestUser = function(req, res, next) {
             statusCode: 500
         };
     }
+    res.content.additionalData = {};
     next();
 };
 
