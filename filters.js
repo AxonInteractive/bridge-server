@@ -10,7 +10,7 @@ exports.authenticationFilter = function(req, res, next, error){
         if (err){
             error( {
                 msg: err,
-                statusCode: 400
+                statusCode: 403
             });
             return;
         }
@@ -18,7 +18,7 @@ exports.authenticationFilter = function(req, res, next, error){
         if (rows.length !== 1) {
             error({
                 msg: "user not found or more than one user found for that email",
-                statusCode: 400
+                statusCode: 403
             });
             return;
         }
@@ -33,7 +33,7 @@ exports.authenticationFilter = function(req, res, next, error){
         if (valHmac !== req.body.hmac) {
             error({
                 msg: "unauthorized",
-                statusCode: 401
+                statusCode: 403
             });
             return;
         }
@@ -52,7 +52,7 @@ exports.registrationAuthenticationFilter = function(req, res, next){
     if (valHmac !== req.body.hmac){
         throw {
             msg: "unauthorized",
-            statusCode: 401
+            statusCode: 403
         };
     }
 
@@ -68,7 +68,7 @@ exports.authorizationFilter = function(req, res, next, error){
         if (err){
             error({
                 msg: err,
-                statusCode: 400
+                statusCode: 401
             });
             return;
         }
@@ -76,7 +76,7 @@ exports.authorizationFilter = function(req, res, next, error){
         if (rows.length !== 1){
             throw {
                 msg: "user not found or more than one user found for that email",
-                statusCode: 400
+                statusCode: 401
             };
         }
 
@@ -85,7 +85,7 @@ exports.authorizationFilter = function(req, res, next, error){
         if (!varExists(user)){
             throw {
                 msg: "no user with that email",
-                statusCode: 400
+                statusCode: 401
             };
         }
 
