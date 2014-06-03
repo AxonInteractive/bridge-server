@@ -128,7 +128,7 @@ app.use('/api/*',function(req, res, next){
             throw {
                 msg: "time is not valid",
                 statusCode: 400
-            };
+            };  
         }
     }
 
@@ -140,14 +140,14 @@ app.use('/api/*',function(req, res, next){
                 statusCode: 400
             };
         
-       var sha256 = crypto.createHash('sha256');
-       var hash = sha256.update('something').digest('hex');
-
-        if (hash.length !== hmac.length)
-            throw {
+        var passregex = /^[a-z0-9]{64}$/;
+        var passReg = passregex.exec(hmac);
+        if (passReg === null)
+            throw  {
                 msg: "password is not valid",
                 statusCode: 400
             };
+
     }
 
     req.bridge = {};

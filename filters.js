@@ -43,20 +43,64 @@ exports.authenticationFilter = function(req, res, next, error){
     });
 };
 
+/**
+ * This filter is used for registration authentication. also does dataVaildation
+ * @param  {Object}   req  The express request object.
+ * @param  {Object}   res  The express response object.
+ * @param  {Function} next The callback function for when the operation is complete
+ * @return {Undefined}
+ */
 exports.registrationAuthenticationFilter = function(req, res, next){
 
-    var hmac = crypto.createHmac('sha256', req.body.content.password);
-    hmac.update(req.body.content + req.body.email + req.body.time);
-    var valHmac = hmac.digest('hex');
 
-    if (valHmac !== req.body.hmac){
-        throw {
-            msg: "unauthorized",
-            statusCode: 403
+    // Validating Password
+    {
+        // Preform a regex on the password to make sure it is in correct format
+        var passRegex = /^[a-z0-9]{64}$/;
+        var passReg = passRegex.exec(req.body.content.password);
+
+        if (passReg === null)
+            throw {
+                msg: "password is in incorrect format",
+                statusCode: 400
         };
+
+
+        var hmac = crypto.createHmac('sha256', req.body.content.password);
+        var concat = JSON.stringify(req.body.content) + req.body.email + req.body.time;
+        hmac.update(concat);
+        var valHmac = hmac.digest('hex');
+
+        if (valHmac !== req.body.hmac) {
+            throw {
+                msg: "unauthorized",
+                statusCode: 403
+            };
+        }
     }
 
     req.bridge.user = {};
+    req.bridge.regObj = {
+        Email: req.body.content.email,
+        Pass: req.body.content.password,
+        FName: req.body.content['first-name'],
+        LName: req.body.content['last-name'],
+        RegCode: req.body.content.regcode,
+        AppData: {
+            "pretest"       : false,
+            "module1-page1" : false,
+            "module1-page2" : false,
+            "exercise1"     : false,
+            "module2-page1" : false,
+            "module2-page2" : false,
+            "exercise2"     : false,
+            "module3-page1" : false,
+            "module3-page2" : false,
+            "exercise3"     : false,
+            "posttest"      : false,
+            "kt-plan"       : false
+        }
+    };
 
     next();
 };
@@ -98,10 +142,55 @@ exports.authorizationFilter = function(req, res, next, error){
 };
 
 exports.registrationDataVaildation = function(req, res, next){
+
+    // Make sure all of the nessesary data for registration exists
+    if (req.body.content == null || req.body.content.email == null ||
+        req.body.content.password == null || req.body.content['first-name'] == null ||
+        req.body.content['last-name'] == null || req.body.content.regcode == null)
+    {
+        throw {
+            msg: "Missing data needed for registration",
+            statusCode: 400
+        };
+    }
+
+    // Validating Email
+    {
+        var emailRegex = /^[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~])*@[a-zA-Z](-?[a-zA-Z0-9])*(\.[a-zA-Z](-?[a-zA-Z0-9])*)+$/g;
+        var emailReg = emailRegex.exec(req.body.content.email);
+
+        if (emailReg === null)
+            throw {
+                msg: "Email inside content is mis-formatted",
+                statusCode: 400
+            };
+
+    }
+
+    // Validating First and Last Name
+    {
+        var nameRegex = /^[a-zA-Z]{2,}$/;
+        var fNameReg = nameRegex.exec(req.body.content['first-name']);
+
+        if (fNameReg === null)
+            throw {
+                msg: "first name failed to validate",
+                statusCode: 400
+            };
+
+        var lNameReg = nameRegex.exec(req.body.content['last-name']);
+
+        if (lNameReg === null)
+            throw {
+                msg: "last name failed to validate",
+                statusCode: 400
+            };
+    }
+
     var password = req.body.content.password;
 
 
-    if (!varExists(password)){
+    if (!(password)){
         throw {
             msg: "password does not exist",
             statusCode: 400

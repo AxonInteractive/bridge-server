@@ -50,43 +50,67 @@ exports.getUser = function(req, res, next) {
     });
 };
 
-exports.getLoginPackage = function(req, res, next) {
-    var userQuery = 'SELECT * FROM users WHERE email = ?';
-    var artifactQuery = 'SELECT *(DISTINCT DATA_TYPE) FROM data WHERE USER_ID = ?';
+exports.registerUser = function(req, res, next, error){
+    // [Email, Password, First Name, Last Name, App Data]
+    var userInsertionQuery = "INSERT INTO users VALUES (0, ?, ?, ?, ?, NOW(), ?, \"CREATED\", \"user\", 0)";
+    if (!req.bridge.regObj)
+        throw {
+            msg: "Cannot register without authentication",
+            statusCode: 400
+        };
+    var regObj = req.bridge.regObj;
+    var values = [regObj.Email, regObj.Pass, regObj.FName, regObj.LName, JSON.stringify(regObj.AppData)];
 
-    connection.query(userQuery, [req.body.email], function(err, userRows) {
+    connection.query(userInsertionQuery, values, function(err, retObj){
         if (err) {
-            app.get('serverLogger').warn("Query failed: " + userQuery + "\nWith error: " + err);
-            throw {
-                msg: err,
-                statusCode: 400
-            };
-        }
-
-        if (userRows.length === 0) {
-            throw {
-                msg: "no users with that email",
-                statusCode: 400
-            };
-        }
-
-        var user = userRows[0];
-
-        connection.query(artifactQuery, [user.ID], function(err, artifactRows) {
-            if (err) {
-                app.get('logger').warn("Query failed: " + artifactQuery + "\nWith error: " + err);
-                throw {
-                    msg: err,
-                    statusCode: 400
-                };
-            }
-
-            artifactRows.forEach(function(element) {
-
+            app.get('logger').warn("Query failed: " + userInsertionQuery + "\nWith error: " + err);
+            error({
+                msg: JSON.stringify(err),
+                statusCode: 406
             });
-        });
+            return;
+        }
+
+        next();
     });
 };
+
+// exports.getLoginPackage = function(req, res, next) {
+//     var userQuery = 'SELECT * FROM users WHERE email = ?';
+    
+//     connection.query(userQuery, [req.body.email], function(err, userRows) {
+//         if (err) {
+//             app.get('serverLogger').warn("Query failed: " + userQuery + "\nWith error: " + err);
+//             throw {
+//                 msg: err,
+//                 statusCode: 400
+//             };
+//         }
+
+//         if (userRows.length === 0) {
+//             throw {
+//                 msg: "no users with that email",
+//                 statusCode: 400
+//             };
+//         }
+
+//         var user = userRows[0];
+
+//         connection.query(artifactQuery, [user.ID], function(err, artifactRows) {
+//             if (err) {
+//                 app.get('logger').warn("Query failed: " + artifactQuery + "\nWith error: " + err);
+//                 throw {
+//                     msg: err,
+//                     statusCode: 400
+//                 };
+//             }
+
+//             artifactRows.forEach(function(element) {
+
+//             });
+//         });
+//     });
+// };
 
 /**
  * query the database with the given query and values for the query.
