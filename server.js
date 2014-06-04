@@ -10,6 +10,9 @@ var http       = require('http');
 var path       = require('path');
 var express    = require('express');
 
+// Export pipeline object as a utility
+exports.pipeline = require('./lib/pipeline');
+
 // Parse the configuration file from the application
 var configStr   = fs.readFileSync('config.json','utf8');
 var config      = JSON.parse(JSON.minify(configStr));
@@ -26,16 +29,18 @@ exports.app = app;
 exports.config = config;
 
 // Read in local modules
-var loggerObj  = require('./logger');
-var database   = require('./database');
-var filters    = require('./filters');
-var jsonminify = require('jsonminify');
+var loggerObj   = require('./logger');
+var database    = require('./database');
+var filters     = require('./filters');
+var bridgeWare  = require('./middleware');
+var stdHandlers = require('./handlers');
 
 // Prepare server variable
 var server     = null;
 
 // Export local files for the API to use
-exports.filters = filters;
+exports.filters        = filters;
+exports.bridgeHandlers = stdHandlers;
 
 // Prepare a steam in which for express to be able to write to winston
 var logStream = {
@@ -44,6 +49,7 @@ var logStream = {
     }
 };
 
+// Use the logging middleware to log requests using the stream above
 app.use(express.logger({stream: logStream}));
 
 // Tell express that it is behind a proxy
@@ -54,120 +60,34 @@ app.enable('trust proxy');
 app.set('database', database);
 
 // Setting up standard middle ware
+    // Server any static content under that client folder
+    // Should be first due to wanting to server content before API whatever happens.
+app.use(express.static('client'));
+    // development only settings
+if ('development' == app.get('env')) {
+    app.use(express.errorHandler({ dumpExceptions: true, showStack: true })); 
+}
+    // production only settings
+if ('production' == app.get('env')) {
+    app.use(express.errorHandler());
+}
+
     // Automatically parse the body to JSON
 app.use(express.json());
     // Decode URL Strings
 app.use(express.urlencoded());
     // Provides faux HTTP method support.
 app.use(express.methodOverride());
-    // Server any static content under that client folder
-app.use(express.static('client'));
-
-app.use(function(req, res, next) {
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-    next();
-});
-
-app.use(function(req, res, next){
-    req.bridge = {};
-    next();
-});
-
-
-    // Standard Request Middleware for API Calls
-app.use('/api/*',function(req, res, next){
-    var body    = req.body;
-    var content = body.content;
-    var email   = body.email;
-    var time    = body.time;
-    var hmac    = body.hmac;
-
-    app.get('consoleLogger').info('Standard API Filter is being used');
-
-    // Check if the content exists
-    if (content == null){
-        throw {
-            msg: "content does not exist",
-            statusCode: 400
-        };
-    }
-
-    // Check the email field of the request
-    {
-        if (email == null){
-            throw { 
-                msg: "email does not exist",
-                statusCode: 400
-            };
-        }
-
-        var emailRegex = /^[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~])*@[a-zA-Z](-?[a-zA-Z0-9])*(\.[a-zA-Z](-?[a-zA-Z0-9])*)+$/g;
-        var reg = emailRegex.exec(email);
-
-        if (reg === null){
-            throw { 
-                msg: "email is not valid",
-                statusCode: 400
-            };
-        }
-    }
-    
-    // Check the time field of the message
-    {
-        if (time == null){
-            throw {
-                msg: "time does not exist",
-                statusCode: 400
-            };
-        }
-
-        var timeRegex = /^\d{4}-(0[1-9]|1[1-2])-([0-2]\d|3[0-1])T([0-1]\d|2[0-3]):[0-5]\d:[0-5]\d\.\d{3}Z/g;
-        var timeReg = timeRegex.exec(time);
-
-        if (timeReg === null){
-            throw {
-                msg: "time is not valid",
-                statusCode: 400
-            };  
-        }
-    }
-
-    // Check the hmac field of the message
-    {
-        if (hmac == null)
-            throw {
-                msg: "hmac does not exist",
-                statusCode: 400
-            };
-        
-        var passregex = /^[a-z0-9]{64}$/;
-        var passReg = passregex.exec(hmac);
-        if (passReg === null)
-            throw  {
-                msg: "password is not valid",
-                statusCode: 400
-            };
-
-    }
-
-    req.bridge = {};
-    res.content = {};
-
-    next();
-});
-
-// development only settings
-if ('development' == app.get('env')) {
-    app.use(express.errorHandler({ dumpExceptions: true, showStack: true})); 
-}
-
-// production only settings
-if ('production' == app.get('env')) {
-    app.use(express.errorHandler());
-}
-
-// Use the router to route messages to the appropriate locations
-    app.use(app.router);
+    // Add the CORS headers to the response
+app.use(bridgeWare.attachCORSHeaders);
+    // create the Bridge Objects on the request and response
+app.use(bridgeWare.prepareBridgeObjects);
+    // read the query string from a request and parse it as JSON
+app.use(bridgeWare.parseGetQueryString);
+    // Standard Request Middleware for Verification of content for any API Calls
+app.use(bridgeWare.verifyRequestStructure);
+    // Use the router to route messages to the appropriate locations
+app.use(app.router);
 
 // Setup the server for https mode
 if (config.server.mode === "https") {

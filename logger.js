@@ -38,14 +38,22 @@ app.set('consoleLogger', new(winston.Logger)({
     ]
 }));
 
-app.set('devLogger', new(winston.Logger)({
-    transports: [
-        new winston.transports.File({
-            level: 'silly',
-            filename: 'logs/dev.log',
-            timestamp: true,
-            prettyPrint: true,
-            silent: false
-        })
-    ]
-}));
+if (app.get('env') === 'development') {
+
+    app.set('devLogger', new(winston.Logger)({
+        transports: [
+            new winston.transports.File({
+                level: 'silly',
+                filename: 'logs/dev.log',
+                timestamp: true,
+                prettyPrint: true,
+                silent: false
+            })
+        ]
+    }));
+    app.get('devLogger').add(winston.transports.Console, { level: 'debug', colorize: true } );
+}
+else {
+    app.set('devLogger', new (winston.Logger)({
+    }));
+}
