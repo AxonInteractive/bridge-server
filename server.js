@@ -80,6 +80,8 @@ app.use(express.urlencoded());
 app.use(express.methodOverride());
     // Add the CORS headers to the response
 app.use(bridgeWare.attachCORSHeaders);
+    // Handle CORS Request
+app.use(bridgeWare.handleOptionsRequest);
     // create the Bridge Objects on the request and response
 app.use(bridgeWare.prepareBridgeObjects);
     // read the query string from a request and parse it as JSON

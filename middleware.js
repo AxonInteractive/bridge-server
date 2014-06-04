@@ -25,6 +25,26 @@ exports.prepareBridgeObjects = function (req, res, next){
     next();
 };
 
+/**
+ * Handle CORS request. this is due to the proxy setup for the case of PEIR.
+ * @param  {Object}    req The express request object.
+ * @param  {Object}    res The express response object.
+ * @return {Undefined}
+ */
+exports.handleOptionsRequest = function(req, res, next){
+    if (req.method !== 'OPTIONS'){
+        next();
+        return;
+    }
+    res.status(204);
+    //res.setHeader('access-control-allow-origin', req.headers.origin || '*');
+    res.setHeader('access-control-allow-methods', 'GET, PUT, OPTIONS, POST, DELETE');
+    res.setHeader('access-control-allow-headers', "content-type, accept");
+    res.setHeader('access-control-max-age', 10);
+    res.setHeader('content-length', 0);
+    res.send();
+};
+
 exports.parseGetQueryString = function(req, res, next){
     if (req.method !== 'GET'){
             next();
