@@ -93,7 +93,7 @@ exports.verifyRequestStructure = function(req, res, next){
     if (content == null){
         res.status(400);
         res.send({
-            msg: "content does not exist"
+            message: "content does not exist"
         });
         return;
     }
@@ -103,7 +103,7 @@ exports.verifyRequestStructure = function(req, res, next){
         if (email == null){
             res.status(400);
             res.send({
-                msg: "email does not exist"
+                message: "email does not exist"
             });
             return;
         }
@@ -114,7 +114,7 @@ exports.verifyRequestStructure = function(req, res, next){
         if (reg == null){
             res.status(400);
             res.send({
-                msg: "email is not valid"
+                message: "email is not valid"
             });
             return;
         }
@@ -125,7 +125,7 @@ exports.verifyRequestStructure = function(req, res, next){
         if (time == null){
             res.status(400);
             res.send({
-                msg: "time does not exist"
+                message: "time does not exist"
             });
             return;
         }
@@ -137,7 +137,7 @@ exports.verifyRequestStructure = function(req, res, next){
         {
             res.status(400);
             res.send({
-                msg: "time is not valid"
+                message: "time is not valid"
             });
         }
 
@@ -145,7 +145,7 @@ exports.verifyRequestStructure = function(req, res, next){
         if (reqTimeObj == null){
             res.status(400);
             res.send({
-                msg: 'time could not be parsed as an object'
+                message: 'time could not be parsed as an object'
             });
             return;
         }
@@ -156,7 +156,7 @@ exports.verifyRequestStructure = function(req, res, next){
         if ( timeDiff > 60000 && timeDiff < 0 ){
             res.status(400);
             res.send({
-                msg: "time difference on the request is to large. diff: " + timeDiff,
+                message: "time difference on the request is to large. diff: " + timeDiff,
             });
             return;
         }
@@ -167,7 +167,7 @@ exports.verifyRequestStructure = function(req, res, next){
         if (hmac == null){
             res.status(400);
             res.send({
-                msg: "hmac does not exist"
+                message: "hmac does not exist"
             });
             return;
         }
@@ -177,7 +177,7 @@ exports.verifyRequestStructure = function(req, res, next){
         if (passReg === null){
             res.status(400);
             res.send({
-                msg: "password is not valid",
+                message: "password is not valid",
             });
             return;
         }
