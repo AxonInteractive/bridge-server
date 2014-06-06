@@ -29,18 +29,18 @@ exports.app = app;
 exports.config = config;
 
 // Read in local modules
-var loggerObj   = require('./logger');
-var database    = require('./database');
-var filters     = require('./filters');
-var bridgeWare  = require('./middleware');
-var stdHandlers = require('./handlers');
+var loggerObj   = require('./src/logger');
+var database    = require('./src/database');
+var filters     = require('./src/filters');
+var bridgeWare  = require('./src/middleware');
+var pipelines = require('./src/pipelines');
 
 // Prepare server variable
 var server     = null;
 
 // Export local files for the API to use
-exports.filters        = filters;
-exports.bridgeHandlers = stdHandlers;
+exports.filters         = filters;
+exports.bridgePipelines = pipelines;
 
 // Prepare a steam in which for express to be able to write to winston
 var logStream = {
@@ -49,47 +49,67 @@ var logStream = {
     }
 };
 
-// Use the logging middleware to log requests using the stream above
-app.use(express.logger({stream: logStream}));
+// Setting standard dictionary objects
+// database reference
+app.set('database', database);
 
 // Tell express that it is behind a proxy
 app.enable('trust proxy');
 
-// Setting standard dictionary objects
-    // database reference
-app.set('database', database);
+/////////////////////////////////////////////////////////////////////////////////////////
+///////    STARTING SETUP OF MIDDLEWARE    //////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
 
-// Setting up standard middle ware
-    // Server any static content under that client folder
-    // Should be first due to wanting to server content before API whatever happens.
+// Use the logging middleware to log requests using the stream above
+app.use(express.logger({stream: logStream}));
+
+// Server any static content under that client folder
+// Should be first due to wanting to server content before API whatever happens.
 app.use(express.static('client'));
-    // development only settings
+
+// development only settings
 if ('development' == app.get('env')) {
     app.use(express.errorHandler({ dumpExceptions: true, showStack: true })); 
 }
-    // production only settings
+
+// production only settings
 if ('production' == app.get('env')) {
     app.use(express.errorHandler());
 }
 
-    // Automatically parse the body to JSON
+// Automatically parse the body to JSON
 app.use(express.json());
-    // Decode URL Strings
+
+// Decode URL Strings
 app.use(express.urlencoded());
-    // Provides faux HTTP method support.
+
+// Provides faux HTTP method support.
 app.use(express.methodOverride());
-    // Add the CORS headers to the response
+
+// Add the CORS headers to the response
 app.use(bridgeWare.attachCORSHeaders);
-    // Handle CORS Request
+
+// Handle CORS Request
 app.use(bridgeWare.handleOptionsRequest);
-    // create the Bridge Objects on the request and response
+
+// create the Bridge Objects on the request and response
 app.use(bridgeWare.prepareBridgeObjects);
-    // read the query string from a request and parse it as JSON
+
+// read the query string from a request and parse it as JSON
 app.use(bridgeWare.parseGetQueryString);
-    // Standard Request Middleware for Verification of content for any API Calls
+
+// Standard Request Middleware for Verification of content for any API Calls
 app.use(bridgeWare.verifyRequestStructure);
-    // Use the router to route messages to the appropriate locations
+
+// Use the router to route messages to the appropriate locations
 app.use(app.router);
+
+// Prepare the bridge response headers on the response object
+app.use(bridgeWare.setupResponseHeaders);
+
+/////////////////////////////////////////////////////////////////////////////////////////
+///////     MIDDLEWARE SETUP COMPLETE      //////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
 
 // Setup the server for https mode
 if (config.server.mode === "https") {

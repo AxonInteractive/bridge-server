@@ -1,6 +1,6 @@
 "use strict";
 var winston = require('winston');
-var server = require('./server');
+var server = require('../server');
 var app = server.app;
 var config = server.config.logger;
 
