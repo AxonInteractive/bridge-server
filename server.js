@@ -84,7 +84,7 @@ app.use(express.json());
 app.use(express.urlencoded());
 
 // Provides faux HTTP method support.
-app.use(express.methodOverride());
+//app.use(express.methodOverride());
 
 // Add the CORS headers to the response
 app.use(bridgeWare.attachCORSHeaders);
@@ -110,6 +110,7 @@ app.use(bridgeWare.setupResponseHeaders);
 /////////////////////////////////////////////////////////////////////////////////////////
 ///////     MIDDLEWARE SETUP COMPLETE      //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
+
 
 // Setup the server for https mode
 if (config.server.mode === "https") {
@@ -139,3 +140,57 @@ process.on('SIGTERM', function(){
     database.close();
 });
 
+/////////////////////////////////////////////////////////////////////////////////////////
+///////   CHECKING FOR STANDARD MIDDLEWARE   ////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Checking the API to see if the correct routes have been setup by the API
+ * @return {Undefined}
+ */
+setTimeout(function(){
+    
+    var routes = app.routes;
+    var foundRegister = false, foundLogin = false;
+
+    var regex, method;
+
+    {
+        regex = /.*\/register$/;
+        method = routes.put;
+        
+        method.forEach(function(element) {
+            var reg = regex.exec(element.path);
+
+            if (reg !== null) {
+                foundRegister = true;
+            }
+        });
+    }
+    {
+        regex = /.*\/login$/;
+        method = routes.get;
+        
+        method.forEach(function(element) {
+            var reg = regex.exec(element.path);
+
+            if (reg !== null) {
+                foundLogin = true;
+            }
+        });
+    }
+
+    if (!(foundLogin && foundRegister)) {
+        app.get('logger')
+            .error("Standard API routes for Login and Register not found. Bridge API will not work properly without these defined");
+
+        setTimeout( function () {
+            process.kill( process.pid, 'SIGTERM' );
+        }, 3000 );
+    }
+
+}, 1000);
+
+/////////////////////////////////////////////////////////////////////////////////////////
+///////   CHECKING FOR STANDARD MIDDLEWARE COMPLETE  ////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////

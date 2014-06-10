@@ -139,6 +139,14 @@ exports.registrationAuthenticationFilter = function(req, res, next, error){
     next();
 };
 
+/**
+ * Checks the request for the correct data structures and validates the format of those fields.
+ * @param  {Object}   req   The express request object.
+ * @param  {Object}   res   The express response object.
+ * @param  {Function} next  The callback for the completion of this filter
+ * @param  {Function} error The callback for an error occuring in the filter.
+ * @return {Undefined} 
+ */
 exports.registrationDataVaildation = function(req, res, next, error){
 
     // Make sure all of the nessesary data for registration exists

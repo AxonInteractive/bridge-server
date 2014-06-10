@@ -6,8 +6,8 @@ var connection  = null;
 var app         = server.app;
 var bridgeError = require('./error');
 
-connection = mysql.createConnection(server.config.database);
-connection.connect();
+//connection = mysql.createConnection(server.config.database);
+//connection.connect();
 
 /**
  * gets the users using the filter object added on
@@ -67,6 +67,14 @@ exports.getUser = function ( req, res, next, error ) {
     } );
 };
 
+/**
+ * AAdded the request user to the database.
+ * @param  {Object}   req   The express request object.
+ * @param  {Object}   res   The express response object.
+ * @param  {Function} next  The callback for the sucessful completion of this function
+ * @param  {Function} error The callback incase of an error occuring inside this filter
+ * @return {Undefined}
+ */
 exports.registerUser = function ( req, res, next, error ) {
 
     // [Email, Password, First Name, Last Name, App Data]
