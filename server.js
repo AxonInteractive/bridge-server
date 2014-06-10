@@ -183,11 +183,7 @@ setTimeout(function(){
     if (!(foundLogin && foundRegister)) {
         app.get('logger')
             .error("Standard API routes for Login and Register not found. Bridge API will not work properly without these defined");
-
-        setTimeout( function () {
-            process.kill( process.pid, 'SIGTERM' );
-        }, 3000 );
-    }
+       }
 
 }, 1000);
 
