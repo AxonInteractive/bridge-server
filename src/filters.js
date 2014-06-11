@@ -59,7 +59,7 @@ exports.authenticationFilter = function(req, res, next, error){
             return;
         }
         
-        req.bridge.user = JSON.stringify( user );
+        req.bridge.user = user;
         
         next();
     });

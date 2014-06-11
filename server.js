@@ -9,7 +9,10 @@ var https      = require('https');
 var http       = require('http');
 var path       = require('path');
 var express    = require('express');
-var simplesmtp = require('simplesmtp');
+var underscore = require('underscore');
+
+// Setup global variables
+GLOBAL._ = underscore._;
 
 // Export pipeline object as a utility
 exports.pipeline = require('./lib/pipeline');
@@ -35,6 +38,7 @@ var database   = require('./src/database');
 var filters    = require('./src/filters');
 var bridgeWare = require('./src/middleware');
 var pipelines  = require('./src/pipelines');
+var smtp       = require('./src/smtp');
 
 // Prepare server variable
 var server     = null;
@@ -112,6 +116,12 @@ app.use(bridgeWare.setupResponseHeaders);
 ///////     MIDDLEWARE SETUP COMPLETE      //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
+var smtpoptions = {
+    name: "Axon Bridge SMTP Server",
+    debug: true,
+    secureConnection: true,
+    requireAuthentication: true
+};
 
 // Setup the server for https mode
 if (config.server.mode === "https") {
@@ -121,14 +131,25 @@ if (config.server.mode === "https") {
     };
 
     server = https.createServer(credentials, app);
-} 
+
+    smtpoptions.secureConnection = true;
+    
+    smtpoptions.credentials = {
+        key: credentials.key,
+        cert: credentials.cert
+    };
+
+}
 // Else setup the server for http mode
 else if (config.server.mod === "http") {
     server = http.createServer(app);
+    smtpoptions.secureConnection = false;
 }
 
 // Listen on the port defined at the beginning of the script
 server.listen(port);
+
+smtp.startSmtpServer(smtpoptions);
 
 // Log the start of the server
 app.get('logger') .info("Express server listening on port %d in %s mode", port, app.settings.env);
@@ -190,23 +211,4 @@ setTimeout(function(){
 
 /////////////////////////////////////////////////////////////////////////////////////////
 ///////   CHECKING FOR STANDARD ROUTES COMPLETE   ///////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////////////
-///////   SETTING UP SMTP SERVER   //////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////
-
-var smtpoptions = {
-    name: "Axon Bridge SMTP Server",
-    debug: true,
-    secureConnection: true,
-    requireAuthentication: true
-};
-
-var smtp = simplesmtp.createServer(smtpoptions);
-smtp.listen( 27938 );
-
-
-/////////////////////////////////////////////////////////////////////////////////////////
-///////   SETTING UP SMTP SERVER COMPLETE   /////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////

@@ -10,7 +10,7 @@ exports.getLoginPipeline = function(){
     
     loginPipeline
         .pipe(filters.authenticationFilter)
-        .pipe(filters.getRequestUser);
+        .pipe(filters.responseAddUser);
 
     return loginPipeline;
 };

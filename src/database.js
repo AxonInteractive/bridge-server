@@ -6,8 +6,8 @@ var connection  = null;
 var app         = server.app;
 var bridgeError = require('./error');
 
-//connection = mysql.createConnection(server.config.database);
-//connection.connect();
+connection = mysql.createConnection(server.config.database);
+connection.connect();
 
 /**
  * gets the users using the filter object added on
