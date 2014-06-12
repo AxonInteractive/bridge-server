@@ -18,11 +18,14 @@ GLOBAL._ = underscore._;
 exports.pipeline = require('./lib/pipeline');
 
 // Parse the configuration file from the application
-var configStr   = fs.readFileSync('config.json','utf8');
+var configStr   = fs.readFileSync('BridgeConfig.json','utf8');
 var config      = JSON.parse(JSON.minify(configStr));
 
 // Start the express app
-var app         = express();
+GLOBAL.app         = express();
+
+app.set('SecureMode', config.server.mode);
+app.set('BridgeConfig', config);
 
 // Determine the port to listen on
 var port = config.server.port || 3000;
@@ -38,7 +41,7 @@ var database   = require('./src/database');
 var filters    = require('./src/filters');
 var bridgeWare = require('./src/middleware');
 var pipelines  = require('./src/pipelines');
-var smtp       = require('./src/smtp');
+var mailer     = require('./src/mailer');
 
 // Prepare server variable
 var server     = null;
@@ -116,51 +119,36 @@ app.use(bridgeWare.setupResponseHeaders);
 ///////     MIDDLEWARE SETUP COMPLETE      //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
-var smtpoptions = {
-    name: "Axon Bridge SMTP Server",
-    debug: true,
-    secureConnection: true,
-    requireAuthentication: true
-};
-
 // Setup the server for https mode
-if (config.server.mode === "https") {
+if ( config.server.mode === "secure" ) {
     var credentials = {
-        key: fs.readFileSync(config.server.https.keyfilepath, 'utf8'),
-        cert: fs.readFileSync(config.server.https.certificatefilepath, 'utf8')
+        key: fs.readFileSync( config.server.secure.keyfilepath, 'utf8' ),
+        cert: fs.readFileSync( config.server.secure.certificatefilepath, 'utf8' )
     };
 
-    server = https.createServer(credentials, app);
-
-    smtpoptions.secureConnection = true;
-    
-    smtpoptions.credentials = {
-        key: credentials.key,
-        cert: credentials.cert
-    };
+    server = https.createServer( credentials, app );
 
 }
+
 // Else setup the server for http mode
-else if (config.server.mod === "http") {
-    server = http.createServer(app);
-    smtpoptions.secureConnection = false;
+else if ( config.server.mod === "insecure" ) {
+    server = http.createServer( app );
 }
 
 // Listen on the port defined at the beginning of the script
-server.listen(port);
-
-smtp.startSmtpServer(smtpoptions);
+server.listen( port );
 
 // Log the start of the server
-app.get('logger') .info("Express server listening on port %d in %s mode", port, app.settings.env);
-app.get('consoleLogger').info("Express server listening of port %d in %s mode", port, app.settings.env);
+app.get( 'logger' ).info( "Express server listening on port %d in %s mode", port, app.settings.env );
+app.get( 'consoleLogger' ).info( "Express server listening of port %d in %s mode", port, app.settings.env );
 
 // Setup the kill state handler
-process.on('SIGTERM', function(){
-    app.get('logger').info("Termination signal received. Closing server.");
-    app.get('consoleLogger').info("Termination signal received. Closing server.");
+process.on( 'SIGTERM', function () {
+    app.get( 'logger' ).info( "Termination signal received. Closing server." );
+    app.get( 'consoleLogger' ).info( "Termination signal received. Closing server." );
     database.close();
-});
+    mailer.close();
+} );
 
 /////////////////////////////////////////////////////////////////////////////////////////
 ///////   CHECKING FOR STANDARD ROUTES   ////////////////////////////////////////////////
@@ -170,44 +158,66 @@ process.on('SIGTERM', function(){
  * Checking the API to see if the correct routes have been setup by the API
  * @return {Undefined}
  */
-setTimeout(function(){
-    
+setTimeout( function () {
+
     var routes = app.routes;
-    var foundRegister = false, foundLogin = false;
+    var foundRegister = false,
+        foundLogin = false;
 
     var regex, method;
 
     {
+
         regex = /.*\/register$/;
         method = routes.put;
-        
-        method.forEach(function(element) {
-            var reg = regex.exec(element.path);
 
-            if (reg !== null) {
+        method.forEach( function ( element ) {
+            var reg = regex.exec( element.path );
+
+            if ( reg !== null ) {
                 foundRegister = true;
             }
-        });
-    }
-    {
+        } );
+
+    } {
+
         regex = /.*\/login$/;
         method = routes.get;
-        
-        method.forEach(function(element) {
-            var reg = regex.exec(element.path);
 
-            if (reg !== null) {
+        method.forEach( function ( element ) {
+            var reg = regex.exec( element.path );
+
+            if ( reg !== null ) {
                 foundLogin = true;
             }
-        });
+        } );
+
     }
 
-    if (!(foundLogin && foundRegister)) {
-        app.get('logger')
-            .error("Standard API routes for Login and Register not found. Bridge API will not work properly without these defined");
-       }
+    if ( !( foundLogin && foundRegister ) ) {
+        app.get( 'logger' )
+            .error( "Standard API routes for Login and Register not found. Bridge API will not work properly without these defined" );
+    }
 
-}, 1000);
+    var mail = {
+        to: "Joey.Zinger.99@gmail.com",
+        from: "info@jameszinger.com",
+        subject: "Testing Bridge Mailer",
+        text: "This is the message i am sending you. This is a for reals test right now.",
+        html: "<h1>This is the HTML Body</h1>"
+    };
+
+    app.get('logger').info('Attempting to send mail', mail);
+    if (mailer.sendMail(mail)) 
+    {
+        app.get('logger').info('Mail sent successfully');
+    }
+    else
+    {
+        app.get('logger').info("Mail didn't send successfully", mail);
+    }
+
+}, 1000 );
 
 /////////////////////////////////////////////////////////////////////////////////////////
 ///////   CHECKING FOR STANDARD ROUTES COMPLETE   ///////////////////////////////////////

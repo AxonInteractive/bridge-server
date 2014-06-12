@@ -1,6 +1,6 @@
 {
     "strict": true,
     "node": true,
-    "predef": [ ],
+    "predef": [ "_", "app" ],
     "eqnull": true
 }

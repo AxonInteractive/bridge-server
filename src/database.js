@@ -1,12 +1,10 @@
 "use strict";
 
 var mysql       = require('mysql');
-var server      = require('../server');
 var connection  = null;
-var app         = server.app;
 var bridgeError = require('./error');
 
-connection = mysql.createConnection(server.config.database);
+connection = mysql.createConnection(app.get('BridgeConfig').database);
 connection.connect();
 
 /**

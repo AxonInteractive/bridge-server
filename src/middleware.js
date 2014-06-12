@@ -1,6 +1,5 @@
 "use strict";
 
-var app = require('../server').app;
 var error = require('./error');
 
 /**

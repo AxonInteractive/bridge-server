@@ -1,7 +1,6 @@
 "use strict";
 
-var app         = require('../server').app,
-    crypto      = require('crypto'),
+var crypto      = require('crypto'),
     bridgeError = require('./error');
 
 /**
