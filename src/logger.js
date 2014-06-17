@@ -31,7 +31,8 @@ app.set( 'logger', new( winston.Logger )( {
     exceptionHandlers: [
         new winston.transports.DailyRotateFile( {
             filename: config.exception.filename,
-            handleExceptions: true
+            handleExceptions: true,
+            json: true
         } )
     ]
 } ) );

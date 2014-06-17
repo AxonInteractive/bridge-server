@@ -2,14 +2,14 @@
 //server.js
 
 // Bring in external libraries
-var fs         = require('fs');
-var crypto     = require('crypto');
-var jsonminify = require('jsonminify');
-var https      = require('https');
-var http       = require('http');
-var path       = require('path');
-var express    = require('express');
-var underscore = require('underscore');
+var fs         = require( 'fs'         );
+var crypto     = require( 'crypto'     );
+var jsonminify = require( 'jsonminify' );
+var https      = require( 'https'      );
+var http       = require( 'http'       );
+var path       = require( 'path'       );
+var express    = require( 'express'    );
+var underscore = require( 'underscore' );
 
 // Setup global variables
 GLOBAL._ = underscore._;
@@ -25,7 +25,8 @@ if ( !fs.existsSync( 'BridgeConfig.json' ) ) {
         "default": true,
         server: {
             mode: "insecure",
-            port: 3000
+            port: 3000,
+            emailVerification: true
         },
         database: {
             user: "root",
@@ -53,6 +54,7 @@ if ( !fs.existsSync( 'BridgeConfig.json' ) ) {
         }
     };
 }
+
 // If the file exists load it.
 else
 {
@@ -61,10 +63,12 @@ else
     config = JSON.parse( JSON.minify( configStr ) );
 }
 
-// Start the express app
-GLOBAL.app         = express();
 
-app.set( 'SecureMode', config.server.mode );
+
+// Start the express app
+GLOBAL.app = express();
+
+app.set( 'SecureMode'  , config.server.mode );
 app.set( 'BridgeConfig', config );
 
 // Determine the port to listen on
@@ -72,34 +76,35 @@ var port = config.server.port || 3000;
 process.env.PORT = port;
 
 // Export important files for bridge configuration and setup
-exports.app = app;
+exports.app    = app;
 exports.config = config;
 
 // Read in local modules
-var loggerObj  = require( './src/logger' );
-var database   = require( './src/database' );
-var filters    = require( './src/filters' );
-var bridgeWare = require( './src/middleware' );
-var pipelines  = require( './src/pipelines' );
-var mailer     = require( './src/mailer' );
+var loggerObj  = require( './src/logger'       );
+var database   = require( './src/database'     );
+var filters    = require( './src/filters'      );
+var bridgeWare = require( './src/middleware'   );
+var mailer     = require( './src/mailer'       );
+var routes     = require( './src/bridgeroutes' );
+var regex      = require( './src/regex'        );
 
 // Prepare server variable
 var server = null;
 
 // Export local files for the API to use
 exports.filters         = filters;
-exports.bridgePipelines = pipelines;
 
 // Prepare a steam in which for express to be able to write to winston
 var logStream = {
     write: function ( message, encoding ) {
-        app.get( 'logger' ).verbose( 'Request: ' + message );
+        app.get( 'logger' ).silly( 'Request: ' + message );
     }
 };
 
 // Setting standard dictionary objects
 // database reference
-app.set( 'database', database );
+app.set( 'database',   database );
+app.set( 'bridge-ext', {} );
 
 // Tell express that it is behind a proxy
 app.enable( 'trust proxy' );
@@ -157,9 +162,6 @@ app.use( bridgeWare.verifyRequestStructure );
 // Use the router to route messages to the appropriate locations
 app.use( app.router );
 
-// Prepare the bridge response headers on the response object
-app.use( bridgeWare.setupResponseHeaders );
-
 /////////////////////////////////////////////////////////////////////////////////////////
 ///////     MIDDLEWARE SETUP COMPLETE      //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -183,17 +185,25 @@ else if ( config.server.mod === "insecure" ) {
 // Listen on the port defined at the beginning of the script
 server.listen( port );
 
+// Setup bridge default routes
+routes.setup();
+
 // Log the start of the server
 app.get( 'logger' ).info( "Express server listening on port %d in %s mode", port, app.settings.env );
-app.get( 'consoleLogger' ).info( "Express server listening of port %d in %s mode", port, app.settings.env );
 
 // Setup the kill state handler
-process.on( 'SIGTERM', function () {
+function cleanUp() {
     app.get( 'logger' ).info( "Termination signal received. Closing server." );
-    app.get( 'consoleLogger' ).info( "Termination signal received. Closing server." );
     database.close();
     mailer.close();
-} );
+    process.exit();
+}
+
+// Signal Terminate Handler
+process.on( 'SIGTERM', cleanUp );
+
+// Signal Interrupt Handler
+process.on( 'SIGINT',  cleanUp );
 
 /////////////////////////////////////////////////////////////////////////////////////////
 ///////   CHECKING FOR STANDARD ROUTES   ////////////////////////////////////////////////
@@ -206,10 +216,10 @@ process.on( 'SIGTERM', function () {
 setTimeout( function () {
 
     var routes = app.routes;
-    var foundRegister = false,
-        foundLogin = false;
-
-    var regex, method;
+    var foundRegister = false;
+    var foundLogin = false;
+    var regex;
+    var method;
 
     {
 
@@ -244,21 +254,26 @@ setTimeout( function () {
             .error( "Standard API routes for Login and Register not found. Bridge API will not work properly without these defined" );
     }
 
-    var mail = {
-        to: "helocheck@cbl.abuseat.org",
-        from: "dev@jameszinger.com",
-        subject: "Testing Mailer",
-        html: "<h1>This is the HTML Body</h1>"
-    };
+    // var mail = {
+    //     //to: "helocheck@cbl.abuseat.org",
+    //     to: "info@jameszinger.com",
+    //     from: "dev@jameszinger.com",
+    //     subject: "Testing Mailer",
+    //     html: "<h1>This is the HTML Body</h1>"
+    // };
 
-    app.get( 'logger' ).info( 'Attempting to send mail', mail );
+    // app.get( 'logger' ).info( 'Attempting to send mail', mail );
 
-    if ( mailer.sendMail( mail ) ) {
-        app.get( 'logger' ).info( 'Mail sent successfully' );
-    } 
-    else {
-        app.get( 'logger' ).info( "Mail didn't send successfully", mail );
-    }
+    // if (app.get('BridgeConfig').mailer.debug === true){
+    //     return;
+    // }
+
+    // if ( mailer.sendMail( mail ) ) {
+    //     app.get( 'logger' ).info( 'Mail sent successfully' );
+    // } 
+    // else {
+    //     app.get( 'logger' ).info( "Mail didn't send successfully", mail );
+    // }
 
 }, 1000 );
 

@@ -1,7 +1,8 @@
 "use strict";
 
-var crypto      = require('crypto'),
-    bridgeError = require('./error');
+var crypto      = require('crypto');
+var bridgeError = require('./error');
+var regex       = require('./regex');
 
 /**
  * A filter used to authenticate a user from the bridge database.
@@ -13,7 +14,18 @@ var crypto      = require('crypto'),
  */
 exports.authenticationFilter = function(req, res, next, error){
 
-    app.get('database').query('SELECT * FROM users WHERE email = ?', [req.body.email], function(err, rows){
+    if (req.bridge.isAnon === true){
+        var authenticationError = new bridgeError("Cannot authenticate", 403);
+        app.get('logger').verbose({
+            Error: JSON.stringify(authenticationError),
+            Reason: "Cannot authenticate an anonymous request",
+            "Request Body": JSON.stringify(req.body)
+        });
+        error(authenticationError);
+        return;
+    }
+
+    app.get('database').query('SELECT * FROM users WHERE EMAIL = ?', [req.body.email], function(err, rows){
 
         if (err){
             var databaseError = new bridgeError ('Database query error. see log files for more information', 403);
@@ -30,7 +42,7 @@ exports.authenticationFilter = function(req, res, next, error){
             var resultError = new bridgeError("User not found or more than one user found for that email", 403);
             app.get('logger').warn({
                 Results: JSON.stringify(rows),
-                Query: "SELECT * FROM users WHERE email = " + req.body.email,
+                Query: "SELECT * FROM users WHERE EMAIL = " + req.body.email,
                 Error: JSON.stringify(resultError)
             });
             error( resultError );
@@ -77,7 +89,7 @@ exports.registrationAuthenticationFilter = function(req, res, next, error){
     // Validating Password
     {
         // Preform a regex on the password to make sure it is in correct format
-        var passRegex = /^[a-z0-9]{64}$/;
+        var passRegex = regex.sha256;
         var passReg = passRegex.exec(req.body.content.password);
 
         if (passReg === null){
@@ -93,7 +105,7 @@ exports.registrationAuthenticationFilter = function(req, res, next, error){
         }
 
 
-        var hmac = crypto.createHmac('sha256', req.body.content.password);
+        var hmac = crypto.createHmac('sha256', '');
         var concat = JSON.stringify(req.body.content) + req.body.email + req.body.time;
         hmac.update(concat);
         var valHmac = hmac.digest('hex');
@@ -112,8 +124,8 @@ exports.registrationAuthenticationFilter = function(req, res, next, error){
         }
     }
 
-    req.bridge.user = {};
-    req.bridge.regObj = {
+//    req.bridge.user = {};
+    req.bridge.user = {
         Email: req.body.content.email,
         Pass: req.body.content.password,
         FName: req.body.content['first-name'],
@@ -146,36 +158,36 @@ exports.registrationAuthenticationFilter = function(req, res, next, error){
  * @param  {Function} error The callback for an error occuring in the filter.
  * @return {Undefined} 
  */
-exports.registrationDataVaildation = function(req, res, next, error){
+exports.registrationDataVaildation = function ( req, res, next, error ) {
 
     // Make sure all of the nessesary data for registration exists
-    if (req.body.content == null || req.body.content.email == null ||
-        req.body.content.password == null || req.body.content['first-name'] == null ||
-        req.body.content['last-name'] == null || req.body.content.regcode == null)
+    if ( req.body.content == null || req.body.content.email == null ||
+        req.body.content.password == null || req.body.content[ 'first-name' ] == null ||
+        req.body.content[ 'last-name' ] == null || req.body.content.regcode == null ) 
     {
-        var requestBodyContentFormatError = new bridgeError('Request body content missing property. See log for more information', 400);
-        app.get('logger').info({
-            Error: JSON.stringify(requestBodyContentFormatError),
+        var requestBodyContentFormatError = new bridgeError( 'Request body content missing property. See log for more information', 400 );
+        app.get( 'logger' ).info( {
+            Error: JSON.stringify( requestBodyContentFormatError ),
             Reason: "Property on the request body content for registration is either null or defined.",
-            "Request Body": JSON.stringify(req.body)
-        });
-        error(requestBodyContentFormatError);
+            "Request Body": JSON.stringify( req.body )
+        } );
+        error( requestBodyContentFormatError );
         return;
     }
 
     // Validating Email
     {
-        var emailRegex = /^[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~])*@[a-zA-Z](-?[a-zA-Z0-9])*(\.[a-zA-Z](-?[a-zA-Z0-9])*)+$/g;
-        var emailReg = emailRegex.exec(req.body.content.email);
+        var emailRegex = regex.email;
+        var emailReg = emailRegex.exec( req.body.content.email );
 
-        if (emailReg === null){
-            var emailFormatError = new bridgeError('Email property has failed to validate', 400);
-            app.get('logger').verbose({
-                Error: JSON.stringify(bridgeError),
+        if ( emailReg === null ) {
+            var emailFormatError = new bridgeError( 'Email property has failed to validate', 400 );
+            app.get( 'logger' ).verbose( {
+                Error: JSON.stringify( bridgeError ),
                 Reason: "Email from request has failed to pass the regex check",
                 "Request Body": req.body
-            });
-            error(emailFormatError);
+            } );
+            error( emailFormatError );
             return;
         }
 
@@ -183,40 +195,42 @@ exports.registrationDataVaildation = function(req, res, next, error){
 
     // Validating First and Last Name
     {
-        var nameRegex = /^[a-zA-Z]{2,}$/;
-        var fNameReg = nameRegex.exec(req.body.content['first-name']);
+        var nameRegex = regex.name;
+        var fNameReg = nameRegex.exec( req.body.content[ 'first-name' ] );
 
-        if (fNameReg === null){
-            var nameFormatError = new bridgeError('First name property found but is not in a valid format', 400);
-            app.get('logger').verbose({
-                Error: JSON.stringify(nameFormatError),
+        if ( fNameReg === null ) {
+            var nameFormatError = new bridgeError( 'First name property found but is not in a valid format', 400 );
+            app.get( 'logger' ).verbose( {
+                Error: JSON.stringify( nameFormatError ),
                 Reason: "First name property didn't pass regex",
-                "Request Body": JSON.stringify(req.body),
-            });
+                "Request Body": JSON.stringify( req.body ),
+            } );
             error( nameFormatError );
             return;
         }
 
-        var lNameReg = nameRegex.exec(req.body.content['last-name']);
+        var lNameReg = nameRegex.exec( req.body.content[ 'last-name' ] );
 
-        if (lNameReg === null){
-            var lnameFormatError = new bridgeError('Last name property found but is not in a valid format', 400);
-            app.get('logger').verbose({
-                Error: JSON.stringify(lnameFormatError),
+        if ( lNameReg === null ) {
+            var lnameFormatError = new bridgeError( 'Last name property found but is not in a valid format', 400 );
+            app.get( 'logger' ).verbose( {
+                Error: JSON.stringify( lnameFormatError ),
                 Reason: "Last name property didn't pass the regex",
-                "Request Body": JSON.stringify(req.body),
-            });
+                "Request Body": JSON.stringify( req.body ),
+            } );
             error( lnameFormatError );
             return;
         }
     }
+
     // Validating Password field of the request body content
     {
-        var password = req.body.content.password;
 
-        var sha256Regex = '';
+        var password    = req.body.content.password;
 
-        var passReg = sha256Regex.exec(password);
+        var sha256Regex = regex.sha256;
+
+        var passReg     = sha256Regex.exec(password);
 
         if ( passReg === null ) {
             var passFormatError = new bridgeError( 'Password property found but is not in a valid format', 400 );
@@ -463,14 +477,13 @@ exports.determineRequestFilters = function ( req, res, next, error ) {
         }
     });
 
-
     next();
 };
 
 /**
  * Gets the app data from an authenticated user and attaches it to the response under response -> content -> user
  * @param  {Object}   req  The request object.
- * @param  {Object}   res  The response object.
+ * @param  {Object}   res  The responses body object.
  * @param  {Function} next The function to call when the filter is complete.
  * @return {Undefined}     Nothing
  */
@@ -493,18 +506,20 @@ exports.responseAddUser = function ( req, res, next, error ) {
         return;
     }
 
+    var appData = {};
+
     try {
-        res.content.user = JSON.parse( req.bridge.user.APP_DATA );
+        appData = JSON.parse( req.bridge.user.APP_DATA );
     } catch ( err ) {
 
         // Create the error
         var userParseError = new bridgeError( 'Could not parse application data to an object', 500 );
 
         // Log the error and relevant information
-        app.get('logger').verbose( {
+        app.get( 'logger' ).verbose( {
             Error: userParseError,
             Reason: "Failed to parse the users application data to JSON",
-            "Request Body": JSON.stringify(req.body),
+            "Request Body": JSON.stringify( req.body ),
             "Application Data": req.bridge.user.APP_DATA
         } );
 
@@ -512,6 +527,15 @@ exports.responseAddUser = function ( req, res, next, error ) {
         error( userParseError );
         return;
     }
-    res.content.additionalData = {};
+
+    res.user = {};
+
+    res.user.email        = req.bridge.user.EMAIL;
+    res.user.firstName    = req.bridge.user.FIRST_NAME;
+    res.user.lastName     = req.bridge.user.LAST_NAME;
+    res.user.status       = req.bridge.user.STATUS;
+    res.user.role         = req.bridge.user.ROLE;
+    res.user.appData      = appData;
+
     next();
 };

@@ -1,6 +1,7 @@
 "use strict";
 
 var error = require('./error');
+var regex = require('./regex');
 
 /**
  * Add the nessesary CORS headers to the response object.
@@ -85,21 +86,6 @@ exports.parseGetQueryString = function(req, res, next){
 };
 
 /**
- * Setup the bridge structure such that 
- * @param  {[type]}   req  [description]
- * @param  {[type]}   res  [description]
- * @param  {Function} next [description]
- * @return {[type]}        [description]
- */
-exports.setupResponseHeaders = function(req, res, next){
-    var resContent = res.body;
-    res.body = {
-        content: resContent
-    };
-    next();
-};
-
-/**
  * Verify that the request has the necessary structure and content to be handled by the bridge
  * @param  {Object}   req  The express request object.
  * @param  {Object}   res  The express response object.
@@ -111,6 +97,9 @@ exports.verifyRequestStructure = function ( req, res, next ) {
     var email   = body.email;
     var time    = body.time;
     var hmac    = body.hmac;
+
+    req.bridge = {};
+    res.content = {};
 
     // Check if the content exists
     if ( content == null ) {
@@ -151,26 +140,34 @@ exports.verifyRequestStructure = function ( req, res, next ) {
             return;
         }
 
-        var emailRegex = /^[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~])*@[a-zA-Z](-?[a-zA-Z0-9])*(\.[a-zA-Z](-?[a-zA-Z0-9])*)+$/g;
-        var reg = emailRegex.exec( email );
+        if (email === "") {
+            req.bridge.isAnon = true;
+        }
+        else {
 
-        if ( reg == null ) {
-            var emailRegexError = new error( 'Email was found but is not a valid format', 400 );
+            req.bridge.isAnon = false;
 
-            app.get( 'logger' ).verbose( {
-                Error: JSON.stringify( emailRegexError ),
-                Reason: "Email failed to pass regex check for validation",
-                "Request Body": JSON.stringify( req.body ),
-                Email: email
-            } );
+            var emailRegex = regex.email;
+            var reg = emailRegex.exec( email );
 
-            res.status( emailRegexError.StatusCode );
-            res.send( {
-                content: {
-                    message: emailRegexError.Message
-                }
-            } );
-            return;
+            if ( reg == null ) {
+                var emailRegexError = new error( 'Email was found but is not a valid format', 400 );
+
+                app.get( 'logger' ).verbose( {
+                    Error: JSON.stringify( emailRegexError ),
+                    Reason: "Email failed to pass regex check for validation",
+                    "Request Body": JSON.stringify( req.body ),
+                    Email: email
+                } );
+
+                res.status( emailRegexError.StatusCode );
+                res.send( {
+                    content: {
+                        message: emailRegexError.Message
+                    }
+                } );
+                return;
+            }
         }
     }
     
@@ -194,7 +191,7 @@ exports.verifyRequestStructure = function ( req, res, next ) {
             return;
         }
 
-        var timeRegex = /^\d{4}-(0[1-9]|1[1-2])-([0-2]\d|3[0-1])T([0-1]\d|2[0-3]):[0-5]\d:[0-5]\d\.\d{3}Z/g;
+        var timeRegex = regex.iSOTime;
         var timeReg = timeRegex.exec( time );
 
         if ( timeReg == null ) {
@@ -244,12 +241,12 @@ exports.verifyRequestStructure = function ( req, res, next ) {
             var timeDiffError = new error( 'Time was pared to an object but is too old', 400 );
 
             app.get( 'logger' ).verbose( {
-                Error: JSON.stringify( timeDiffError ),
-                Reason: "The delta time between time the request was send and the time it was received was over one minute in the past or in the future",
-                "Request Body": JSON.stringify( req.body ),
-                "Current Time": JSON.stringify(nowTimeObj),
-                "Request Created Time": JSON.stringify(reqTimeObj),
-                "Time Difference in ms": timeDiff
+                Error                   : JSON.stringify( timeDiffError ),
+                Reason                  : "The delta time between time the request was send and the time it was received was over one minute in the past or in the future",
+                "Request Body"          : JSON.stringify( req.body ),
+                "Current Time"          : JSON.stringify( nowTimeObj ),
+                "Request Created Time"  : JSON.stringify( reqTimeObj ),
+                "Time Difference in ms" : timeDiff
             } );
 
             res.status( timeDiffError.StatusCode );
@@ -282,7 +279,7 @@ exports.verifyRequestStructure = function ( req, res, next ) {
             return;
         }
 
-        var sha256Regex = /^[a-z0-9]{64}$/;
+        var sha256Regex = regex.sha256;
         var hashReg = sha256Regex.exec(hmac);
         if (hashReg === null){
             var hmacFormatError = new error('Hmac was found but is not a valid format', 400);
@@ -304,9 +301,6 @@ exports.verifyRequestStructure = function ( req, res, next ) {
         }
 
     }
-
-    req.bridge = {};
-    res.content = {};
 
     next();
 };

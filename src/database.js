@@ -1,8 +1,12 @@
 "use strict";
 
 var mysql       = require('mysql');
-var connection  = null;
+var crypto      = require('crypto');
+
 var bridgeError = require('./error');
+var mailer      = require('./mailer');
+
+var connection  = null;
 
 connection = mysql.createConnection(app.get('BridgeConfig').database);
 connection.connect();
@@ -18,6 +22,7 @@ exports.getUser = function ( req, res, next, error ) {
     var query = 'SELECT APP_DATA FROM users';
     var values = [];
     var first = true;
+
     if ( typeof req.filters !== 'undefined' ) {
         query = query.concat( ' WHERE ' );
         req.filters.forEach( function ( element ) {
@@ -40,12 +45,12 @@ exports.getUser = function ( req, res, next, error ) {
 
             // Log the error with relevant information
             app.get( 'logger' ).verbose( {
-                Error: JSON.stringify( queryFailedError ),
-                Reason: "Database rejected query",
-                Query: query,
-                Values: JSON.stringify( values ),
-                "Request Body": JSON.stringify( req.body ),
-                DBError: JSON.stringify( err )
+                Error          : JSON.stringify( queryFailedError ),
+                Reason         : "Database rejected query",
+                Query          : query,
+                Values         : JSON.stringify( values ),
+                "Request Body" : JSON.stringify( req.body ),
+                DBError        : JSON.stringify( err )
             } );
 
             // Throw the error
@@ -75,30 +80,122 @@ exports.getUser = function ( req, res, next, error ) {
  */
 exports.registerUser = function ( req, res, next, error ) {
 
-    // [Email, Password, First Name, Last Name, App Data]
-    var userInsertionQuery = "INSERT INTO users VALUES (0, ?, ?, ?, ?, NOW(), ?, \"CREATED\", \"user\", 0)";
-    if ( !req.bridge.regObj ) {
-
-        // Create the error
-        var authenticationNeededError = new bridgeError( 'Cannot register without authentication', 403 );
+    if (!_.has(req.bridge, 'user')){
+                // Create the error
+        var authenticationNeededError = new bridgeError( 'Cannot register without authentication', 500 );
 
         // Log the error and relevant information
         app.get( 'logger' ).verbose( {
-            Error: JSON.stringify( authenticationNeededError ),
-            Reason: "Need to authenticate the user before being able to register them",
-            "Request Body": JSON.stringify( req.body )
+            Error          : JSON.stringify( authenticationNeededError ),
+            Reason         : "Need to authenticate the user before being able to register them",
+            "Request Body" : JSON.stringify( req.body )
         } );
 
         // Throw the error
         error( authenticationNeededError );
         return;
     }
-    var regObj = req.bridge.regObj;
-    var values = [ regObj.Email, regObj.Pass, regObj.FName, regObj.LName, JSON.stringify( regObj.AppData ) ];
+
+    var user  = req.bridge.user;
+
+    var state = app.get( 'BridgeConfig' ).server.emailVerification ? 'CREATED' : 'NORMAL';
+
+    var hash = crypto.createHash( 'sha256' ).update( user.Email + new Date() ).digest( 'hex' );
+
+    // [Email, Password, First Name, Last Name, App Data, State, UserHash]
+    var userInsertionQuery = "INSERT INTO users VALUES (0, ?, ?, ?, ?, NOW(), ?, ?, \"user\", 0, ?, NOW())";
+
+
+    var values = [ user.Email, user.Pass, user.FName, user.LName, JSON.stringify( user.AppData ), state, hash ];
 
     connection.query( userInsertionQuery, values, function ( err, retObj ) {
         if ( err ) {
 
+            if ( err.code === "ER_DUP_ENTRY" ) {
+                var dupEntryError = new bridgeError( 'Email already taken', 409 );
+
+                app.get( 'logger' ).verbose( {
+                    Error   : JSON.stringify( dupEntryError ),
+                    Reason  : "Email that was to be registered was not unique",
+                    Query   : userInsertionQuery,
+                    Values  : values,
+                    DBError : JSON.stringify( err )
+                } );
+
+                error(dupEntryError);
+                return;
+            }
+            else {
+                // Create the Error
+                var queryFailedError = new bridgeError( 'Query failed to register user', 500 );
+
+                // Log the error and relevant information
+                app.get( 'logger' ).verbose( {
+                    Error   : JSON.stringify( queryFailedError ),
+                    Reason  : "Database rejected query",
+                    Query   : userInsertionQuery,
+                    Values  : values,
+                    DBError : JSON.stringify( err )
+                } );
+
+                error( queryFailedError );
+                return;
+            }
+        }
+
+        if ( app.get( 'BridgeConfig' ).server.emailVerification === true ) {
+            mailer.sendVerificationEmail( req.bridge.user );
+        }
+
+        next();
+    } );
+};
+
+exports.changePassword = function ( req, res, next, error ) {
+
+    if ( !_.has( req.bridge, "user" ) ) {
+        var unAuthenticateError = new bridgeError( 'Cannot change password without authentication', 403 );
+
+        app.get( 'logger' ).verbose( {
+            Error          : JSON.stringify( unAuthenticateError ),
+            Reason         : "Tried to change the password of a user without Authentication",
+            "Request Body" : JSON.stringify( req.body ),
+        } );
+
+        error( unAuthenticateError );
+        return;
+    }
+
+    var changePassword = "UPDATE users SET PASSWORD = ? WHERE EMAIL = ? ";
+
+    if ( !_.has( req.body, "content" ) ) {
+        var malformedMessageError = new bridgeError( "Request is missing the content property", 400);
+
+        app.get('logger').verbose( {
+            Error          : JSON.stringify(malformedMessageError),
+            Reason         : "Request is missing content property",
+            "Request Body" : JSON.stringify(req.body)
+        });
+
+        error(malformedMessageError);
+        return;
+    }
+
+    if (!_.has(req.body.content, "message")) {
+        var messageMissingError = new bridgeError( "Request is missing message property", 400);
+
+        app.get( 'logger' ).verbose( {
+            Error: JSON.stringify( messageMissingError ),
+            Reason: "Request is missing message property for path req.body.content.message",
+            "Request Body": JSON.stringify( req.body )
+        } );
+    }
+
+    var values = [req.body.content.message, req.bridge.user.email];
+
+    connection.query(changePassword, values, function(err, retObj){
+
+        if (err){
             // Create the Error
             var queryFailedError = new bridgeError( 'Query failed to register user', 500 );
 
@@ -106,7 +203,7 @@ exports.registerUser = function ( req, res, next, error ) {
             app.get( 'logger' ).verbose( {
                 Error: JSON.stringify( queryFailedError ),
                 Reason: "Database rejected query",
-                Query: userInsertionQuery,
+                Query: changePassword,
                 Values: values,
                 DBError: JSON.stringify( err )
             } );
@@ -115,8 +212,15 @@ exports.registerUser = function ( req, res, next, error ) {
             return;
         }
 
+        if (!_.has(req, "content"))
+            req.content = {};
+
+        req.content.message = "Changing password successful"; 
+
         next();
-    } );
+
+    });
+
 };
 
 /**
