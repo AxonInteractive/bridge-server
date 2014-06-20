@@ -25,7 +25,7 @@ else
     transport = nodemailer.createTransport( method, options );
 }
 
-fs.readFile( config.templates.verifyEmailTemplatePath, { encoding: 'utf8' }, function ( error, data ) {
+fs.readFile( config.mailer.verifyEmailTemplatePath, { encoding: 'utf8' }, function ( error, data ) {
 
     if ( error ) {
         logger.error( "Could not read template file for Email verification. Error: ", error );
@@ -37,7 +37,7 @@ fs.readFile( config.templates.verifyEmailTemplatePath, { encoding: 'utf8' }, fun
 
 } );
 
-fs.readFile( config.templates.recoverPasswordTemplatePath, { encoding: 'utf8' }, function( error, data ) {
+fs.readFile( config.mailer.recoverPasswordTemplatePath, { encoding: 'utf8' }, function( error, data ) {
     if ( error ) {
         logger.error( "Could not read template file for Recover Password. Error: ", error );
         return;
@@ -46,6 +46,17 @@ fs.readFile( config.templates.recoverPasswordTemplatePath, { encoding: 'utf8' },
     logger.debug( "Password Recovery Email HTML template loaded successfully! HTML: %s ", data );
     templates.recoverPassword = data;
 } );
+
+function makeTransport()
+{
+    transport = nodemailer.createTransport( method, options );
+}
+
+function deleteTransport()
+{
+    transport.close();
+    transport = null;
+}
 
 /**
  * Send an email over the setup transport
@@ -79,7 +90,7 @@ function sendMail ( mail, done ) {
         return false;
     }
 
-    if ( !_.isString( mail.from ) && !_.isUndefined( mail.from ) ) {
+    if ( !_.isString( mail.from ) ) {
         logger.error( baseErrorString + typeErrorString, "from", "string", mail );
         return false;
     }
@@ -105,6 +116,8 @@ function sendMail ( mail, done ) {
         }
 
         logger.debug( "Mail sent successfully.", mail );
+        deleteTransport();
+        makeTransport();
         done();
         return;
 
@@ -145,8 +158,7 @@ exports.sendVerificationEmail = function(user){
  * @return {Undefined}
  */
 exports.close = function(){
-    transport.close();
-    transport = null;
+    deleteTransport();
 };
 
 exports.sendMail = sendMail;

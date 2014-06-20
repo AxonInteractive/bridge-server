@@ -199,12 +199,6 @@ function cleanUp() {
     process.exit();
 }
 
-// Signal Terminate Handler
-process.on( 'SIGTERM', cleanUp );
-
-// Signal Interrupt Handler
-process.on( 'SIGINT',  cleanUp );
-
 /////////////////////////////////////////////////////////////////////////////////////////
 ///////   CHECKING FOR STANDARD ROUTES   ////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -254,28 +248,26 @@ setTimeout( function () {
             .error( "Standard API routes for Login and Register not found. Bridge API will not work properly without these defined" );
     }
 
-    // var mail = {
-    //     //to: "helocheck@cbl.abuseat.org",
-    //     to: "info@jameszinger.com",
-    //     from: "dev@jameszinger.com",
-    //     subject: "Testing Mailer",
-    //     html: "<h1>This is the HTML Body</h1>"
-    // };
+    var mail = {
+        //to: "helocheck@cbl.abuseat.org",
+        to: "info@jameszinger.com",
+        from: "dev@jameszinger.com",
+        subject: "Testing Mailer",
+        html: "<h1>This is the HTML Body</h1>"
+    };
 
-    // app.get( 'logger' ).info( 'Attempting to send mail', mail );
+    app.get( 'logger' ).info( 'Attempting to send mail', mail );
 
-    // if (app.get('BridgeConfig').mailer.debug === true){
-    //     return;
-    // }
-
-    // if ( mailer.sendMail( mail ) ) {
-    //     app.get( 'logger' ).info( 'Mail sent successfully' );
-    // } 
-    // else {
-    //     app.get( 'logger' ).info( "Mail didn't send successfully", mail );
-    // }
+    if ( mailer.sendMail( mail ) ) {
+        app.get( 'logger' ).info( 'Mail sent successfully' );
+    }
+    else {
+        app.get( 'logger' ).info( "Mail didn't send successfully", mail );
+    }
 
 }, 1000 );
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////////
 ///////   CHECKING FOR STANDARD ROUTES COMPLETE   ///////////////////////////////////////

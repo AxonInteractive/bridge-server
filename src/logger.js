@@ -44,17 +44,17 @@ if ( config.exception.writetoconsole === true ) {
     } ) );
 }
 
-app.set( 'consoleLogger', new( winston.Logger )( {
-    transports: [
-        new winston.transports.Console( {
-            level: config.console.level,
-            colorize: true,
-            silent: false,
-            timestamp: false,
-            json: false
-        } )
-    ]
-} ) );
+// app.set( 'consoleLogger', new( winston.Logger )( {
+//     transports: [
+//         new winston.transports.Console( {
+//             level: config.console.level,
+//             colorize: true,
+//             silent: false,
+//             timestamp: false,
+//             json: false
+//         } )
+//     ]
+// } ) );
 
 if ( app.get( 'env' ) === 'development' ) {
 
