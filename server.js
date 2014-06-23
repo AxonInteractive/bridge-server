@@ -223,7 +223,7 @@ setTimeout( function () {
 
     {
 
-        regex = /.*\/register$/;
+        regex = /.*\/users$/;
         method = routes.put;
 
         method.forEach( function ( element ) {

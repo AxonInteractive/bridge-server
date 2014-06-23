@@ -118,7 +118,9 @@ function sendMail ( mail, done ) {
         logger.debug( "Mail sent successfully.", mail );
         deleteTransport();
         makeTransport();
-        done();
+        if (_.isFunction(done)) {
+            done();
+        }
         return;
 
 
