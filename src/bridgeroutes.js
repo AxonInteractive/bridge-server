@@ -14,6 +14,8 @@ exports.setup = function () {
 
     app.post( '/api/1.0/change-password', changePassword );
 
+    app.post( '/api/1.0/users', updateUser);
+
     app.post( '/api/1.0/recover-password', recoverPassword );
 
     app.post( '/api/1.0/forgot-password', forgotPassword );
@@ -163,6 +165,12 @@ function verifyEmail( req, res ) {
                 status: err.StatusCode,
                 err: err.Message
             } );
+
+            res.send({
+                content: {
+                    message: err.Message
+                }
+            });
         }
 
         res.status( 200 );
@@ -171,4 +179,31 @@ function verifyEmail( req, res ) {
         return;
 
     });
+}
+
+function updateUser( req, res ) {
+    var uUPipeline = new pipeline();
+
+    uUPipeline
+        .pipe( filters.authenticationFilter )
+        .pipe( database.changePassword );
+
+    uUPipeline.execute( req, function ( resBody, err ) {
+        if ( err != null ) {
+
+            res.status( err.StatusCode );
+
+            app.get( 'logger' ).verbose( {
+                req: req.body,
+                status: err.StatusCode,
+                err: err.Message
+            } );
+
+            res.send( err );
+            return;
+        }
+
+        res.status( 200 );
+        res.send( resBody );
+    } );
 }

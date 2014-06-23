@@ -181,7 +181,7 @@ exports.changePassword = function ( req, res, next, error ) {
         return;
     }
 
-    if (!_.has(req.body.content, "message")) {
+    if (!_.has(req.body.content, "password")) {
         var messageMissingError = new bridgeError( "Request is missing message property", 400);
 
         app.get( 'logger' ).verbose( {
@@ -191,7 +191,7 @@ exports.changePassword = function ( req, res, next, error ) {
         } );
     }
 
-    var values = [req.body.content.message, req.bridge.user.email];
+    var values = [req.body.content.password, req.bridge.user.email];
 
     connection.query(changePassword, values, function(err, retObj){
 
