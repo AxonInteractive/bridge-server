@@ -10,7 +10,7 @@ exports.setup = function () {
 
     app.get( '/api/1.0/login', loginHandler );
 
-    app.put( '/api/1.0/register', registerHandler );
+    app.put( '/api/1.0/users', registerHandler );
 
     app.post( '/api/1.0/change-password', changePassword );
 
