@@ -163,7 +163,7 @@ exports.registrationDataVaildation = function ( req, res, next, error ) {
     // Make sure all of the nessesary data for registration exists
     if ( req.body.content == null || req.body.content.email == null ||
         req.body.content.password == null || req.body.content[ 'first-name' ] == null ||
-        req.body.content[ 'last-name' ] == null || req.body.content.regcode == null ) 
+        req.body.content[ 'last-name' ] == null ) 
     {
         var requestBodyContentFormatError = new bridgeError( 'Request body content missing property. See log for more information', 400 );
         app.get( 'logger' ).info( {
