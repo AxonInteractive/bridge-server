@@ -127,8 +127,8 @@ exports.registrationAuthenticationFilter = function(req, res, next, error){
     req.bridge.user = {
         Email: req.body.content.email,
         Pass: req.body.content.password,
-        FName: req.body.content.firstname,
-        LName: req.body.content.lastname,
+        FName: req.body.content.firstName,
+        LName: req.body.content.lastName,
         AppData: req.body.content.appData
     };
 
