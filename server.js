@@ -135,6 +135,13 @@ if ( 'production' == app.get( 'env' ) ) {
     app.use( express.errorHandler() );
 }
 
+app.use(function(req, res, next){
+
+    var wha = req;
+
+    next();
+});
+
 // Automatically parse the body to JSON
 app.use( express.json() );
 
