@@ -196,7 +196,6 @@ function cleanUp() {
     app.get( 'logger' ).info( "Termination signal received. Closing server." );
     database.close();
     mailer.close();
-    process.exit();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -248,22 +247,22 @@ setTimeout( function () {
             .error( "Standard API routes for Login and Register not found. Bridge API will not work properly without these defined" );
     }
 
-    var mail = {
-        //to: "helocheck@cbl.abuseat.org",
-        to: "info@jameszinger.com",
-        from: "dev@jameszinger.com",
-        subject: "Testing Mailer",
-        html: "<h1>This is the HTML Body</h1>"
-    };
+    // var mail = {
+    //     //to: "helocheck@cbl.abuseat.org",
+    //     to: "info@jameszinger.com",
+    //     from: "dev@jameszinger.com",
+    //     subject: "Testing Mailer",
+    //     html: "<h1>This is the HTML Body</h1>"
+    // };
 
-    app.get( 'logger' ).info( 'Attempting to send mail', mail );
+    // app.get( 'logger' ).info( 'Attempting to send mail', mail );
 
-    if ( mailer.sendMail( mail ) ) {
-        app.get( 'logger' ).info( 'Mail sent successfully' );
-    }
-    else {
-        app.get( 'logger' ).info( "Mail didn't send successfully", mail );
-    }
+    // if ( mailer.sendMail( mail ) ) {
+    //     app.get( 'logger' ).info( 'Mail sent successfully' );
+    // }
+    // else {
+    //     app.get( 'logger' ).info( "Mail didn't send successfully", mail );
+    // }
 
 }, 1000 );
 

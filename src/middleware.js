@@ -1,7 +1,7 @@
 "use strict";
 
-var error = require('./error');
-var regex = require('./regex');
+var error = require( './error' );
+var regex = require( './regex' );
 
 /**
  * Add the nessesary CORS headers to the response object.
@@ -9,8 +9,8 @@ var regex = require('./regex');
  * @param {Object}   res  The express response object.
  * @param {Function} next The function to call when this function is complete.
  */
-exports.attachCORSHeaders = function(req, res, next){
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+exports.attachCORSHeaders = function ( req, res, next ) {
+    res.setHeader( 'Access-Control-Allow-Origin', req.headers.origin || '*' );
     next();
 };
 
@@ -21,7 +21,7 @@ exports.attachCORSHeaders = function(req, res, next){
  * @param  {Object}   res  The express response object.
  * @param  {Function} next The function to call when this function is complete.
  */
-exports.prepareBridgeObjects = function (req, res, next){
+exports.prepareBridgeObjects = function ( req, res, next ) {
     req.bridge = {};
     next();
 };
@@ -32,54 +32,62 @@ exports.prepareBridgeObjects = function (req, res, next){
  * @param  {Object}    res The express response object.
  * @return {Undefined}
  */
-exports.handleOptionsRequest = function(req, res, next){
-    if (req.method !== 'OPTIONS'){
+exports.handleOptionsRequest = function ( req, res, next ) {
+
+    if ( req.method !== 'OPTIONS' ) {
         next();
         return;
     }
-    res.status(204);
-    //res.setHeader('access-control-allow-origin', req.headers.origin || '*');
-    res.setHeader('access-control-allow-methods', 'GET, PUT, OPTIONS, POST, DELETE');
-    res.setHeader('access-control-allow-headers', "content-type, accept");
-    res.setHeader('access-control-max-age', 10);
-    res.setHeader('content-length', 0);
+
+    res.status( 204 );
+
+    res.setHeader( 'access-control-allow-methods', 'GET, PUT, OPTIONS, POST, DELETE' );
+    res.setHeader( 'access-control-allow-headers', "content-type, accept" );
+
+    res.setHeader( 'access-control-max-age' , 10 );
+    res.setHeader( 'content-length'         , 0  );
+
     res.send();
 };
 
 /**
  * Read the query string from a get request and parse it to an object
- * @param  {Object}  req    The express request object.
- * @param  {Object}  res    The express response object.
- * @param  {Function} next [description]
- * @return {[type]}        [description]
+ * @param  {Object}    req   The express request object.
+ * @param  {Object}    res   The express response object.
+ * @param  {Function}  next  The function to call when the middleware is complete.
+ * @return {Undefined}
  */
-exports.parseGetQueryString = function(req, res, next){
-    if (req.method !== 'GET'){
-            next();
-            return;
-    }
-
-    if (req.query.payload == null)
-    {
+exports.parseGetQueryString = function ( req, res, next ) {
+    if ( req.method !== 'GET' ) {
         next();
         return;
     }
 
-    var strObj = decodeURIComponent(req.query.payload);
+    if ( req.query.payload == null ) {
+        next();
+        return;
+    }
 
-    if (strObj == null || strObj === ''){
-            next();
-            return;
+    var strObj = decodeURIComponent( req.query.payload );
+
+    if ( strObj == null || strObj === '' ) {
+        next();
+        return;
     }
 
     try {
-        req.body = JSON.parse(strObj);
-    }
-    catch(err){
-        var ErrQueryString = new error('BAD JSON in the query string payload object', 400);
-        app.get('logger').warn(ErrQueryString.Message + '\n' + strObj);
-        res.status(ErrQueryString.StatusCode);
-        res.send({ content:{ message: ErrQueryString.Message } });
+        req.body = JSON.parse( strObj );
+    } catch ( err ) {
+        var ErrQueryString = new error( 'BAD JSON in the query string payload object', 400 );
+        app.get( 'logger' ).warn( ErrQueryString.Message + '\n' + strObj );
+        res.status( ErrQueryString.StatusCode );
+        
+        res.send( {
+            content: {
+                message: ErrQueryString.Message
+            }
+        } );
+
         return;
     }
     next();

@@ -445,6 +445,9 @@ exports.determineRequestFilters = function ( req, res, next, error ) {
                     case'normal':
                         filter.value = 'NORMAL';
                     break;
+                    case'recover':
+                        filter.value = 'RECOVER';
+                    break;
                     default:
                     {
                         // Create the error

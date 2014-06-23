@@ -111,8 +111,8 @@ function changePassword( req, res ) {
 
             app.get( 'logger' ).verbose( {
                 req: req.body,
-                status: err.statusCode,
-                err: err.msg
+                status: err.StatusCode,
+                err: err.Message
             } );
 
             res.send( err );
@@ -147,5 +147,28 @@ function forgotPassword( req, res ) {
 }
 
 function verifyEmail( req, res ) {
+    var userHash = req.content.message;
 
+    var verifyPipeline = new pipeline();
+
+    verifyPipeline.pipe( database.verifyEmail );
+
+    verifyPipeline.execute(req, function(resBody, err){
+
+        if ( err ) {
+            res.status( err.StatusCode );
+
+            app.get( 'logger' ).debug( {
+                req: req.body,
+                status: err.StatusCode,
+                err: err.Message
+            } );
+        }
+
+        res.status( 200 );
+        res.send( resBody );
+
+        return;
+
+    });
 }

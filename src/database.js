@@ -223,6 +223,92 @@ exports.changePassword = function ( req, res, next, error ) {
 
 };
 
+exports.verifyEmail = function( req, res, next, error ){
+
+    var verifyEmailError;
+    if ( !_.has( req.bridge, 'reqUserHash' ) ) {
+        verifyEmailError = new bridgeError( "The could not find the user hash", 500 );
+
+        logBridgeError( verifyEmailError,
+            "The req.bridge has no property 'reqUserHash' which is needed for email verification",
+            null,
+            null,
+            req,
+            null
+        );
+        error( verifyEmailError );
+        return;
+    }
+
+    if ( !_.isString( req.bridge.reqUserHash ) ) {
+        verifyEmailError = new bridgeError( "The requests user hash is not a string", 500 );
+        logBridgeError( verifyEmailError,
+            "The req.bridge.reqUserHash is not a string which is needed for email verification",
+            null,
+            null,
+            req,
+            null
+        );
+        error( verifyEmailError );
+        return;
+    }
+
+    var query = "SELECT * FROM users WHERE USER_HASH = ?";
+    var values = [req.bridge.reqUserHash];
+
+    connection.query( query, values, function ( err, rows ) {
+        if ( err ) {
+            verifyEmailError( "Database error, See log for more details", 500 );
+
+            logBridgeError( verifyEmailError,
+                "Database query failed",
+                query,
+                values,
+                req,
+                err
+            );
+
+            error( verifyEmailError );
+            return;
+        }
+
+        if ( rows.length !== 1 ) {
+            verifyEmailError( "No user with that user hash", 400 );
+
+            logBridgeError( verifyEmailError,
+                "No user exists with this user hash",
+                query,
+                values,
+                req, {
+                    rows: rows
+                }
+            );
+        }
+
+        res.content.message = "Email verification sucessful";
+
+        var query2 = "UPDATE users SET STATUS = 'NORMAL' WHERE id = ?";
+        var values2 = [ rows[ 0 ].ID ];
+
+        connection.query( query2, values2, function ( err2, rows2 ) {
+            if ( err2 ) {
+                verifyEmailError( "Database error, See log for more details", 500 );
+
+                logBridgeError( verifyEmailError,
+                    "Database query failed to update the table for verification",
+                    query2,
+                    values2,
+                    req,
+                    err
+                );
+
+                error( verifyEmailError );
+                return;
+            }
+        } );
+    } );
+};
+
 /**
  * query the database with the given query and values for the query.
  * @param  {String}    query  The mysql database query string with '?' for variables.
@@ -234,15 +320,15 @@ exports.query = function(query, values, cb) {
     connection.query(query, values, function(err, rows) {
         if (err) {
 
-            var queryFailedError = new bridgeError(' generic query failed ', 500);
+            var queryFailedError = new bridgeError( "generic query failed", 500 );
 
-            app.get('logger').verbose({
-                Error: JSON.stringify(queryFailedError),
+            app.get( 'logger' ).verbose( {
+                Error: JSON.stringify( queryFailedError ),
                 Reason: "",
                 Query: query,
                 Values: values,
-                DBError: JSON.stringify(err)
-            });
+                DBError: JSON.stringify( err )
+            } );
 
             queryFailedError.DBError = err;
 
@@ -262,3 +348,13 @@ exports.close = function() {
     connection.end();
 };
 
+function logBridgeError( Error, Reason, Query, Values, req, Meta ) {
+    app.get( 'logger' ).verbose( {
+        Error: JSON.stringify( Error ),
+        Reason: Reason,
+        Query: Query,
+        Values: JSON.stringify( Values ),
+        ExtraData: JSON.stringify( Meta ),
+        "Request Body": JSON.stringify( req.body )
+    } );
+}
