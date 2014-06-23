@@ -124,27 +124,12 @@ exports.registrationAuthenticationFilter = function(req, res, next, error){
         }
     }
 
-//    req.bridge.user = {};
     req.bridge.user = {
         Email: req.body.content.email,
         Pass: req.body.content.password,
-        FName: req.body.content['first-name'],
-        LName: req.body.content['last-name'],
-        RegCode: req.body.content.regcode,
-        AppData: {
-            "pretest"       : false,
-            "module1-page1" : false,
-            "module1-page2" : false,
-            "exercise1"     : false,
-            "module2-page1" : false,
-            "module2-page2" : false,
-            "exercise2"     : false,
-            "module3-page1" : false,
-            "module3-page2" : false,
-            "exercise3"     : false,
-            "posttest"      : false,
-            "kt-plan"       : false
-        }
+        FName: req.body.content.firstname,
+        LName: req.body.content.lastname,
+        AppData: req.body.content.appData
     };
 
     next();
@@ -157,7 +142,7 @@ exports.registrationAuthenticationFilter = function(req, res, next, error){
  * @param  {Function} next  The callback for the completion of this filter
  * @param  {Function} error The callback for an error occuring in the filter.
  * @return {Undefined} 
- */
+ */ 
 exports.registrationDataVaildation = function ( req, res, next, error ) {
 
     // Make sure all of the nessesary data for registration exists
@@ -245,7 +230,7 @@ exports.registrationDataVaildation = function ( req, res, next, error ) {
     }
     {
         if (!_.isObject(req.body.content.appData)){
-            var appDataFormatError = new bridgeError( 'AppData property found but is not in a valid format. Is not an object', 400 );
+            var appDataFormatError = new bridgeError( 'AppData property found but is not in a valid format, expected an object', 400 );
 
             app.get('logger').verbose( {
                 Error: JSON.stringify(appDataFormatError),
