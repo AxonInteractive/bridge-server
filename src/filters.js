@@ -162,8 +162,8 @@ exports.registrationDataVaildation = function ( req, res, next, error ) {
 
     // Make sure all of the nessesary data for registration exists
     if ( req.body.content == null || req.body.content.email == null ||
-        req.body.content.password == null || req.body.content[ 'first-name' ] == null ||
-        req.body.content[ 'last-name' ] == null ) 
+        req.body.content.password == null || req.body.content.firstName == null ||
+        req.body.content.lastName == null || req.body.content.appData == null ) 
     {
         var requestBodyContentFormatError = new bridgeError( 'Request body content missing property. See log for more information', 400 );
         app.get( 'logger' ).info( {
@@ -196,7 +196,7 @@ exports.registrationDataVaildation = function ( req, res, next, error ) {
     // Validating First and Last Name
     {
         var nameRegex = regex.name;
-        var fNameReg = nameRegex.exec( req.body.content[ 'first-name' ] );
+        var fNameReg = nameRegex.exec( req.body.content.firstName );
 
         if ( fNameReg === null ) {
             var nameFormatError = new bridgeError( 'First name property found but is not in a valid format', 400 );
@@ -209,7 +209,7 @@ exports.registrationDataVaildation = function ( req, res, next, error ) {
             return;
         }
 
-        var lNameReg = nameRegex.exec( req.body.content[ 'last-name' ] );
+        var lNameReg = nameRegex.exec( req.body.content.lastName );
 
         if ( lNameReg === null ) {
             var lnameFormatError = new bridgeError( 'Last name property found but is not in a valid format', 400 );
@@ -240,6 +240,21 @@ exports.registrationDataVaildation = function ( req, res, next, error ) {
                 "Request Body": JSON.stringify( req.body )
             } );
             error( passFormatError );
+            return;
+        }
+    }
+    {
+        if (!_.isObject(req.body.content.appData)){
+            var appDataFormatError = new bridgeError( 'AppData property found but is not in a valid format. Is not an object', 400 );
+
+            app.get('logger').verbose( {
+                Error: JSON.stringify(appDataFormatError),
+                Reason: "Type of property app data is not an object",
+                "Request Body": JSON.stringify(req.body)
+            } );
+
+            error(appDataFormatError);
+            return;
         }
     }
 
