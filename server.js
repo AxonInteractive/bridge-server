@@ -242,9 +242,12 @@ setTimeout( function () {
 
     }
 
-    if ( !( foundLogin && foundRegister ) ) {
-        app.get( 'logger' )
-            .error( "Standard API routes for Login and Register not found. Bridge API will not work properly without these defined" );
+    if (!foundLogin) {
+        app.get( 'logger' ).error( "No login route found. this is needed for the normal operation of bridge" );
+    }
+
+    if ( !foundRegister ) {
+        app.get( 'logger' ).error( "No register route found. this is needed for the normal operation of bridge" );
     }
 
     // var mail = {
