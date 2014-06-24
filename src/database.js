@@ -189,9 +189,11 @@ exports.changePassword = function ( req, res, next, error ) {
             Reason: "Request is missing message property for path req.body.content.message",
             "Request Body": JSON.stringify( req.body )
         } );
+        error(messageMissingError);
+        return;
     }
 
-    var values = [req.body.content.password, req.bridge.user.email];
+    var values = [req.body.content.password, req.bridge.user.EMAIL];
 
     connection.query(changePassword, values, function(err, retObj){
 
@@ -212,10 +214,10 @@ exports.changePassword = function ( req, res, next, error ) {
             return;
         }
 
-        if (!_.has(req, "content"))
-            req.content = {};
+        if (!_.has(res.body, "content"))
+            res.body.content = {};
 
-        req.content.message = "Changing password successful"; 
+        res.body.content.message = "Changing password successful"; 
 
         next();
 
