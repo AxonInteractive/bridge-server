@@ -100,6 +100,13 @@ exports.parseGetQueryString = function ( req, res, next ) {
  * @param  {Function} next The function to call when this function is complete
  */
 exports.verifyRequestStructure = function ( req, res, next ) {
+
+    if (!_.isEmpty(req.body))
+    {
+        next();
+        return;
+    }
+
     var body    = req.body;
     var content = body.content;
     var email   = body.email;
