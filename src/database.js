@@ -226,7 +226,7 @@ exports.changePassword = function ( req, res, next, error ) {
 exports.verifyEmail = function( req, res, next, error ){
 
     var verifyEmailError;
-    if ( !_.has( req.bridge, 'reqUserHash' ) ) {
+    if ( !_.has( req.body.content, 'hash' ) ) {
         verifyEmailError = new bridgeError( "The could not find the user hash", 500 );
 
         logBridgeError( verifyEmailError,
@@ -240,7 +240,7 @@ exports.verifyEmail = function( req, res, next, error ){
         return;
     }
 
-    if ( !_.isString( req.bridge.reqUserHash ) ) {
+    if ( !_.isString( req.body.content.hash ) ) {
         verifyEmailError = new bridgeError( "The requests user hash is not a string", 500 );
         logBridgeError( verifyEmailError,
             "The req.bridge.reqUserHash is not a string which is needed for email verification",
@@ -254,7 +254,7 @@ exports.verifyEmail = function( req, res, next, error ){
     }
 
     var query = "SELECT * FROM users WHERE USER_HASH = ?";
-    var values = [req.bridge.reqUserHash];
+    var values = [req.body.content.hash];
 
     connection.query( query, values, function ( err, rows ) {
         if ( err ) {

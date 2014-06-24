@@ -149,7 +149,6 @@ function forgotPassword( req, res ) {
 }
 
 function verifyEmail( req, res ) {
-    var userHash = req.body.content.message;
 
     var verifyPipeline = new pipeline();
 
