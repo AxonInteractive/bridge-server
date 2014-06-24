@@ -214,10 +214,10 @@ exports.changePassword = function ( req, res, next, error ) {
             return;
         }
 
-        if (!_.has(res.body, "content"))
-            res.body.content = {};
 
-        res.body.content.message = "Changing password successful"; 
+        res.content = {};
+
+        res.content.message = "Changing password successful"; 
 
         next();
 
