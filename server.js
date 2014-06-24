@@ -113,10 +113,24 @@ app.enable( 'trust proxy' );
 ///////    STARTING SETUP OF MIDDLEWARE    //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
+app.use( function ( req, res, next ) {
+
+    app.get( 'logger' ).silly( {
+
+        RequestBody: req.body
+    } );
+
+    console.log('Received Request');
+
+    next();
+} );
+
 // Use the logging middleware to log requests using the stream above
 app.use( express.logger( {
     stream: logStream
 } ) );
+
+
 
 // Server any static content under that client folder
 // Should be first due to wanting to server content before API whatever happens.
@@ -135,12 +149,7 @@ if ( 'production' == app.get( 'env' ) ) {
     app.use( express.errorHandler() );
 }
 
-app.use(function(req, res, next){
 
-    var wha = req;
-
-    next();
-});
 
 // Automatically parse the body to JSON
 app.use( express.json() );
