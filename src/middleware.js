@@ -101,8 +101,7 @@ exports.parseGetQueryString = function ( req, res, next ) {
  */
 exports.verifyRequestStructure = function ( req, res, next ) {
 
-    if (!_.isEmpty(req.body))
-    {
+    if ( !_.has( req.body, 'content' ) ) {
         next();
         return;
     }
