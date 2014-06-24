@@ -37,8 +37,9 @@ function loginHandler( req, res ) {
         if ( err ) {
             res.status( err.StatusCode );
             res.send( {
-                "message": err.Message,
-                "content": {}
+                "content": {
+                    "message": err.Message
+                }
             } );
             return;
         }
