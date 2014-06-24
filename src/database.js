@@ -305,6 +305,7 @@ exports.verifyEmail = function( req, res, next, error ){
                 error( verifyEmailError );
                 return;
             }
+            next();
         } );
     } );
 };
