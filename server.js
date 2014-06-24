@@ -120,7 +120,7 @@ app.use( express.logger( {
 
 // Server any static content under that client folder
 // Should be first due to wanting to server content before API whatever happens.
-app.use( express.static( 'client' ) );
+app.use( express.static( './client' ) );
 
 // development only settings
 if ( 'development' == app.get( 'env' ) ) {

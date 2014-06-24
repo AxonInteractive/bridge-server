@@ -44,9 +44,9 @@ function loginHandler( req, res ) {
         }
 
         if ( _.isFunction( additionaldataFunc ) ) {
-            resBody.user.additionalData = additionaldataFunc( req, resBody );
+            resBody.content.user.additionalData = additionaldataFunc( req, resBody );
         } else {
-            resBody.user.additionalData = {};
+            resBody.content.user.additionalData = {};
         }
 
         res.status( 200 );

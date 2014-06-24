@@ -531,14 +531,17 @@ exports.responseAddUser = function ( req, res, next, error ) {
         return;
     }
 
-    res.user = {};
+    if (!_.has(res, 'content'))
+        res.content = {};
 
-    res.user.email        = req.bridge.user.EMAIL;
-    res.user.firstName    = req.bridge.user.FIRST_NAME;
-    res.user.lastName     = req.bridge.user.LAST_NAME;
-    res.user.status       = req.bridge.user.STATUS;
-    res.user.role         = req.bridge.user.ROLE;
-    res.user.appData      = appData;
+    res.content.user = {};
+
+    res.content.user.email        = req.bridge.user.EMAIL;
+    res.content.user.firstName    = req.bridge.user.FIRST_NAME;
+    res.content.user.lastName     = req.bridge.user.LAST_NAME;
+    res.content.user.status       = req.bridge.user.STATUS;
+    res.content.user.role         = req.bridge.user.ROLE;
+    res.content.user.appData      = appData;
 
     next();
 };
