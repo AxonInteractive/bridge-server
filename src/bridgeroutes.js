@@ -127,7 +127,6 @@ function changePassword( req, res ) {
 }
 
 function recoverPassword( req, res ) {
-
 }
 
 function forgotPassword( req, res ) {
@@ -144,12 +143,9 @@ function forgotPassword( req, res ) {
 
         res.status( 200 );
     } );
-
-
 }
 
 function verifyEmail( req, res ) {
-
     var verifyPipeline = new pipeline();
 
     verifyPipeline.pipe( database.verifyEmail );

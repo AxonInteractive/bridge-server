@@ -120,8 +120,6 @@ app.use( function ( req, res, next ) {
         RequestBody: req.body
     } );
 
-    console.log('Received Request');
-
     next();
 } );
 
