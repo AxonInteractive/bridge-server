@@ -107,25 +107,25 @@ function sendMail ( mail, done ) {
 
     logger.silly( "Mail passed structure test. Attempting to send mail. Mail", mail );
 
-    transport.sendMail( mail, function ( error, response ) {
+    // transport.sendMail( mail, function ( error, response ) {
 
-        if ( error ) {
+    //     if ( error ) {
 
-            logger.error( "An error occurred sending an e-mail. Error: " + JSON.stringify( error ), mail );
-            return;
-        }
+    //         logger.error( "An error occurred sending an e-mail. Error: " + JSON.stringify( error ), mail );
+    //         return;
+    //     }
 
-        logger.debug( "Mail sent successfully.", mail );
-        deleteTransport();
-        makeTransport();
-        if (_.isFunction(done)) {
-            done();
-        }
-        return;
+    //     logger.debug( "Mail sent successfully.", mail );
+    //     deleteTransport();
+    //     makeTransport();
+    //     if (_.isFunction(done)) {
+    //         done();
+    //     }
+    //     return;
 
 
 
-    } );
+    // } );
 
     return true;
 }
