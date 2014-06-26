@@ -1,4 +1,12 @@
 "use strict";
+
+var resourceful = require('resourceful');
+var BridgeError = resourceful.define('bridgeError');
+
+BridgeError.string('Message');
+BridgeError.number('StatusCode');
+
+
 module.exports = function(message, statusCode){
 
     var completeMessage = "[ERROR - " + statusCode + "] ";
@@ -25,8 +33,8 @@ module.exports = function(message, statusCode){
 
     completeMessage = completeMessage.concat("-> " + message);
 
-    return {
-        "Message": completeMessage,
-        "StatusCode": statusCode
-    };
+    return new( BridgeError )( {
+        Message:    completeMessage,
+        StatusCode: statusCode
+    } );
 };

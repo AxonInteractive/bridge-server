@@ -144,14 +144,22 @@ exports.registerUser = function ( req, res, next, error ) {
         }
 
         if ( app.get( 'BridgeConfig' ).server.emailVerification === true ) {
-            mailer.sendVerificationEmail( req.bridge.user );
+            mailer.sendVerificationEmail( req );
         }
 
         next();
     } );
 };
 
-exports.changePassword = function ( req, res, next, error ) {
+/**
+ * Updates the user object which made the request if authenticated
+ * @param  {Object}   req   The express request object
+ * @param  {Object}   res   The express response object
+ * @param  {Function} next  The callback for when the function is complete
+ * @param  {Function} error The callback for when an error occurs
+ * @return {Undefined}
+ */
+exports.updateUser = function( req, res, next, error ) {
 
     if ( !_.has( req.bridge, "user" ) ) {
         var unAuthenticateError = new bridgeError( 'Cannot change password without authentication', 403 );
@@ -166,8 +174,6 @@ exports.changePassword = function ( req, res, next, error ) {
         return;
     }
 
-    var changePassword = "UPDATE users SET PASSWORD = ? WHERE EMAIL = ? ";
-
     if ( !_.has( req.body, "content" ) ) {
         var malformedMessageError = new bridgeError( "Request is missing the content property", 400);
 
@@ -181,31 +187,106 @@ exports.changePassword = function ( req, res, next, error ) {
         return;
     }
 
-    if (!_.has(req.body.content, "password")) {
-        var messageMissingError = new bridgeError( "Request is missing message property", 400);
+    var content = req.body.content;
+
+    var updateFields = {};
+
+    //////////////////////////////////////////////////////////
+    ///////////   Determine the fields to update   ///////////
+    //////////////////////////////////////////////////////////
+
+    // App Data Check
+    if ( _.has( content, 'appData' ) ) {
+        if ( !_.isEmpty( content.appData ) ) {
+            updateFields.APP_DATA = content.appData;
+        }
+    }
+
+    // Email Check
+    if ( _.has( content, 'email' ) ) {
+        if ( !_.isEmpty( content.email ) ) {
+            updateFields.EMAIL = content.email;
+        }
+    }
+
+    // First Name Check
+    if ( _.has( content, 'firstName' ) ) {
+        if ( !_.isEmpty( content.firstName ) ) {
+            updateFields.FIRST_NAME = content.firstName;
+        }
+    }
+
+    // Last Name Check
+    if ( _.has( content, 'lastName' ) ) {
+        if ( !_.isEmpty( content.lastName ) ) {
+            updateFields.LAST_NAME = content.lastName;
+        }
+    }
+
+    // Password Check
+    if ( _.has( content, 'password' ) ) {
+        if ( !_.isEmpty( content.password ) ) {
+            updateFields.PASSWORD = content.password;
+        }
+    }
+
+    //////////////////////////////////////////////////////////
+    /////////   End of Determining the fields to update   ////
+    //////////////////////////////////////////////////////////
+    
+    if ( _.isEmpty( updateFields ) ) {
 
         app.get( 'logger' ).verbose( {
-            Error: JSON.stringify( messageMissingError ),
-            Reason: "Request is missing message property for path req.body.content.message",
-            "Request Body": JSON.stringify( req.body )
+            Reason: "No content to update. Request failed",
+            RequestBody: req.body,
+            Error: {
+                Message: "No content to update",
+                StatusCode: 400
+            }
         } );
-        error(messageMissingError);
+
+        error( {
+            Message: "No content to update",
+            StatusCode: 400
+        } );
+
         return;
     }
 
-    var values = [req.body.content.password, req.bridge.user.EMAIL];
+    updateFields.USER_HASH = crypto.createHash( 'sha256' ).update( req.bridge.user.EMAIL + new Date() ).digest( 'hex' );
 
-    connection.query(changePassword, values, function(err, retObj){
+    var query = "UPDATE users SET ";
+    var values = [];
 
-        if (err){
+    var pairs = _.pairs(updateFields);
+
+    pairs.forEach( function ( element ) {
+        var key = element[ 0 ];
+        var value = element[ 1 ];
+
+        query = query.concat( key + " = ?, " );
+        values.push( value );
+
+    } );
+
+    // Remove the last two characters
+    query = query.slice(0, - 2);
+
+    query = query.concat( " WHERE EMAIL = ?" );
+
+    values.push(req.bridge.user.EMAIL);
+
+    connection.query( query, values, function ( err, retObj ) {
+
+        if ( err ) {
             // Create the Error
-            var queryFailedError = new bridgeError( 'Query failed to register user', 500 );
+            var queryFailedError = new bridgeError( 'Query failed to update user', 500 );
 
             // Log the error and relevant information
             app.get( 'logger' ).verbose( {
                 Error: JSON.stringify( queryFailedError ),
                 Reason: "Database rejected query",
-                Query: changePassword,
+                Query: query,
                 Values: values,
                 DBError: JSON.stringify( err )
             } );
@@ -217,19 +298,26 @@ exports.changePassword = function ( req, res, next, error ) {
 
         res.content = {};
 
-        res.content.message = "Changing password successful"; 
+        res.content.message = "Updaing user successful";
 
         next();
 
-    });
-
+    } );
 };
 
+/**
+ * Verifies the user that made this request. 
+ * @param  {Object}   req   The express request object
+ * @param  {Object}   res   The express response object
+ * @param  {Function} next  The callback for when this function is complete
+ * @param  {Function} error The callback for when an error occurs
+ * @return {Undefined}
+ */
 exports.verifyEmail = function( req, res, next, error ){
 
     var verifyEmailError;
     if ( !_.has( req.body.content, 'hash' ) ) {
-        verifyEmailError = new bridgeError( "The could not find the user hash", 500 );
+        verifyEmailError = new bridgeError( "Could not find the user hash", 500 );
 
         logBridgeError( verifyEmailError,
             "The req.bridge has no property 'reqUserHash' which is needed for email verification",
@@ -260,7 +348,7 @@ exports.verifyEmail = function( req, res, next, error ){
 
     connection.query( query, values, function ( err, rows ) {
         if ( err ) {
-            verifyEmailError( "Database error, See log for more details", 500 );
+            verifyEmailError = new bridgeError( "Database error, See log for more details", 500 );
 
             logBridgeError( verifyEmailError,
                 "Database query failed",
@@ -275,7 +363,7 @@ exports.verifyEmail = function( req, res, next, error ){
         }
 
         if ( rows.length !== 1 ) {
-            verifyEmailError( "No user with that user hash", 400 );
+            verifyEmailError = new bridgeError( "No user with that user hash", 400 );
 
             logBridgeError( verifyEmailError,
                 "No user exists with this user hash",
@@ -319,9 +407,9 @@ exports.verifyEmail = function( req, res, next, error ){
  * @param  {Function}  cb     The callback when the query is complete. signature - >(err, rows)
  * @return {Undefined}        Nothing
  */
-exports.query = function(query, values, cb) {
-    connection.query(query, values, function(err, rows) {
-        if (err) {
+exports.query = function ( query, values, cb ) {
+    connection.query( query, values, function ( err, rows ) {
+        if ( err ) {
 
             var queryFailedError = new bridgeError( "generic query failed", 500 );
 
@@ -335,12 +423,12 @@ exports.query = function(query, values, cb) {
 
             queryFailedError.DBError = err;
 
-            cb(queryFailedError);
+            cb( queryFailedError );
         }
 
-        cb(undefined, rows);
+        cb( undefined, rows );
 
-    });
+    } );
 };
 
 /**

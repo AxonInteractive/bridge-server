@@ -2,20 +2,23 @@
 //server.js
 
 // Bring in external libraries
-var fs         = require( 'fs'         );
-var crypto     = require( 'crypto'     );
-var jsonminify = require( 'jsonminify' );
-var https      = require( 'https'      );
-var http       = require( 'http'       );
-var path       = require( 'path'       );
-var express    = require( 'express'    );
-var underscore = require( 'underscore' );
+var fs          = require( 'fs'          );
+var crypto      = require( 'crypto'      );
+var jsonminify  = require( 'jsonminify'  );
+var https       = require( 'https'       );
+var http        = require( 'http'        );
+var path        = require( 'path'        );
+var express     = require( 'express'     );
+var underscore  = require( 'underscore'  );
+var resourceful = require( 'resourceful' );
 
 // Setup global variables
 GLOBAL._ = underscore._;
 
 // Export pipeline object as a utility
 exports.pipeline = require('./lib/pipeline');
+
+var wat = require('./src/config');
 
 var config;
 
@@ -101,10 +104,19 @@ var logStream = {
     }
 };
 
+app.log = app.get('logger');
+
 // Setting standard dictionary objects
 // database reference
 app.set( 'database',   database );
 app.set( 'bridge-ext', {} );
+
+
+app.set( 'views', config.mailer.viewPath );
+app.set( 'view engine', 'ejs' );
+
+app.engine( 'html', require( 'ejs' ).renderFile );
+
 
 // Tell express that it is behind a proxy
 app.enable( 'trust proxy' );
@@ -113,26 +125,13 @@ app.enable( 'trust proxy' );
 ///////    STARTING SETUP OF MIDDLEWARE    //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
-app.use( function ( req, res, next ) {
-
-    app.get( 'logger' ).silly( {
-
-        RequestBody: req.body
-    } );
-
-    next();
-} );
-
-// Use the logging middleware to log requests using the stream above
-app.use( express.logger( {
-    stream: logStream
-} ) );
-
-
-
 // Server any static content under that client folder
 // Should be first due to wanting to server content before API whatever happens.
 app.use( express.static( './client' ) );
+
+app.use( express.logger( {
+    stream: logStream
+} ) );
 
 // development only settings
 if ( 'development' == app.get( 'env' ) ) {
@@ -147,16 +146,18 @@ if ( 'production' == app.get( 'env' ) ) {
     app.use( express.errorHandler() );
 }
 
-
-
 // Automatically parse the body to JSON
 app.use( express.json() );
 
 // Decode URL Strings
 app.use( express.urlencoded() );
 
-// Provides faux HTTP method support.
-//app.use(express.methodOverride());
+app.use( function ( req, res, next ) {
+    app.get( 'logger' ).silly( {
+        "Request Body: ": req.body
+    } );
+    next();
+} );
 
 // Add the CORS headers to the response
 app.use( bridgeWare.attachCORSHeaders );
@@ -181,7 +182,7 @@ app.use( app.router );
 /////////////////////////////////////////////////////////////////////////////////////////
 
 // Setup the server for https mode
-if ( config.server.mode === "secure" ) {
+if ( config.server.mode === "https" ) {
     var credentials = {
         key: fs.readFileSync( config.server.secure.keyfilepath, 'utf8' ),
         cert: fs.readFileSync( config.server.secure.certificatefilepath, 'utf8' )
@@ -192,7 +193,7 @@ if ( config.server.mode === "secure" ) {
 }
 
 // Else setup the server for http mode
-else if ( config.server.mod === "insecure" ) {
+else if ( config.server.mod === "http" ) {
     server = http.createServer( app );
 }
 

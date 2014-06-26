@@ -5,6 +5,7 @@ var filters  = require( './filters'       );
 var database = require( './database'      );
 var mailer   = require( './mailer'        );
 var fs       = require( 'fs'              );
+var config   = app.get( 'BridgeConfig'    );
 
 exports.setup = function () {
 
@@ -12,16 +13,28 @@ exports.setup = function () {
 
     app.put( '/api/1.0/users', registerHandler );
 
-    app.post( '/api/1.0/change-password', changePassword );
+    //app.post( '/api/1.0/change-password', changePassword );
 
-    app.post( '/api/1.0/users', updateUser);
+    app.post( '/api/1.0/users', updateUser );
 
     app.post( '/api/1.0/recover-password', recoverPassword );
 
     app.post( '/api/1.0/forgot-password', forgotPassword );
 
     app.post( '/api/1.0/verify-email', verifyEmail );
+
+    app.get( '/', serveIndex );
 };
+
+function serveIndex( req, res ) {
+    if ( fs.existsSync( config.server.homepage ) ) {
+        res.sendfile( config.server.homepage );
+        return;
+    }
+
+    res.status( 404 );
+    res.send( "Could not find the homepage" );
+}
 
 function loginHandler( req, res ) {
     var loginPipeline = new pipeline();
@@ -99,40 +112,13 @@ function registerHandler( req, res ) {
     } );
 }
 
-function changePassword( req, res ) {
-
-    var cpPipeline = new pipeline();
-
-    cpPipeline
-        .pipe( filters.authenticationFilter )
-        .pipe( database.changePassword );
-
-    cpPipeline.execute( req, function ( resBody, err ) {
-        if ( err != null ) {
-
-            res.status( err.StatusCode );
-
-            app.get( 'logger' ).verbose( {
-                req: req.body,
-                status: err.StatusCode,
-                err: err.Message
-            } );
-
-            res.send( err );
-            return;
-        }
-
-        res.status( 200 );
-        res.send( resBody );
-    } );
-}
-
 function recoverPassword( req, res ) {
+
 }
 
 function forgotPassword( req, res ) {
 
-    fs.readFile( app.get( 'BridgeConfig' ).templates.recoverPasswordTemplatePath, function(err, data){
+    fs.readFile( config.templates.recoverPasswordTemplatePath, function(err, data){
 
         if ( err ) {
             app.get( 'logger' ).warn( "Error reading template file for forgot password. Error: ", err );
@@ -182,7 +168,7 @@ function updateUser( req, res ) {
 
     uUPipeline
         .pipe( filters.authenticationFilter )
-        .pipe( database.changePassword );
+        .pipe( database.updateUser );
 
     uUPipeline.execute( req, function ( resBody, err ) {
         if ( err != null ) {

@@ -29,7 +29,7 @@ exports.authenticationFilter = function(req, res, next, error){
 
         if (err){
             var databaseError = new bridgeError ('Database query error. see log files for more information', 403);
-            app.get('logger').warn({
+            app.get('logger').verbose({
                 Reason: JSON.stringify(err),
                 Query: "SELECT * FROM users WHERE email = " + req.body.email,
                 Error: JSON.stringify(databaseError)
@@ -40,7 +40,7 @@ exports.authenticationFilter = function(req, res, next, error){
 
         if (rows.length !== 1) {
             var resultError = new bridgeError("User not found or more than one user found for that email", 403);
-            app.get('logger').warn({
+            app.get('logger').verbose({
                 Results: JSON.stringify(rows),
                 Query: "SELECT * FROM users WHERE EMAIL = " + req.body.email,
                 Error: JSON.stringify(resultError)
@@ -59,7 +59,7 @@ exports.authenticationFilter = function(req, res, next, error){
 
         if (valHmac !== req.body.hmac) {
             var hmacError = new bridgeError("Failed hmac check", 403);
-            app.get('logger').warn({
+            app.get('logger').verbose({
                 Reason: 'Request failed hmac check',
                 "Request Body": JSON.stringify(req.body),
                 "Target HMAC" : valHmac,
@@ -69,9 +69,23 @@ exports.authenticationFilter = function(req, res, next, error){
             error( hmacError );
             return;
         }
-        
+
+        if ( user.STATUS != 'NORMAL' ) {
+            var incorrectStatusError = new bridgeError( "User is in the '" + ( user.STATUS.toLowerCase() ) + "' state", 403 );
+
+            app.get( 'logger' ).verbose( {
+                Reason: "Request failed status check. Status should be NORMAL to pass authentication",
+                "Request Body": JSON.stringify( req.body ),
+                UserStatus: user.STATUS,
+                Error: JSON.stringify( incorrectStatusError )
+            } );
+
+            error( incorrectStatusError );
+            return;
+        }
+
         req.bridge.user = user;
-        
+
         next();
     });
 };
