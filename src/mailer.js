@@ -100,3 +100,7 @@ exports.sendVerificationEmail = function( req ){
     sendMail( mail, view );
 };
 
+exports.sendForgotPasswordEmail = function( email ){
+
+};
+

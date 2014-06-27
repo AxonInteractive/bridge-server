@@ -11,7 +11,7 @@ if ( !fs.existsSync( logPath ) ) {
     fs.mkdir( logPath );
 }
 
-app.set( 'logger', new( winston.Logger )( {
+var loggerConstObj = {
     transports: [
         new winston.transports.DailyRotateFile( {
             filename: config.server.filename,
@@ -25,24 +25,29 @@ app.set( 'logger', new( winston.Logger )( {
             colorize: true,
             silent: false,
             timestamp: false,
-            json: false
+            json: false,
+            prettyPrint: true
         } )
     ],
     exceptionHandlers: [
         new winston.transports.DailyRotateFile( {
             filename: config.exception.filename,
             handleExceptions: true,
-            json: true
+            json: false
         } )
-    ]
-} ) );
+    ],
+    exitOnError: false
+};
 
 if ( config.exception.writetoconsole === true ) {
-    app.get( 'logger' ).handleExceptions( new winston.transports.Console( {
+
+    loggerConstObj.exceptionHandlers.push( new winston.transports.Console( {
         prettyPrint: true,
         colorize: true
     } ) );
 }
+
+app.set( 'logger', new( winston.Logger )( loggerConstObj ) );
 
 if ( app.get( 'env' ) === 'development' ) {
 

@@ -11,6 +11,10 @@ var path        = require( 'path'        );
 var express     = require( 'express'     );
 var underscore  = require( 'underscore'  );
 var resourceful = require( 'resourceful' );
+var winston     = require( 'winston'     );
+
+winston.remove(winston.transports.Console);
+winston.add(winston.transports.Console, { level: 'info', colorize:true });
 
 // Setup global variables
 GLOBAL._ = underscore._;
@@ -18,55 +22,7 @@ GLOBAL._ = underscore._;
 // Export pipeline object as a utility
 exports.pipeline = require('./lib/pipeline');
 
-var wat = require('./src/config');
-
-var config;
-
-// Check if the file exists. if not create a default configuration to use
-if ( !fs.existsSync( 'BridgeConfig.json' ) ) {
-    config = {
-        "default": true,
-        server: {
-            mode: "insecure",
-            port: 3000,
-            emailVerification: true
-        },
-        database: {
-            user: "root",
-            password: "",
-            host: "localhost",
-            database: "bridge"
-        },
-        logger: {
-            exception: {
-                filename: "logs/exceptions.log",
-                writetoconsole: true
-            },
-            server: {
-                filename: "logs/server.log",
-                level: "debug",
-                consoleLevel: "warn"
-            },
-            console: {
-                level: "info"
-            }
-        },
-        mailer: {
-            method: "Direct",
-            options: {}
-        }
-    };
-}
-
-// If the file exists load it.
-else
-{
-    // Parse the configuration file from the application
-    var configStr = fs.readFileSync( 'BridgeConfig.json', 'utf8' );
-    config = JSON.parse( JSON.minify( configStr ) );
-}
-
-
+var config = require('./src/config');
 
 // Start the express app
 GLOBAL.app = express();
@@ -127,14 +83,14 @@ app.enable( 'trust proxy' );
 
 // Server any static content under that client folder
 // Should be first due to wanting to server content before API whatever happens.
-app.use( express.static( './client' ) );
+app.use( express.static( config.server.wwwRoot ) );
 
 app.use( express.logger( {
     stream: logStream
 } ) );
 
 // development only settings
-if ( 'development' == app.get( 'env' ) ) {
+if ( 'development' == config.server.environment ) {
     app.use( express.errorHandler( {
         dumpExceptions: true,
         showStack: true
@@ -142,7 +98,7 @@ if ( 'development' == app.get( 'env' ) ) {
 }
 
 // production only settings
-if ( 'production' == app.get( 'env' ) ) {
+if ( 'production' == config.server.environment) {
     app.use( express.errorHandler() );
 }
 
@@ -193,7 +149,7 @@ if ( config.server.mode === "https" ) {
 }
 
 // Else setup the server for http mode
-else if ( config.server.mod === "http" ) {
+else if ( config.server.mode === "http" ) {
     server = http.createServer( app );
 }
 
@@ -204,7 +160,7 @@ server.listen( port );
 routes.setup();
 
 // Log the start of the server
-app.get( 'logger' ).info( "Express server listening on port %d in %s mode", port, app.settings.env );
+app.get( 'logger' ).info( "Express server listening on port %d in %s mode", port, config.server.environment );
 
 // Setup the kill state handler
 function cleanUp() {

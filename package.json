@@ -16,13 +16,13 @@
   "license": "No License",
   "dependencies": {
     "express": "3.x",
-    "winston": "^0.7.3",
-    "mysql": "^2.3.0",
-    "jsonminify": "^0.2.3",
-    "underscore": "^1.6.0",
-    "express-mailer": "^0.2.3",
-    "ejs": "^1.0.0",
-    "resourceful": "^0.2.3"
+    "winston": "0.7.3",
+    "mysql": "2.3.0",
+    "jsonminify": "0.2.3",
+    "underscore": "1.6.0",
+    "express-mailer": "0.2.3",
+    "ejs": "1.0.0",
+    "resourceful": "0.2.3"
   },
   "devDependencies": {},
   "scripts": {

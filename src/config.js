@@ -3,21 +3,9 @@
 var resourceful = require( 'resourceful' );
 resourceful.use('memory');
 
-var jsonminify  = require( 'jsonminify'  );
-var fs = require('fs');
-
-_.deepObjectExtend = function(target, source) {
-    for (var prop in source)
-        if (prop in target)
-            _.deepObjectExtend(target[prop], source[prop]);
-        else
-            target[prop] = source[prop];
-    return target;
-};
-
-module.exports = function(){
-
-};
+var jsonminify = require( 'jsonminify' );
+var fs         = require( 'fs'         );
+var winston    = require( 'winston'    );
 
 var SecureServerConfig = resourceful.define( 'secureServerConfig', function () {
 
@@ -42,6 +30,14 @@ var ServerConfig = resourceful.define( 'serverConfig', function () {
         allowEmpty: false,
         default: "http"
     } );
+
+    this.string( 'environment', {
+        enum: ["development","production"],
+        required: true,
+        allowEmpty: false,
+        default: "production"
+    });
+
     this.number( 'port', {
         minimum: 0,
         maximum: 65535,
@@ -69,9 +65,14 @@ var ServerConfig = resourceful.define( 'serverConfig', function () {
         default: true
     } );
 
-    this.string( 'homepage', {
+    this.string( 'wwwRoot', {
         required: true,
-        default: 'public/index.html'
+        default: 'client/'
+    } );
+
+    this.string( 'indexPath', {
+        required: true,
+        default: 'index.html'
     } );
 } );
 
@@ -166,7 +167,7 @@ var LoggerConfig = resourceful.define('loggerConfig', function() {
     });
 } );
 
-var OptionsMailerConfig   = resourceful.define('optionsMailerConfig', function() {
+var OptionsMailerConfig = resourceful.define('optionsMailerConfig', function() {
     this.string('from', {
         required: true,
         allowEmpty: false,
@@ -181,7 +182,7 @@ var OptionsMailerConfig   = resourceful.define('optionsMailerConfig', function()
     });
 } );
 
-var MailerConfig          = resourceful.define('mailerConfig', function() {
+var MailerConfig = resourceful.define('mailerConfig', function() {
     this.object('options', {
         required: true,
         default: new OptionsMailerConfig(),
@@ -254,7 +255,6 @@ var Config = resourceful.define('config', function(){
             return false;
         }
     });
-
 } );
 
 var config;
@@ -302,26 +302,23 @@ if ( fs.existsSync( 'BridgeConfig.json' ) ) {
 // If no user config can be loaded make a default one
 else {
     config = new Config();
+    winston.warn('Configuration file not found. Using defaults. This may have undesired effects. Please make "BridgeConfig.json"');
 }
 
 var validation = config.validate( config, Config );
 
 if (validation.valid === false)
 {
-    setTimeout(function(){
-        app.get('logger').error('Configuration file is not valid and could not be loaded. Errors: ', _.flatten(errors), ", Other Errors: ", JSON.stringify(validation.errors));
-    }, 100);
+    winston.error('Configuration file is not valid and could not be loaded. Errors: ', _.flatten(errors), ", Other Errors: ", JSON.stringify(validation.errors));
+}
+else
+{
+    winston.info('Configuration file loaded successfully');
 }
 
 // Export the object
 module.exports = config;
 
-// setTimeout( function () {
 
-//      console.log( config.isValid );
-//      console.dir( config.validate( config, Config ) );
-//      console.dir( config );
-
-// }, 500 );
 
 //////////////////////////////////////////

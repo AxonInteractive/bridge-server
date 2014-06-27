@@ -9,7 +9,12 @@ var mailer      = require('./mailer');
 var connection  = null;
 
 connection = mysql.createConnection(app.get('BridgeConfig').database);
-connection.connect();
+
+try {
+    connection.connect();
+} catch ( err ) {
+    app.get( 'logger' ).error( "Could not connect to database. Error: " + err );
+}
 
 /**
  * gets the users using the filter object added on
@@ -400,6 +405,15 @@ exports.verifyEmail = function( req, res, next, error ){
     } );
 };
 
+exports.forgotPassword = function( req, res, next, error ) {
+
+    var forgotPassword = require( './requests/forgotPassword' )( req.body );
+
+    if ( _.isArray( forgotPassword ) ) {
+        app.get('logger').verbose(forgotPassword);
+    }
+};
+
 /**
  * query the database with the given query and values for the query.
  * @param  {String}    query  The mysql database query string with '?' for variables.
@@ -438,6 +452,8 @@ exports.query = function ( query, values, cb ) {
 exports.close = function() {
     connection.end();
 };
+
+
 
 function logBridgeError( Error, Reason, Query, Values, req, Meta ) {
     app.get( 'logger' ).verbose( {

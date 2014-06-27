@@ -6,29 +6,29 @@ var database = require( './database'      );
 var mailer   = require( './mailer'        );
 var fs       = require( 'fs'              );
 var config   = app.get( 'BridgeConfig'    );
+var path     = require( 'path' );
 
 exports.setup = function () {
 
     app.get( '/api/1.0/login', loginHandler );
 
-    app.put( '/api/1.0/users', registerHandler );
+    app.post( '/api/1.0/users', registerHandler );
 
-    //app.post( '/api/1.0/change-password', changePassword );
+    app.put( '/api/1.0/users', updateUser );
 
-    app.post( '/api/1.0/users', updateUser );
+    app.put( '/api/1.0/recover-password', recoverPassword );
 
-    app.post( '/api/1.0/recover-password', recoverPassword );
+    app.put( '/api/1.0/forgotpassword', forgotPassword );
 
-    app.post( '/api/1.0/forgot-password', forgotPassword );
-
-    app.post( '/api/1.0/verify-email', verifyEmail );
+    app.put( '/api/1.0/verify-email', verifyEmail );
 
     app.get( '/', serveIndex );
 };
 
 function serveIndex( req, res ) {
-    if ( fs.existsSync( config.server.homepage ) ) {
-        res.sendfile( config.server.homepage );
+    var indexPath = path.join( config.server.wwwRoot, config.server.indexPath );
+    if ( fs.existsSync( indexPath ) ) {
+        res.sendfile( indexPath );
         return;
     }
 
@@ -97,7 +97,7 @@ function registerHandler( req, res ) {
             return;
         }
 
-        app.get( 'logger' ).verbose( {
+        app.get( 'logger' ).silly( {
             req: req.body,
             status: 200,
             res: resBody
@@ -113,22 +113,42 @@ function registerHandler( req, res ) {
 }
 
 function recoverPassword( req, res ) {
-
 }
 
 function forgotPassword( req, res ) {
 
-    fs.readFile( config.templates.recoverPasswordTemplatePath, function(err, data){
+    var forogtPasswordPipeline = new pipeline();
+
+    forogtPasswordPipeline.pipe( database.forgotPassword );
+
+    forogtPasswordPipeline.execute( req, function ( resBody, err ) {
+
 
         if ( err ) {
-            app.get( 'logger' ).warn( "Error reading template file for forgot password. Error: ", err );
-            res.status( 500 );
+            app.get( 'logger' ).verbose( {
+                RequestBody: req.body,
+                Status: err.StatusCode,
+                Error: err.Message
+            } );
+
+            res.status( err.StatusCode );
+
+            res.send( {
+                content: {
+                    message: err.Message
+                }
+            } );
             return;
         }
 
-        // TODO fill templates with values
-
         res.status( 200 );
+
+        res.send( {
+            content: {
+                message: "Password recovery email sent successfully!"
+            }
+        } );
+
     } );
 }
 
