@@ -1,7 +1,10 @@
 "use strict";
 
-var error = require( './error' );
-var regex = require( './regex' );
+var error       = require( './error' );
+var regex       = require( './regex' );
+var revalidator = require( 'revalidator' );
+var crypto      = require( 'crypto' );
+var database    = require( './database' );
 
 /**
  * Add the nessesary CORS headers to the response object.
@@ -94,6 +97,44 @@ exports.parseGetQueryString = function ( req, res, next ) {
 };
 
 /**
+ * The bridge request object schema. The definition of a bridge request
+ * @type {Object}
+ */
+var bridgeRequestSchema = {
+    properties: {
+        content: {
+            description: "The content of the bridge request",
+            type: 'object',
+            required: false
+        },
+
+        email: {
+            description: "The email that the request was sent from. can be empty",
+            type: 'string',
+            pattern: regex.optionalEmail,
+            required: true,
+            allowEmpty: true
+        },
+
+        time: {
+            description: "The time the request was sent from",
+            type: 'string',
+            required: true,
+            allowEmpty: false,
+            pattern: regex.iSOTime
+        },
+
+        hmac: {
+            description: "the hmac signature of a bridge request",
+            type: 'string',
+            required: true,
+            allowEmpty: false,
+            pattern: regex.sha256
+        }
+    }
+};
+
+/**
  * Verify that the request has the necessary structure and content to be handled by the bridge
  * @param  {Object}   req  The express request object.
  * @param  {Object}   res  The express response object.
@@ -101,220 +142,109 @@ exports.parseGetQueryString = function ( req, res, next ) {
  */
 exports.verifyRequestStructure = function ( req, res, next ) {
 
-    if ( !_.has( req.body, 'content' ) ) {
+    var validation = revalidator.validate(req.body, bridgeRequestSchema);
+    var vrsError;
+
+    if (validation.valid === false) {
+        var firstError = validation.errors[ 0 ];
+        vrsError = new error( "Property " + firstError.property + " - " + firstError.message, 400 );
+
+        app.get('logger').verbose({
+            Error: JSON.stringify(vrsError),
+            RequestBody: req.body
+        });
+
+        res.status( vrsError.StatusCode );
+        res.send( {
+            content: {
+                message: vrsError.Message
+            }
+        } );
+
+        return;
+    }
+
+    req.bridge.isAnon = (req.body.email === "");
+
+
+    var hmacSalt;
+
+    if (req.bridge.isAnon === true) {
+        hmacSalt = "";
+
+        if ( !checkHmacSignature( req, hmacSalt ) ) {
+            vrsError = new error( 'HMAC Mismatch', 400 );
+
+            app.get( 'logger' ).verbose( {
+                Error: vrsError,
+                RequestBody: req.body
+            } );
+
+            res.status( vrsError.StatusCode );
+            res.send( {
+                content: {
+                    message: vrsError.Message
+                }
+            } );
+            return;
+        }
+
+        req.bridge.structureVerified = true;
         next();
         return;
     }
 
-    var body    = req.body;
-    var content = body.content;
-    var email   = body.email;
-    var time    = body.time;
-    var hmac    = body.hmac;
-
-    req.bridge = {};
-    res.content = {};
-
-    // Check if the content exists
-    if ( content == null ) {
-        var contentError = new error( 'Content property does not exist on the request', 400 );
-
-        app.get( 'logger' ).verbose( {
-            Error: JSON.stringify( contentError ),
-            Reason: "Content property doesn't exist on the body of the request",
-            "Request Body": JSON.stringify( req.body )
-        } );
-
-        res.status( contentError.StatusCode );
-        res.send( {
-            content: {
-                message: contentError.Message
-            }
-        } );
-        return;
-    }
-
-    // Check the email field of the request
-    {
-        if ( email == null ) {
-            var emailExistError = new error( 'Email property of the bridge body does not exist', 400 );
-
-            app.get( 'logger' ).verbose( {
-                Error: JSON.stringify( emailExistError ),
-                Reason: "Email property doesn't exist on the body of the request",
-                "Request Body": JSON.stringify( req.body )
-            } );
-
-            res.status( emailExistError.StatusCode );
-            res.send( {
-                content: {
-                    message: emailExistError.Message
-                }
-            } );
-            return;
-        }
-
-        if (email === "") {
-            req.bridge.isAnon = true;
-        }
-        else {
-
-            req.bridge.isAnon = false;
-
-            var emailRegex = regex.email;
-            var reg = emailRegex.exec( email );
-
-            if ( reg == null ) {
-                var emailRegexError = new error( 'Email was found but is not a valid format', 400 );
+    else {
+        database.authenticateRequest( req, res, function ( result, err ) {
+            if ( err ) {
 
                 app.get( 'logger' ).verbose( {
-                    Error: JSON.stringify( emailRegexError ),
-                    Reason: "Email failed to pass regex check for validation",
-                    "Request Body": JSON.stringify( req.body ),
-                    Email: email
+                    Error: err,
+                    RequestBody: req.body
                 } );
 
-                res.status( emailRegexError.StatusCode );
+                res.status( err.StatusCode );
                 res.send( {
                     content: {
-                        message: emailRegexError.Message
+                        message: err.Message
                     }
                 } );
                 return;
             }
-        }
+
+            hmacSalt = req.bridge.user.PASSWORD;
+
+            if ( !checkHmacSignature( req, hmacSalt ) ) {
+                vrsError = new error( 'HMAC Mismatch', 400 );
+
+                app.get( 'logger' ).verbose( {
+                    Error: vrsError,
+                    RequestBody: req.body
+                } );
+
+                res.status( vrsError.StatusCode );
+                res.send( {
+                    content: {
+                        message: vrsError.Message
+                    }
+                } );
+                return;
+            }
+
+            req.bridge.structureVerified = true;
+            next();
+            return;
+        } );
     }
+
     
-    // Check the time field of the message
-    {
-        if ( time == null ) {
-            var timeExistError = new error( 'Time property of the bridge body does not exist', 400 );
-
-            app.get( 'logger' ).verbose( {
-                Error: JSON.stringify( timeExistError ),
-                Reason: "Time property doesn't exist on the body of the request",
-                "Request Body": JSON.stringify( req.body )
-            } );
-
-            res.status( timeExistError.StatusCode );
-            res.send( {
-                content: {
-                    message: timeExistError.Message
-                }
-            } );
-            return;
-        }
-
-        var timeRegex = regex.iSOTime;
-        var timeReg = timeRegex.exec( time );
-
-        if ( timeReg == null ) {
-            var timeRegexError = new error( 'Time was found but is not a valid format', 400 );
-
-            app.get( 'logger' ).verbose( {
-                Error: JSON.stringify( timeRegexError ),
-                Reason: "Time failed to pass regex check for validation",
-                "Request Body": JSON.stringify( req.body ),
-                Time: time
-            } );
-
-
-            res.status( timeRegexError.StatusCode );
-            res.send( {
-                content: {
-                    message: timeRegexError.Message
-                }
-            } );
-            return;
-        }
-
-        var reqTimeObj = new Date( time );
-        if ( reqTimeObj == null ) {
-            var timeParseError = new error( 'Time string could not be parsed to an object', 400 );
-
-            app.get( 'logger' ).verbose( {
-                Error: JSON.stringify( reqTimeObj ),
-                Reason: "Time could not be parsed to an date object",
-                "Request Body": JSON.stringify( req.body ),
-                Time: time
-            } );
-
-            res.status( timeParseError.StatusCode );
-            res.send( {
-                content: {
-                    message: timeParseError.Message
-                }
-            } );
-            return;
-        }
-
-        var nowTimeObj = new Date();
-        var timeDiff = nowTimeObj - reqTimeObj;
-
-        if ( timeDiff > 60000 && timeDiff < 0 ) {
-            var timeDiffError = new error( 'Time was pared to an object but is too old', 400 );
-
-            app.get( 'logger' ).verbose( {
-                Error                   : JSON.stringify( timeDiffError ),
-                Reason                  : "The delta time between time the request was send and the time it was received was over one minute in the past or in the future",
-                "Request Body"          : JSON.stringify( req.body ),
-                "Current Time"          : JSON.stringify( nowTimeObj ),
-                "Request Created Time"  : JSON.stringify( reqTimeObj ),
-                "Time Difference in ms" : timeDiff
-            } );
-
-            res.status( timeDiffError.StatusCode );
-            res.send( {
-                content: {
-                    message: timeDiffError.Message
-                }
-            } );
-            return;
-        }
-    }
-
-    // Check the hmac field of the message
-    {
-        if (hmac == null){
-            var hmacExistError = new error('Hmac property of the bridge body does not exist', 400);
-
-            app.get( 'logger' ).verbose( {
-                Error: JSON.stringify( hmacExistError ),
-                Reason: "hmac property doesn't exist on the body of the request",
-                "Request Body": JSON.stringify( req.body )
-            } );
-
-            res.status(hmacExistError.StatusCode);
-            res.send({
-                content: {
-                    message: hmacExistError.Message
-                }
-            });
-            return;
-        }
-
-        var sha256Regex = regex.sha256;
-        var hashReg = sha256Regex.exec(hmac);
-        if (hashReg === null){
-            var hmacFormatError = new error('Hmac was found but is not a valid format', 400);
-
-            app.get( 'logger' ).verbose( {
-                Error: JSON.stringify( hmacFormatError ),
-                Reason: "hmac isnt properly formatted in the request. Failed regex check",
-                "Request Body": JSON.stringify( req.body ),
-                HMAC: hmac
-            } );
-
-            res.status(hmacFormatError.StatusCode);
-            res.send({
-                content: {
-                    message: hmacFormatError.Message
-                }
-            });
-            return;
-        }
-
-    }
-
-    next();
 };
+
+function checkHmacSignature( req, hmacSalt ) {
+
+    var concat = JSON.stringify( req.body.content ) + req.body.email + req.body.time;
+
+    var hmac = crypto.createHmac( 'sha256', hmacSalt ).update( concat ).digest( 'hex' );
+
+    return ( req.body.hmac === hmac );
+}

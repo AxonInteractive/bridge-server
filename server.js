@@ -128,7 +128,9 @@ app.use( bridgeWare.prepareBridgeObjects );
 app.use( bridgeWare.parseGetQueryString );
 
 // Standard Request Middleware for Verification of content for any API Calls
-app.use( bridgeWare.verifyRequestStructure );
+//app.use( /^\/api\/.+/, bridgeWare.verifyRequestStructure );
+
+app.use( '/api/1.0/', bridgeWare.verifyRequestStructure );
 
 // Use the router to route messages to the appropriate locations
 app.use( app.router );

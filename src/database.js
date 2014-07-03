@@ -17,6 +17,92 @@ try {
 }
 
 /**
+ * A filter used to authenticate a user from the bridge database.
+ * @param  {Object}   req   The express request object.
+ * @param  {Object}   res   The express response object.
+ * @param  {Function} next  Callback for when the function is complete
+ * @param  {Function} error Callback for when an error occurs
+ * @return {Undefined}
+ */
+exports.authenticateRequest = function ( req, res, cb ) {
+
+    if ( req.bridge.isAnon === true ) {
+        var authenticationError = new bridgeError( "Cannot authenticate", 403 );
+        app.get( 'logger' ).verbose( {
+            Error: JSON.stringify( authenticationError ),
+            Reason: "Cannot authenticate an anonymous request",
+            "Request Body": JSON.stringify( req.body )
+        } );
+        cb( undefined, authenticationError );
+        return;
+    }
+
+    connection.query('SELECT * FROM users WHERE EMAIL = ?', [req.body.email], function(err, rows){
+
+        if (err){
+            var databaseError = new bridgeError ('Database query error. see log files for more information', 403);
+            app.get('logger').verbose({
+                Reason: JSON.stringify(err),
+                Query: "SELECT * FROM users WHERE email = " + req.body.email,
+                Error: JSON.stringify(databaseError)
+            });
+            cb(undefined, databaseError);
+            return;
+        }
+
+        if (rows.length !== 1) {
+            var resultError = new bridgeError("User not found or more than one user found for that email", 403);
+            app.get('logger').verbose({
+                Results: JSON.stringify(rows),
+                Query: "SELECT * FROM users WHERE EMAIL = " + req.body.email,
+                Error: JSON.stringify(resultError)
+            });
+            cb( undefined, resultError );
+            return;
+        }
+
+        var user = rows[0];
+
+        var hmac = crypto.createHmac('sha256', user.PASSWORD);
+        var concat = JSON.stringify(req.body.content) + (req.body.email) + req.body.time;
+        hmac.update( concat );
+        var valHmac = hmac.digest('hex');
+
+
+        if (valHmac !== req.body.hmac) {
+            var hmacError = new bridgeError("Failed hmac check", 403);
+            app.get('logger').verbose({
+                Reason: 'Request failed hmac check',
+                "Request Body": JSON.stringify(req.body),
+                "Target HMAC" : valHmac,
+                "Request HMAC": req.body.hmac,
+                Error: JSON.stringify(hmacError)
+            });
+            cb( undefined, hmacError );
+            return;
+        }
+
+        if ( user.STATUS != 'NORMAL' ) {
+            var incorrectStatusError = new bridgeError( "User is in the '" + ( user.STATUS.toLowerCase() ) + "' state", 403 );
+
+            app.get( 'logger' ).verbose( {
+                Reason: "Request failed status check. Status should be NORMAL to pass authentication",
+                "Request Body": JSON.stringify( req.body ),
+                UserStatus: user.STATUS,
+                Error: JSON.stringify( incorrectStatusError )
+            } );
+
+            cb( undefined, incorrectStatusError );
+            return;
+        }
+
+        req.bridge.user = user;
+
+        cb();
+    });
+};
+
+/**
  * gets the users using the filter object added on
  * @param  {Object}    req  The request object.
  * @param  {Object}    res  The response object.
@@ -412,38 +498,40 @@ exports.forgotPassword = function( req, res, next, error ) {
     if ( _.isArray( forgotPassword ) ) {
         app.get('logger').verbose(forgotPassword);
     }
+
+    next();
 };
 
-/**
- * query the database with the given query and values for the query.
- * @param  {String}    query  The mysql database query string with '?' for variables.
- * @param  {Array}     values The array of values to replace the '?'s in the query with.
- * @param  {Function}  cb     The callback when the query is complete. signature - >(err, rows)
- * @return {Undefined}        Nothing
- */
-exports.query = function ( query, values, cb ) {
-    connection.query( query, values, function ( err, rows ) {
-        if ( err ) {
+// /**
+//  * query the database with the given query and values for the query.
+//  * @param  {String}    query  The mysql database query string with '?' for variables.
+//  * @param  {Array}     values The array of values to replace the '?'s in the query with.
+//  * @param  {Function}  cb     The callback when the query is complete. signature - >(err, rows)
+//  * @return {Undefined}        Nothing
+//  */
+// exports.query = function ( query, values, cb ) {
+//     connection.query( query, values, function ( err, rows ) {
+//         if ( err ) {
 
-            var queryFailedError = new bridgeError( "generic query failed", 500 );
+//             var queryFailedError = new bridgeError( "generic query failed", 500 );
 
-            app.get( 'logger' ).verbose( {
-                Error: JSON.stringify( queryFailedError ),
-                Reason: "",
-                Query: query,
-                Values: values,
-                DBError: JSON.stringify( err )
-            } );
+//             app.get( 'logger' ).verbose( {
+//                 Error: JSON.stringify( queryFailedError ),
+//                 Reason: "",
+//                 Query: query,
+//                 Values: values,
+//                 DBError: JSON.stringify( err )
+//             } );
 
-            queryFailedError.DBError = err;
+//             queryFailedError.DBError = err;
 
-            cb( queryFailedError );
-        }
+//             cb( queryFailedError );
+//         }
 
-        cb( undefined, rows );
+//         cb( undefined, rows );
 
-    } );
-};
+//     } );
+// };
 
 /**
  * Closes the database connection.

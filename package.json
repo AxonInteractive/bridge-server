@@ -22,7 +22,8 @@
     "underscore": "1.6.0",
     "express-mailer": "0.2.3",
     "ejs": "1.0.0",
-    "resourceful": "0.2.3"
+    "revalidator": "0.2.0",
+    "resourceful": "^0.2.3"
   },
   "devDependencies": {},
   "scripts": {
