@@ -73,7 +73,6 @@ app.set( 'view engine', 'ejs' );
 
 app.engine( 'html', require( 'ejs' ).renderFile );
 
-
 // Tell express that it is behind a proxy
 app.enable( 'trust proxy' );
 
@@ -135,6 +134,8 @@ app.use( '/api/1.0/', bridgeWare.verifyRequestStructure );
 // Use the router to route messages to the appropriate locations
 app.use( app.router );
 
+//app.use( bridgeWare.bridgeHandleErrors );
+
 /////////////////////////////////////////////////////////////////////////////////////////
 ///////     MIDDLEWARE SETUP COMPLETE      //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -179,68 +180,70 @@ function cleanUp() {
  * Checking the API to see if the correct routes have been setup by the API
  * @return {Undefined}
  */
-setTimeout( function () {
+ setTimeout( function () {
 
-    var routes = app.routes;
-    var foundRegister = false;
-    var foundLogin = false;
-    var regex;
-    var method;
+    app.all( '/api/*', bridgeWare.bridgeHandleErrors );
 
-    {
+//     var routes = app.routes;
+//     var foundRegister = false;
+//     var foundLogin = false;
+//     var regex;
+//     var method;
 
-        regex = /.*\/users$/;
-        method = routes.put;
+//     {
 
-        method.forEach( function ( element ) {
-            var reg = regex.exec( element.path );
+//         regex = /.*\/users$/;
+//         method = routes.put;
 
-            if ( reg !== null ) {
-                foundRegister = true;
-            }
-        } );
+//         method.forEach( function ( element ) {
+//             var reg = regex.exec( element.path );
 
-    } {
+//             if ( reg !== null ) {
+//                 foundRegister = true;
+//             }
+//         } );
 
-        regex = /.*\/login$/;
-        method = routes.get;
+//     } {
 
-        method.forEach( function ( element ) {
-            var reg = regex.exec( element.path );
+//         regex = /.*\/login$/;
+//         method = routes.get;
 
-            if ( reg !== null ) {
-                foundLogin = true;
-            }
-        } );
+//         method.forEach( function ( element ) {
+//             var reg = regex.exec( element.path );
 
-    }
+//             if ( reg !== null ) {
+//                 foundLogin = true;
+//             }
+//         } );
 
-    if (!foundLogin) {
-        app.get( 'logger' ).error( "No login route found. this is needed for the normal operation of bridge" );
-    }
+//     }
 
-    if ( !foundRegister ) {
-        app.get( 'logger' ).error( "No register route found. this is needed for the normal operation of bridge" );
-    }
+//     if (!foundLogin) {
+//         app.get( 'logger' ).error( "No login route found. this is needed for the normal operation of bridge" );
+//     }
 
-    // var mail = {
-    //     //to: "helocheck@cbl.abuseat.org",
-    //     to: "info@jameszinger.com",
-    //     from: "dev@jameszinger.com",
-    //     subject: "Testing Mailer",
-    //     html: "<h1>This is the HTML Body</h1>"
-    // };
+//     if ( !foundRegister ) {
+//         app.get( 'logger' ).error( "No register route found. this is needed for the normal operation of bridge" );
+//     }
 
-    // app.get( 'logger' ).info( 'Attempting to send mail', mail );
+//     // var mail = {
+//     //     //to: "helocheck@cbl.abuseat.org",
+//     //     to: "info@jameszinger.com",
+//     //     from: "dev@jameszinger.com",
+//     //     subject: "Testing Mailer",
+//     //     html: "<h1>This is the HTML Body</h1>"
+//     // };
 
-    // if ( mailer.sendMail( mail ) ) {
-    //     app.get( 'logger' ).info( 'Mail sent successfully' );
-    // }
-    // else {
-    //     app.get( 'logger' ).info( "Mail didn't send successfully", mail );
-    // }
+//     // app.get( 'logger' ).info( 'Attempting to send mail', mail );
 
-}, 1000 );
+//     // if ( mailer.sendMail( mail ) ) {
+//     //     app.get( 'logger' ).info( 'Mail sent successfully' );
+//     // }
+//     // else {
+//     //     app.get( 'logger' ).info( "Mail didn't send successfully", mail );
+//     // }
+
+ }, 100 );
 
 
 

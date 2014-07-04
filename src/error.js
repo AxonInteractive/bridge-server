@@ -1,26 +1,50 @@
 "use strict";
 
-var resourceful = require( 'resourceful' );
+var revalidator = require( 'revalidator' );
 
-var BridgeError = resourceful.define( 'bridgeError', function () {
-    this.string( 'Message', {
-        required: true,
-        allowEmpty: false
-    } );
+var schema = {
+    properties: {
+        status: {
+            type: 'integer',
+            required: true,
+            minimum: 400,
+            maximum: 600
+        },
 
-    this.number( 'StatusCode', {
-        required: true,
-        minimum: 400,
-        maximum: 600,
-        divisibleBy: 1
-    } );
-} );
+        errorCode: {
+            type: 'string',
+            allowEmpty: false,
+            required: true,
+            enum: [ 'Basic request structure malformed',
+                    'Database query error',
+                    'Email already used',
+                    'Email not found',
+                    'Failed to authenticate anonymous request',
+                    'HMAC failed',
+                    'Incorrect user state',
+                    'Malformed equal on filter',
+                    'Malformed filter object',
+                    'Malformed forgot password request',
+                    'Need authentication',
+                    'Request JSON failed to parse',
+                    'Request structure unverified',
+                    'User appData could not parse to JSON',
+                    'User not found', ]
+        },
 
-module.exports = function ( message, statusCode ) {
+        message: {
+            type: 'string',
+            allowEmpty: true,
+            required: false
+        }
+    }
+};
 
-    var completeMessage = "[ERROR - " + statusCode + "] ";
+exports.createError = function ( httpCode, errorCode, debugMessage ) {
 
-    switch ( statusCode ) {
+    var completeMessage = "[ERROR - " + httpCode + "] ";
+
+    switch ( httpCode ) {
     case 400:
         completeMessage = completeMessage.concat( "BAD REQUEST " );
         break;
@@ -40,23 +64,29 @@ module.exports = function ( message, statusCode ) {
         break;
     }
 
-    completeMessage = completeMessage.concat( "-> " + message );
+    completeMessage = completeMessage.concat( "-> " + debugMessage );
 
-    var error = new BridgeError({
-        Message: completeMessage,
-        StatusCode: statusCode
-    });
+    var error = {
+        status: httpCode,
+        errorCode: errorCode,
+        message: debugMessage
+    };
 
-    var validate = error.validate( error, BridgeError );
+    var validate = revalidator.validate( error, schema );
 
     if ( validate.valid === false ) {
-        app.get( 'logger' ).error( "Could not make error. Problem: ", validate.errors );
+        app.get( 'logger' ).verbose( "Could not validate bridge error. Errors: ", validate.errors );
 
         return {
-            Message: message,
-            StatusCode: statusCode
+            status: httpCode,
+            message: debugMessage,
+            errorCode: errorCode
         };
     }
 
     return error;
+};
+
+exports.validateError = function ( error ) {
+    return revalidator.validate( error, schema );
 };

@@ -13,7 +13,7 @@ connection = mysql.createConnection(app.get('BridgeConfig').database);
 try {
     connection.connect();
 } catch ( err ) {
-    app.get( 'logger' ).error( "Could not connect to database. Error: " + err );
+    app.log.error( "Could not connect to database. Error: " + err );
 }
 
 /**
@@ -27,63 +27,63 @@ try {
 exports.authenticateRequest = function ( req, res, cb ) {
 
     if ( req.bridge.isAnon === true ) {
-        var authenticationError = new bridgeError( "Cannot authenticate", 403 );
-        app.get( 'logger' ).verbose( {
-            Error: JSON.stringify( authenticationError ),
+        var authenticationError = bridgeError.createError( 500, 'Failed to authenticate anonymous request', "Cannot authenticate" );
+        app.log.verbose( {
+            Error: authenticationError,
             Reason: "Cannot authenticate an anonymous request",
-            "Request Body": JSON.stringify( req.body )
+            RequestBody: JSON.stringify( req.body )
         } );
-        cb( undefined, authenticationError );
+        cb( authenticationError );
         return;
     }
 
-    connection.query('SELECT * FROM users WHERE EMAIL = ?', [req.body.email], function(err, rows){
+    connection.query( 'SELECT * FROM users WHERE EMAIL = ?', [ req.body.email ], function ( err, rows ) {
 
-        if (err){
-            var databaseError = new bridgeError ('Database query error. see log files for more information', 403);
-            app.get('logger').verbose({
-                Reason: JSON.stringify(err),
+        if ( err ) {
+            var databaseError = bridgeError.createError( 403, 'Database query error', "Database query error. see log files for more information" );
+            app.get( 'logger' ).verbose( {
+                Reason: JSON.stringify( err ),
                 Query: "SELECT * FROM users WHERE email = " + req.body.email,
-                Error: JSON.stringify(databaseError)
-            });
-            cb(undefined, databaseError);
+                Error: JSON.stringify( databaseError )
+            } );
+            cb( databaseError );
             return;
         }
 
-        if (rows.length !== 1) {
-            var resultError = new bridgeError("User not found or more than one user found for that email", 403);
-            app.get('logger').verbose({
-                Results: JSON.stringify(rows),
+        if ( rows.length === 0 ) {
+            var resultError = bridgeError.createError( 403, 'Email not found', "User not found for that email" );
+            app.get( 'logger' ).verbose( {
+                Results: JSON.stringify( rows ),
                 Query: "SELECT * FROM users WHERE EMAIL = " + req.body.email,
-                Error: JSON.stringify(resultError)
-            });
-            cb( undefined, resultError );
+                Error: JSON.stringify( resultError )
+            } );
+            cb( resultError );
             return;
         }
 
-        var user = rows[0];
+        var user = rows[ 0 ];
 
-        var hmac = crypto.createHmac('sha256', user.PASSWORD);
-        var concat = JSON.stringify(req.body.content) + (req.body.email) + req.body.time;
+        var hmac = crypto.createHmac( 'sha256', user.PASSWORD );
+        var concat = JSON.stringify( req.body.content ) + ( req.body.email ) + req.body.time;
         hmac.update( concat );
-        var valHmac = hmac.digest('hex');
+        var valHmac = hmac.digest( 'hex' );
 
 
-        if (valHmac !== req.body.hmac) {
-            var hmacError = new bridgeError("Failed hmac check", 403);
-            app.get('logger').verbose({
+        if ( valHmac !== req.body.hmac ) {
+            var hmacError = bridgeError.createError( 403, 'HMAC failed', "Failed hmac check" );
+            app.get( 'logger' ).verbose( {
                 Reason: 'Request failed hmac check',
-                "Request Body": JSON.stringify(req.body),
-                "Target HMAC" : valHmac,
+                "Request Body": JSON.stringify( req.body ),
+                "Target HMAC": valHmac,
                 "Request HMAC": req.body.hmac,
-                Error: JSON.stringify(hmacError)
-            });
-            cb( undefined, hmacError );
+                Error: JSON.stringify( hmacError )
+            } );
+            cb( hmacError );
             return;
         }
 
         if ( user.STATUS != 'NORMAL' ) {
-            var incorrectStatusError = new bridgeError( "User is in the '" + ( user.STATUS.toLowerCase() ) + "' state", 403 );
+            var incorrectStatusError = bridgeError.createError( 403, 'Incorrect user state', "User is in the '" + ( user.STATUS.toLowerCase() ) + "' state" );
 
             app.get( 'logger' ).verbose( {
                 Reason: "Request failed status check. Status should be NORMAL to pass authentication",
@@ -92,15 +92,17 @@ exports.authenticateRequest = function ( req, res, cb ) {
                 Error: JSON.stringify( incorrectStatusError )
             } );
 
-            cb( undefined, incorrectStatusError );
+            cb( incorrectStatusError );
             return;
         }
 
         req.bridge.user = user;
 
         cb();
-    });
+    } );
 };
+
+
 
 /**
  * gets the users using the filter object added on
@@ -132,7 +134,7 @@ exports.getUser = function ( req, res, next, error ) {
     connection.query( query, values, function ( err, rows ) {
         if ( err ) {
             // Create the error
-            var queryFailedError = new bridgeError( 'Database error. See logs for more information', 500 );
+            var queryFailedError = bridgeError.createError( 500, 'Database query error', "Database error. See logs for more information" );
 
             // Log the error with relevant information
             app.get( 'logger' ).verbose( {
@@ -173,7 +175,7 @@ exports.registerUser = function ( req, res, next, error ) {
 
     if (!_.has(req.bridge, 'user')){
                 // Create the error
-        var authenticationNeededError = new bridgeError( 'Cannot register without authentication', 500 );
+        var authenticationNeededError = bridgeError.createError( 500, 'Need authentication', "Cannot register without authentication" );
 
         // Log the error and relevant information
         app.get( 'logger' ).verbose( {
@@ -203,7 +205,7 @@ exports.registerUser = function ( req, res, next, error ) {
         if ( err ) {
 
             if ( err.code === "ER_DUP_ENTRY" ) {
-                var dupEntryError = new bridgeError( 'Email already taken', 409 );
+                var dupEntryError = bridgeError.createError( 409, 'Email already used', "The email that was enter has already been taken by another user" );
 
                 app.get( 'logger' ).verbose( {
                     Error   : JSON.stringify( dupEntryError ),
@@ -218,7 +220,7 @@ exports.registerUser = function ( req, res, next, error ) {
             }
             else {
                 // Create the Error
-                var queryFailedError = new bridgeError( 'Query failed to register user', 500 );
+                var queryFailedError = bridgeError.createError( 500, 'Database query error', "Query failed to register user" );
 
                 // Log the error and relevant information
                 app.get( 'logger' ).verbose( {
@@ -253,7 +255,7 @@ exports.registerUser = function ( req, res, next, error ) {
 exports.updateUser = function( req, res, next, error ) {
 
     if ( !_.has( req.bridge, "user" ) ) {
-        var unAuthenticateError = new bridgeError( 'Cannot change password without authentication', 403 );
+        var unAuthenticateError = bridgeError.createError( 403, 'Need authentication', "Cannot change password without authentication" );
 
         app.get( 'logger' ).verbose( {
             Error          : JSON.stringify( unAuthenticateError ),
@@ -265,15 +267,14 @@ exports.updateUser = function( req, res, next, error ) {
         return;
     }
 
-    if ( !_.has( req.body, "content" ) ) {
-        var malformedMessageError = new bridgeError( "Request is missing the content property", 400);
+    if ( !_.has( req.bridge, "structureVerified" ) ) {
+        var malformedMessageError = bridgeError.createError( 400, 'Request structure unverified', "Request has not been verified using the verify request middleware property" );
 
-        app.get('logger').verbose( {
-            Error          : JSON.stringify(malformedMessageError),
-            Reason         : "Request is missing content property",
-            "Request Body" : JSON.stringify(req.body)
-        });
-
+        app.get( 'logger' ).verbose( {
+            Error: JSON.stringify( malformedMessageError ),
+            Reason: "Request is missing content property",
+            "Request Body": JSON.stringify( req.body )
+        } );
         error(malformedMessageError);
         return;
     }
@@ -371,7 +372,7 @@ exports.updateUser = function( req, res, next, error ) {
 
         if ( err ) {
             // Create the Error
-            var queryFailedError = new bridgeError( 'Query failed to update user', 500 );
+            var queryFailedError = bridgeError.createError(500, 'Database query error', "Query failed to update user" );
 
             // Log the error and relevant information
             app.get( 'logger' ).verbose( {
@@ -407,63 +408,38 @@ exports.updateUser = function( req, res, next, error ) {
 exports.verifyEmail = function( req, res, next, error ){
 
     var verifyEmailError;
-    if ( !_.has( req.body.content, 'hash' ) ) {
-        verifyEmailError = new bridgeError( "Could not find the user hash", 500 );
 
-        logBridgeError( verifyEmailError,
-            "The req.bridge has no property 'reqUserHash' which is needed for email verification",
-            null,
-            null,
-            req,
-            null
-        );
-        error( verifyEmailError );
-        return;
-    }
-
-    if ( !_.isString( req.body.content.hash ) ) {
-        verifyEmailError = new bridgeError( "The requests user hash is not a string", 500 );
-        logBridgeError( verifyEmailError,
-            "The req.bridge.reqUserHash is not a string which is needed for email verification",
-            null,
-            null,
-            req,
-            null
-        );
-        error( verifyEmailError );
-        return;
-    }
 
     var query = "SELECT * FROM users WHERE USER_HASH = ?";
     var values = [req.body.content.hash];
 
     connection.query( query, values, function ( err, rows ) {
         if ( err ) {
-            verifyEmailError = new bridgeError( "Database error, See log for more details", 500 );
+            verifyEmailError = bridgeError.createError( 500, 'Database query error', "Database error, See log for more details" );
 
-            logBridgeError( verifyEmailError,
-                "Database query failed",
-                query,
-                values,
-                req,
-                err
-            );
+            app.log.verbose( {
+                Error: verifyEmailError,
+                RequestBody: req.body,
+                Query: query,
+                Values: values
+            } );
 
             error( verifyEmailError );
             return;
         }
 
-        if ( rows.length !== 1 ) {
-            verifyEmailError = new bridgeError( "No user with that user hash", 400 );
+        if ( rows.length === 0 ) {
+            verifyEmailError = bridgeError.createError( 400, 'User not found', "No user with that user hash" );
 
-            logBridgeError( verifyEmailError,
-                "No user exists with this user hash",
-                query,
-                values,
-                req, {
-                    rows: rows
-                }
-            );
+            app.log.verbose( {
+                Error: verifyEmailError,
+                RequestBody: req.body,
+                Query: query,
+                Values: values
+            } );
+
+            error( verifyEmailError );
+            return;
         }
 
         res.content.message = "Email verification sucessful";
@@ -473,15 +449,14 @@ exports.verifyEmail = function( req, res, next, error ){
 
         connection.query( query2, values2, function ( err2, rows2 ) {
             if ( err2 ) {
-                verifyEmailError( "Database error, See log for more details", 500 );
+                verifyEmailError( 500, 'Database query error', "Database error, See log for more details" );
 
-                logBridgeError( verifyEmailError,
-                    "Database query failed to update the table for verification",
-                    query2,
-                    values2,
-                    req,
-                    err
-                );
+                app.log.verbose( {
+                    Error: verifyEmailError,
+                    RequestBody: req.body,
+                    Query: query2,
+                    Values: values2
+                } );
 
                 error( verifyEmailError );
                 return;
@@ -543,13 +518,13 @@ exports.close = function() {
 
 
 
-function logBridgeError( Error, Reason, Query, Values, req, Meta ) {
-    app.get( 'logger' ).verbose( {
-        Error: JSON.stringify( Error ),
-        Reason: Reason,
-        Query: Query,
-        Values: JSON.stringify( Values ),
-        ExtraData: JSON.stringify( Meta ),
-        "Request Body": JSON.stringify( req.body )
-    } );
-}
+// function logBridgeError( Error, Reason, Query, Values, req, Meta ) {
+//     app.get( 'logger' ).verbose( {
+//         Error: JSON.stringify( Error ),
+//         Reason: Reason,
+//         Query: Query,
+//         Values: JSON.stringify( Values ),
+//         ExtraData: JSON.stringify( Meta ),
+//         "Request Body": JSON.stringify( req.body )
+//     } );
+// }

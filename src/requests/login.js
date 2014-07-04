@@ -80,13 +80,28 @@ module.exports = function ( req, res, cb ) {
     }
 
 
-    database.authenticateRequest( req, res.body, function ( result, err ) {
+    database.authenticateRequest( req, res.body, function ( err ) {
 
-        if (err) {
-            app.get('logger').verbose( {
+        if ( err ) {
+            app.get( 'logger' ).verbose( {
                 Error: err,
                 Reason: "Failed to authenticate request"
-            });
+            } );
+
+            res.send( {
+                content: {
+                    message: err.Message,
+                    time: new Date().toISOString()
+                }
+            } );
+
+            res.status( err.StatusCode );
+
+            if ( _.isFunction( cb ) ) {
+                cb( err );
+            }
+
+            return;
         }
 
         var user = req.bridge.user;
@@ -109,8 +124,18 @@ module.exports = function ( req, res, cb ) {
             } );
 
             // Throw the error
-            res.send( userParseError.Message );
+            res.send( {
+                content: {
+                    message: userParseError.Message,
+                    time: new Date().toISOString()
+                }
+            } );
+
             res.status( userParseError.StatusCode );
+
+            if ( _.isFunction( cb ) ) {
+                cb( err );
+            }
 
             return;
         }
@@ -127,5 +152,13 @@ module.exports = function ( req, res, cb ) {
                 }
             }
         } );
+
+        res.status( 200 );
+
+        if ( _.isFunction( cb ) ) {
+            cb();
+        }
+
+        return;
     } );
 };

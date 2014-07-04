@@ -27,7 +27,10 @@ var schema = {
             type: 'string',
             pattern: regex.optionalEmail,
             allowEmpty: true,
-            required: true
+            required: true,
+            messages: {
+                pattern: "is not a valid email"
+            }
         },
 
         time: {
@@ -35,7 +38,10 @@ var schema = {
             type: 'string',
             pattern: regex.iSOTime,
             allowEmpty: false,
-            required: true
+            required: true,
+            messages: {
+                pattern: "is not a valid ISO date"
+            }
         },
 
         hmac: {
@@ -54,11 +60,9 @@ module.exports = function( req, res, cb ) {
     var fpError;
 
     if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
-        fpError = new error( "Request structure must be verified", 500 );
+        fpError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
 
-        res.send( fpError.Message );
-        res.status( fpError.StatusCode );
-
+        res.errors = fpError;
 
         if ( _.isFunction( cb ) ) {
             cb( fpError );
@@ -66,17 +70,16 @@ module.exports = function( req, res, cb ) {
         return;
     }
 
-    if ( !_.isObject( req.body ) ) {
-        fpError = new error( "Request body is not an object", 400 );
+    if ( _.isString( req.body ) ) {
+        fpError = error( 400, 'Request JSON failed to parse', "Request body is a string instead of an object" );
 
         app.get( 'logger' ).verbose( {
             Error: JSON.stringify( fpError ),
             RequestBody: JSON.stringify( req.body )
         } );
 
-        res.send( fpError.Message );
-        res.status( fpError.StatusCode );
-        
+        res.errors = fpError;
+
         if ( _.isFunction( cb ) ) {
             cb( fpError );
         }
@@ -88,18 +91,12 @@ module.exports = function( req, res, cb ) {
 
     if ( validation.valid === false ) {
 
+
         var firstError = validation.errors[0];
 
-        res.status( 400 );
+        fpError = error.createError( 400, 'Malformed forgot password request', firstError.property + " : " + firstError.message );
 
-        res.send({
-            content: {
-                message: "Property: " + firstError.property + " : " + firstError.message,
-                time: new Date().toISOString()
-            }
-        });
-
-
+        res.errors = fpError;
 
         if ( _.isFunction( cb ) ) {
             cb();

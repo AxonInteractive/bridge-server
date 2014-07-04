@@ -18,11 +18,21 @@ exports.setup = function () {
 
     app.put( '/api/1.0/recover-password', recoverPassword );
 
-    app.put( '/api/1.0/forgot-password', forgotPassword );
+    app.put( '/api/1.0/forgot-password', require( './requests/forgotPassword' ) );
 
     app.put( '/api/1.0/verify-email', verifyEmail );
 
     app.get( '/', serveIndex );
+    
+    app.get('/route/two', function(req, res) {
+        res.send("Route Two");
+    });
+
+    app.get(/^\/route\/.+$/, function(req, res) {
+        res.send("Route One");
+    });
+
+
 };
 
 function serveIndex( req, res ) {
@@ -37,36 +47,6 @@ function serveIndex( req, res ) {
 }
 
 function loginHandler( req, res ) {
-    // var loginPipeline = new pipeline();
-
-    // loginPipeline
-    //     .pipe( filters.authenticationFilter )
-    //     .pipe( filters.responseAddUser );
-
-    // var additionaldataFunc = app.get( 'bridge-ext' ).additionaldataFunc;
-
-    // loginPipeline.execute( req, function ( resBody, err ) {
-
-    //     if ( err ) {
-    //         res.status( err.StatusCode );
-    //         res.send( {
-    //             "content": {
-    //                 "message": err.Message
-    //             }
-    //         } );
-    //         return;
-    //     }
-
-    //     if ( _.isFunction( additionaldataFunc ) ) {
-    //         resBody.content.user.additionalData = additionaldataFunc( req, resBody );
-    //     } else {
-    //         resBody.content.user.additionalData = {};
-    //     }
-
-    //     res.status( 200 );
-    //     res.send( resBody );
-    // } );
-    // 
     require('./requests/login')(req, res);
 }
 
