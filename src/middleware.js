@@ -120,7 +120,10 @@ var bridgeRequestSchema = {
             type: 'string',
             required: true,
             allowEmpty: false,
-            pattern: regex.iSOTime
+            pattern: regex.iSOTime,
+            messages: {
+                pattern: "is not in ISO format"
+            }
         },
 
         hmac: {
