@@ -270,7 +270,7 @@ var filterSchema = {
             type: 'string',
             pattern: regex.iSOTime,
             required: false,
-            message: {
+            messages: {
                 pattern: "is not in ISO format"
             }
         },
@@ -279,7 +279,7 @@ var filterSchema = {
             type: 'string',
             pattern: regex.iSOTime,
             required: false,
-            message: {
+            messages: {
                 pattern: "is not in ISO format"
             }
         },

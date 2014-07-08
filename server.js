@@ -21,7 +21,7 @@ GLOBAL._ = underscore._;
 
 // Export pipeline object as a utility
 exports.pipeline = require('./lib/pipeline');
-
+ 
 var config = require('./src/config');
 
 // Start the express app
@@ -53,13 +53,6 @@ var server = null;
 // Export local files for the API to use
 exports.filters         = filters;
 
-// Prepare a steam in which for express to be able to write to winston
-var logStream = {
-    write: function ( message, encoding ) {
-        app.get( 'logger' ).silly( 'Request: ' + message );
-    }
-};
-
 app.log = app.get('logger');
 
 // Setting standard dictionary objects
@@ -84,28 +77,11 @@ app.enable( 'trust proxy' );
 // Should be first due to wanting to server content before API whatever happens.
 app.use( express.static( config.server.wwwRoot ) );
 
-app.use( express.logger( {
-    stream: logStream
-} ) );
-
-// development only settings
-if ( 'development' == config.server.environment ) {
-    app.use( express.errorHandler( {
-        dumpExceptions: true,
-        showStack: true
-    } ) );
-}
-
-// production only settings
-if ( 'production' == config.server.environment) {
-    app.use( express.errorHandler() );
-}
-
 // Automatically parse the body to JSON
-app.use( express.json() );
+//app.use( express.json() );
 
 // Decode URL Strings
-app.use( express.urlencoded() );
+//app.use( express.urlencoded() );
 
 app.use( function ( req, res, next ) {
     app.get( 'logger' ).silly( {
@@ -126,15 +102,17 @@ app.use( bridgeWare.prepareBridgeObjects );
 // read the query string from a request and parse it as JSON
 app.use( bridgeWare.parseGetQueryString );
 
-// Standard Request Middleware for Verification of content for any API Calls
-//app.use( /^\/api\/.+/, bridgeWare.verifyRequestStructure );
-
-app.use( '/api/1.0/', bridgeWare.verifyRequestStructure );
-
-// Use the router to route messages to the appropriate locations
-app.use( app.router );
-
 //app.use( bridgeWare.bridgeHandleErrors );
+
+//app.use( '/api/1.0/', bridgeWare.bridgeHandleErrors );
+
+//app.use( '/api/1.0/', bridgeWare.verifyRequestStructure );
+
+// Setup bridge default routes
+routes.setup();
+
+app.use('/api/1.0/', bridgeWare.bridgeHandleErrors );
+
 
 /////////////////////////////////////////////////////////////////////////////////////////
 ///////     MIDDLEWARE SETUP COMPLETE      //////////////////////////////////////////////
@@ -159,8 +137,7 @@ else if ( config.server.mode === "http" ) {
 // Listen on the port defined at the beginning of the script
 server.listen( port );
 
-// Setup bridge default routes
-routes.setup();
+
 
 // Log the start of the server
 app.get( 'logger' ).info( "Express server listening on port %d in %s mode", port, config.server.environment );
@@ -182,7 +159,7 @@ function cleanUp() {
  */
  setTimeout( function () {
 
-    app.all( '/api/*', bridgeWare.bridgeHandleErrors );
+    //app.all( '/api/*', bridgeWare.bridgeHandleErrors );
 
 //     var routes = app.routes;
 //     var foundRegister = false;

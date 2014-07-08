@@ -15,21 +15,25 @@ var schema = {
             type: 'string',
             allowEmpty: false,
             required: true,
-            enum: [ 'Basic request structure malformed',
+            enum: [
+                    'Basic request structure malformed',
                     'Database query error',
                     'Email already used',
                     'Email not found',
                     'Failed to authenticate anonymous request',
                     'HMAC failed',
+                    'Invalid email format',
+                    'Invalid time format',
+                    'Invalid HMAC format',
                     'Incorrect user state',
                     'Malformed equal on filter',
-                    'Malformed filter object',
                     'Malformed forgot password request',
                     'Need authentication',
                     'Request JSON failed to parse',
                     'Request structure unverified',
                     'User appData could not parse to JSON',
-                    'User not found', ]
+                    'User not found' 
+                ]
         },
 
         message: {

@@ -41,22 +41,12 @@ exports.authenticateRequest = function ( req, res, cb ) {
 
         if ( err ) {
             var databaseError = bridgeError.createError( 403, 'Database query error', "Database query error. see log files for more information" );
-            app.get( 'logger' ).verbose( {
-                Reason: JSON.stringify( err ),
-                Query: "SELECT * FROM users WHERE email = " + req.body.email,
-                Error: JSON.stringify( databaseError )
-            } );
             cb( databaseError );
             return;
         }
 
         if ( rows.length === 0 ) {
             var resultError = bridgeError.createError( 403, 'Email not found', "User not found for that email" );
-            app.get( 'logger' ).verbose( {
-                Results: JSON.stringify( rows ),
-                Query: "SELECT * FROM users WHERE EMAIL = " + req.body.email,
-                Error: JSON.stringify( resultError )
-            } );
             cb( resultError );
             return;
         }
@@ -71,27 +61,12 @@ exports.authenticateRequest = function ( req, res, cb ) {
 
         if ( valHmac !== req.body.hmac ) {
             var hmacError = bridgeError.createError( 403, 'HMAC failed', "Failed hmac check" );
-            app.get( 'logger' ).verbose( {
-                Reason: 'Request failed hmac check',
-                "Request Body": JSON.stringify( req.body ),
-                "Target HMAC": valHmac,
-                "Request HMAC": req.body.hmac,
-                Error: JSON.stringify( hmacError )
-            } );
             cb( hmacError );
             return;
         }
 
         if ( user.STATUS != 'NORMAL' ) {
             var incorrectStatusError = bridgeError.createError( 403, 'Incorrect user state', "User is in the '" + ( user.STATUS.toLowerCase() ) + "' state" );
-
-            app.get( 'logger' ).verbose( {
-                Reason: "Request failed status check. Status should be NORMAL to pass authentication",
-                "Request Body": JSON.stringify( req.body ),
-                UserStatus: user.STATUS,
-                Error: JSON.stringify( incorrectStatusError )
-            } );
-
             cb( incorrectStatusError );
             return;
         }

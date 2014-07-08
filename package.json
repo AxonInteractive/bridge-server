@@ -15,7 +15,7 @@
   "private": true,
   "license": "No License",
   "dependencies": {
-    "express": "3.x",
+    "express": "4.x",
     "winston": "0.7.3",
     "mysql": "2.3.0",
     "jsonminify": "0.2.3",

@@ -7,10 +7,13 @@ var mailer   = require( './mailer'        );
 var fs       = require( 'fs'              );
 var config   = app.get( 'BridgeConfig'    );
 var path     = require( 'path' );
-
+var middleware = require('./middleware');
 exports.setup = function () {
 
-    app.get( '/api/1.0/login', loginHandler );
+
+    app.all( '/api/1.0/*', middleware.verifyRequestStructure );
+
+    app.get( '/api/1.0/login', require('./requests/login') );
 
     app.post( '/api/1.0/users', registerHandler );
 
@@ -23,15 +26,8 @@ exports.setup = function () {
     app.put( '/api/1.0/verify-email', verifyEmail );
 
     app.get( '/', serveIndex );
-    
-    app.get('/route/two', function(req, res) {
-        res.send("Route Two");
-    });
 
-    app.get(/^\/route\/.+$/, function(req, res) {
-        res.send("Route One");
-    });
-
+//    app.all( '/api/1.0/*', middleware.bridgeHandleErrors );
 
 };
 

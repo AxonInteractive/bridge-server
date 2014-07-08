@@ -36,23 +36,14 @@ var schema = {
     }
 };
 
-module.exports = function ( req, res, cb ) {
+module.exports = function ( req, res, next ) {
     var loginError;
 
-    if ( !_.isObject( req.body ) ) {
-        loginError = new error( "Request body is not an object", 400 );
+    if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
 
-        app.get( 'logger' ).verbose( {
-            Error: JSON.stringify( loginError ),
-            RequestBody: JSON.stringify( req.body )
-        } );
+        loginError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
 
-        res.send( loginError.Message );
-        res.status( loginError.StatusCode );
-
-        if ( _.isFunction( cb ) ) {
-            cb( loginError );
-        }
+        res.error = loginError;
 
         return;
     }
@@ -63,102 +54,79 @@ module.exports = function ( req, res, cb ) {
 
         var firstError = validation.errors[ 0 ];
 
-        res.status( 400 );
+        loginError = error.createError( 400, 'Malformed forgot password request', firstError.property + " : " + firstError.message );
 
-        res.send( {
-            content: {
-                message: "Property: " + firstError.property + " : " + firstError.message,
-                time: new Date().toISOString()
-            }
-        } );
+        res.error = loginError;
 
-        if ( _.isFunction( cb ) ) {
-            cb();
-        }
+        next();
+        return;
+    }
 
+    if ( req.bridge.isAnon === true ) {
+        loginError = error.createError( 403, 'Failed to authenticate anonymous request', "Cannot authenticate a request that is anonymous" );
+
+        res.error = loginError;
+        next();
         return;
     }
 
 
-    database.authenticateRequest( req, res.body, function ( err ) {
+    // database.authenticateRequest( req, res.body, function ( err ) {
 
-        if ( err ) {
-            app.get( 'logger' ).verbose( {
-                Error: err,
-                Reason: "Failed to authenticate request"
-            } );
+    //     if ( err ) {
+    //         app.get( 'logger' ).verbose( {
+    //             Error: err,
+    //             Reason: "Failed to authenticate request"
+    //         } );
 
-            res.send( {
-                content: {
-                    message: err.Message,
-                    time: new Date().toISOString()
-                }
-            } );
+    //        res.error = err;
 
-            res.status( err.StatusCode );
+    //         if ( _.isFunction( next ) ) {
+    //             next();
+    //         }
 
-            if ( _.isFunction( cb ) ) {
-                cb( err );
-            }
+    //         return;
+    //     }
 
-            return;
-        }
+    var user = req.bridge.user;
 
-        var user = req.bridge.user;
+    var appData = {};
 
-        var appData = {};
+    try {
+        appData = JSON.parse( req.bridge.user.APP_DATA );
+    } catch ( err ) {
 
-        try {
-            appData = JSON.parse( req.bridge.user.APP_DATA );
-        } catch ( err ) {
+        // Create the error
+        var userParseError = error.createError( 500, 'User appData could not parse to JSON', "Could not parse application data to an object" );
 
-            // Create the error
-            var userParseError = new error( 'Could not parse application data to an object', 500 );
-
-            // Log the error and relevant information
-            app.get( 'logger' ).verbose( {
-                Error: userParseError,
-                Reason: "Failed to parse the users application data to JSON",
-                "Request Body": JSON.stringify( req.body ),
-                "Application Data": req.bridge.user.APP_DATA
-            } );
-
-            // Throw the error
-            res.send( {
-                content: {
-                    message: userParseError.Message,
-                    time: new Date().toISOString()
-                }
-            } );
-
-            res.status( userParseError.StatusCode );
-
-            if ( _.isFunction( cb ) ) {
-                cb( err );
-            }
-
-            return;
-        }
-
-        res.send( {
-            content: {
-                user: {
-                    email: user.EMAIL,
-                    firstName: user.FIRST_NAME,
-                    lastName: user.LAST_NAME,
-                    status: user.STATUS,
-                    role: user.ROLE,
-                    appData: appData
-                }
-            }
+        // Log the error and relevant information
+        app.get( 'logger' ).verbose( {
+            Error: userParseError,
+            Reason: "Failed to parse the users application data to JSON",
+            "Request Body": JSON.stringify( req.body ),
+            "Application Data": req.bridge.user.APP_DATA
         } );
 
-        res.status( 200 );
-
-        if ( _.isFunction( cb ) ) {
-            cb();
-        }
-
+        res.error = userParseError;
+        next();
         return;
+    }
+
+    res.send( {
+        content: {
+            user: {
+                email: user.EMAIL,
+                firstName: user.FIRST_NAME,
+                lastName: user.LAST_NAME,
+                status: user.STATUS,
+                role: user.ROLE,
+                appData: appData
+            }
+        }
     } );
+
+    res.status( 200 );
+
+    next();
+    return;
 };

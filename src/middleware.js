@@ -88,7 +88,7 @@ exports.parseGetQueryString = function ( req, res, next ) {
             JSONString: strObj
         } );
 
-        res.errors = ErrQueryString;
+        res.error  = ErrQueryString;
 
         return;
     }
@@ -112,7 +112,10 @@ var bridgeRequestSchema = {
             type: 'string',
             pattern: regex.optionalEmail,
             required: true,
-            allowEmpty: true
+            allowEmpty: true,
+            messages: {
+                pattern: "not a valid email"
+            }
         },
 
         time: {
@@ -122,7 +125,7 @@ var bridgeRequestSchema = {
             allowEmpty: false,
             pattern: regex.iSOTime,
             messages: {
-                pattern: "is not in ISO format"
+                pattern: "does not conform to the ISO format"
             }
         },
 
@@ -131,7 +134,10 @@ var bridgeRequestSchema = {
             type: 'string',
             required: true,
             allowEmpty: false,
-            pattern: regex.sha256
+            pattern: regex.sha256,
+            messages: {
+                pattern: "not a valid hash"
+            }
         }
     }
 };
@@ -142,26 +148,38 @@ var bridgeRequestSchema = {
  * @param  {Object}   res  The express response object.
  * @param  {Function} next The function to call when this function is complete
  */
-exports.verifyRequestStructure = function ( req, res, next ) {
+exports.verifyRequestStructure = function ( req, res ) {
 
+
+    app.log.info('Hello');
     var validation = revalidator.validate(req.body, bridgeRequestSchema);
     var vrsError;
 
     if (validation.valid === false) {
         var firstError = validation.errors[ 0 ];
-        vrsError = error.createError( 400, 'Basic request structure malformed', "Property " + firstError.property + " - " + firstError.message );
 
-        app.get('logger').verbose({
+        var errorCode = 'Basic request structure malformed';
+
+        if ( firstError.property == 'email' ) {
+            errorCode = 'Invalid email format';
+        } else if ( firstError.property == 'time' ) {
+            errorCode = 'Invalid time format';
+        } else if ( firstError.property == 'HMAC' ) {
+            errorCode = 'Invalid HMAC format';
+        }
+
+        vrsError = error.createError( 400, errorCode, "Property " + firstError.property + " - " + firstError.message );
+
+        app.log.verbose( {
             Error: vrsError,
             RequestBody: req.body
-        });
+        } );
 
-        res.errors = vrsError;
+        res.error = vrsError;
         return;
     }
 
     req.bridge.isAnon = (req.body.email === "");
-
 
     var hmacSalt;
 
@@ -176,12 +194,11 @@ exports.verifyRequestStructure = function ( req, res, next ) {
                 RequestBody: req.body
             } );
 
-            res.errors = vrsError;
+            res.error = vrsError;
             return;
         }
 
         req.bridge.structureVerified = true;
-        next();
         return;
     }
 
@@ -194,7 +211,7 @@ exports.verifyRequestStructure = function ( req, res, next ) {
                     RequestBody: req.body
                 } );
 
-                res.error = vrsError;
+                res.error = err;
                 return;
             }
 
@@ -208,12 +225,12 @@ exports.verifyRequestStructure = function ( req, res, next ) {
                     RequestBody: req.body
                 } );
 
-                res.err = vrsError;
+                res.error = vrsError;
                 return;
             }
 
             req.bridge.structureVerified = true;
-            next();
+            //next();
             return;
         } );
     }
@@ -232,15 +249,16 @@ function checkHmacSignature( req, hmacSalt ) {
 
 function bridgeErrorHandler( req, res, next ) {
 
-    if ( _.has( res, 'errors' )) {
+
+    if ( _.has( res, 'error' )) {
 
         var errorContext;
-        if ( _.isObject( res.errors ) ) {
-            errorContext = res.errors;
-        } else if ( _.isArray( res.errors ) ) {
-            errorContext = res.errors[0];
+        if ( _.isObject( res.error ) ) {
+            errorContext = res.error;
+        } else if ( _.isArray( res.error ) ) {
+            errorContext = res.error[0];
         } else {
-            next();
+
             return;
         }
 
@@ -250,7 +268,6 @@ function bridgeErrorHandler( req, res, next ) {
 
             app.get( 'logger' ).verbose( 'Error malformed. Errors: ', validation.errors );
 
-            next();
             return;
         }
 
@@ -261,11 +278,13 @@ function bridgeErrorHandler( req, res, next ) {
 
         res.status( errorContext.status );
 
+        app.log.verbose('Sending Error');
+
         if ( config.server.environment == 'development' ) {
-            res.send( { content: errorContext } );
+            res.json( { content: errorContext } );
         }
         else {
-            res.send( {
+            res.json( {
                 content: {
                     status: errorContext.status,
                     errorCode: errorContext.errorCode,
