@@ -1,27 +1,29 @@
 "use strict";
 
-var revalidator = require('revalidator');
+var revalidator = require("revalidator");
+var Q           = require('q');
 
-var regex = require('../regex');
-var error = require('../error');
+var regex    = require( '../regex' );
+var error    = require( '../error' );
+var database = require( '../database' );
 
 var schema = {
     properties: {
         content: {
-            description: "This is the content of a ForgotPassword Request",
             type: 'object',
             required: true,
             properties: {
-                message: {
-                    description: "The message relating to the forgot password request. should be an email",
+                hash: {
                     type: 'string',
                     required: true,
                     allowEmpty: false,
-                    format: 'email'
+                    pattern: regex.sha256,
+                    messages: {
+                        pattern: "not a valid hash"
+                    }
                 }
             }
         },
-
         email: {
             type: 'string',
             description: "The email of the request, used for identification",
@@ -32,7 +34,6 @@ var schema = {
                 pattern: "not a valid email"
             }
         },
-
         time: {
             description: "The time the request was made",
             type: 'string',
@@ -57,68 +58,46 @@ var schema = {
     }
 };
 
-function verifyStructure(req, res) {
-
-    var structError;
+module.exports = function ( req, res, next ) {
+    var verifyError;
 
     if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
-        structError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
 
-        throw structError;
+        verifyError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
+
+        next( verifyError );
+        return;
     }
-}
 
-function validateRequest(req, res) {
-
-    var valError;
     var validation = revalidator.validate( req.body, schema );
 
     if ( validation.valid === false ) {
 
         var firstError = validation.errors[ 0 ];
 
-        var errorCode;
+        verifyError = error.createError( 400, 'Malformed verify email request', firstError.property + " : " + firstError.message );
 
-        switch ( firstError.property ) {
-        case 'content.message': errorCode = 'Invalid email format';              break;
-        default:                errorCode = 'Malformed forgot password request'; break;
-        }
-
-        valError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
-
-        throw valError;
-    }
-}
-
-function sendResponse(req, res) {
-    
-    res.send( {
-        content: {
-            message: "Password recovery email sent successfully",
-            time: new Date().toISOString()
-        }
-    } );
-
-    res.status( 200 );
-
-}
-
-
-module.exports = function( req, res, next ) {
-
-    var fpError = false;
-
-    try {
-        verifyStructure( req );
-        validateRequest( req );
-        sendResponse( res );
-    }
-
-    catch (err) {
-        next(err);
+        next( verifyError );
         return;
     }
 
-    next();
+    var reqHolder = req;
+    var resHolder = res;
+    var nextHolder = next;
 
+    database.verifyEmail( req, res )
+        .then( function () {
+            res.send( {
+                content: {
+                    message: "Email account verified successfully!",
+                    time: new Date().toISOString()
+                }
+            } );
+
+            res.status( 200 );
+        } )
+
+    .fail( function ( err ) {
+        next( err );
+    } );
 };

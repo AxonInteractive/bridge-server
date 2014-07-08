@@ -22,12 +22,17 @@ var schema = {
                     'Email not found',
                     'Failed to authenticate anonymous request',
                     'HMAC failed',
-                    'Invalid email format',
-                    'Invalid time format',
-                    'Invalid HMAC format',
                     'Incorrect user state',
+                    'Invalid email format',
+                    'Invalid first name format',
+                    'Invalid HMAC format',
+                    'Invalid last name format',
+                    'Invalid time format',
                     'Malformed equal on filter',
                     'Malformed forgot password request',
+                    'Malformed login request',
+                    'Malformed update user request',
+                    'Malformed verify email request',
                     'Need authentication',
                     'Request JSON failed to parse',
                     'Request structure unverified',
@@ -78,8 +83,10 @@ exports.createError = function ( httpCode, errorCode, debugMessage ) {
 
     var validate = revalidator.validate( error, schema );
 
+    app.log.silly( error );
+
     if ( validate.valid === false ) {
-        app.get( 'logger' ).verbose( "Could not validate bridge error. Errors: ", validate.errors );
+        app.log.verbose( "Could not validate bridge error. Errors: ", validate.errors );
 
         return {
             status: httpCode,
@@ -87,6 +94,8 @@ exports.createError = function ( httpCode, errorCode, debugMessage ) {
             errorCode: errorCode
         };
     }
+
+
 
     return error;
 };

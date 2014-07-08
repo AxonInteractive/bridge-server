@@ -148,10 +148,8 @@ var bridgeRequestSchema = {
  * @param  {Object}   res  The express response object.
  * @param  {Function} next The function to call when this function is complete
  */
-exports.verifyRequestStructure = function ( req, res ) {
+exports.verifyRequestStructure = function ( req, res, next ) {
 
-
-    app.log.info('Hello');
     var validation = revalidator.validate(req.body, bridgeRequestSchema);
     var vrsError;
 
@@ -175,7 +173,7 @@ exports.verifyRequestStructure = function ( req, res ) {
             RequestBody: req.body
         } );
 
-        res.error = vrsError;
+        next(vrsError);
         return;
     }
 
@@ -194,15 +192,21 @@ exports.verifyRequestStructure = function ( req, res ) {
                 RequestBody: req.body
             } );
 
-            res.error = vrsError;
+            next(vrsError);
             return;
         }
 
         req.bridge.structureVerified = true;
+        next();
         return;
     }
 
     else {
+
+        // database.promiseAuthenticateRequest( req, res )
+        //     .catch(function(error){
+        //         res.error();
+        //     });
         database.authenticateRequest( req, res, function ( err ) {
             if ( err ) {
 
@@ -211,7 +215,7 @@ exports.verifyRequestStructure = function ( req, res ) {
                     RequestBody: req.body
                 } );
 
-                res.error = err;
+                next(err);
                 return;
             }
 
@@ -225,12 +229,12 @@ exports.verifyRequestStructure = function ( req, res ) {
                     RequestBody: req.body
                 } );
 
-                res.error = vrsError;
+                next(vrsError);
                 return;
             }
 
             req.bridge.structureVerified = true;
-            //next();
+            next();
             return;
         } );
     }
@@ -247,56 +251,46 @@ function checkHmacSignature( req, hmacSalt ) {
     return ( req.body.hmac === hmac );
 }
 
-function bridgeErrorHandler( req, res, next ) {
+exports.bridgeErrorHandler2 = function ( errContext, req, res, next ) {
 
+    var err;
 
-    if ( _.has( res, 'error' )) {
+    if ( _.isArray( errContext ) )
+        err = errContext[ 0 ];
+    else
+        err = errContext;
 
-        var errorContext;
-        if ( _.isObject( res.error ) ) {
-            errorContext = res.error;
-        } else if ( _.isArray( res.error ) ) {
-            errorContext = res.error[0];
-        } else {
+    var validation = error.validateError( err );
 
-            return;
-        }
+    if ( validation.valid === false ) {
 
-        var validation = error.validateError( errorContext );
-
-        if ( validation.valid === false ) {
-
-            app.get( 'logger' ).verbose( 'Error malformed. Errors: ', validation.errors );
-
-            return;
-        }
-
-        app.get( 'logger' ).silly( 'Bridge Error verified' );
-        var config = app.get( 'BridgeConfig' );
-
-        errorContext.time = new Date().toISOString();
-
-        res.status( errorContext.status );
-
-        app.log.verbose('Sending Error');
-
-        if ( config.server.environment == 'development' ) {
-            res.json( { content: errorContext } );
-        }
-        else {
-            res.json( {
-                content: {
-                    status: errorContext.status,
-                    errorCode: errorContext.errorCode,
-                    time: errorContext.time
-                }
-            } );
-        }
-
+        app.log.error( 'Error malformed. Errors: ', validation.errors, err );
+        res.send();
+        res.status();
+        return;
     }
 
-    next();
-    return;
-}
+    app.get( 'logger' ).silly( 'Bridge Error verified' );
+    var config = app.get( 'BridgeConfig' );
 
-exports.bridgeHandleErrors = bridgeErrorHandler;
+    err.time = new Date().toISOString();
+
+    res.status( err.status );
+
+    app.log.verbose( 'Sending Error', err );
+
+    if ( config.server.environment == 'development' ) {
+        res.json( {
+            content: err
+        } );
+    } else {
+        res.json( {
+            content: {
+                status: err.status,
+                errorCode: err.errorCode,
+                time: err.time
+            }
+        } );
+    }
+    next();
+};

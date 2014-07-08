@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    
+    <title>Bridge Testbed</title>
+
+    <!-- Manually include jQuery, since it's huge and CDN-able. -->
+    <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+    
+    <!-- Include the main Axon Bridge client library. -->
+    <script type="text/javascript" src="../lib/bridge-client.js"></script>
+    
+    <!-- Include your own API definition library. -->
+    <script type="text/javascript" src="api.js"></script>
+    
+    <!-- The code we'll use to get started with Bridge. -->
+    <script type="text/javascript" src="index.js"></script>
+
+  </head>
+  <body>
+
+    <h1>Bridge Testbed</h1>
+
+    <fieldset>
+      <h2><legend>Registration</legend></h2>
+      <label for="email">Email: </label>
+      <input id="email" type="text" />
+      <label for="password">Password: </label>
+      <input id="password" type="password" />
+      <label for="first-name">First Name: </label>
+      <input id="first-name" type="text" />
+      <label for="last-name">Last Name: </label>
+      <input id="last-name" type="text" />
+      <label for="app-data">App Data: </label>
+      <textarea id="app-data" rows="2" cols="50">{}</textarea>
+      <button id="register" type="button">Register</button>
+    </fieldset>
+
+    <fieldset>
+      <h2><legend>Verify Email</legend></h2>
+      <label for="email3">Email: </label>
+      <input id="email3" type="text" />
+      <label for="hash">Hash: </label>
+      <input id="hash" type="text" />
+      <button id="verify-email" type="button">Verify Email</button>
+    </fieldset>
+
+    <fieldset>
+      <h2><legend>Login</legend></h2>
+      <label for="email2">Email: </label>
+      <input id="email2" type="text" />
+      <label for="password2">Password: </label>
+      <input id="password2" type="password" />
+      <label for="use-local-storage">Use Local Storage: </label>
+      <input id="use-local-storage" type="checkbox" />
+      <button id="login" type="button">Login</button>
+    </fieldset>
+
+    <fieldset>
+      <h2><legend>Change Password</legend></h2>
+      <label for="old-password">Old Password: </label>
+      <input id="old-password" type="password" />
+      <label for="new-password">New Password: </label>
+      <input id="new-password" type="password" />
+      <button id="change-password" type="button">Change Password</button>
+    </fieldset>
+
+    <fieldset>
+      <h2><legend>Forgot Password</legend></h2>
+      <label for="email5">Email: </label>
+      <input id="email5" type="text" />
+      <button id="forgot-password" type="button">Request Password Recovery Email</button>
+    </fieldset>
+
+    <fieldset>
+      <h2><legend>Recover Password</legend></h2>
+      <label for="email4">Email: </label>
+      <input id="email4" type="text" />
+      <label for="new-password2">New Password: </label>
+      <input id="new-password2" type="password" />
+      <label for="hash2">Hash: </label>
+      <input id="hash2" type="text" />
+      <button id="recover-password" type="button">Recover Password</button>
+    </fieldset>
+
+    <fieldset>
+      <h2><legend>Utilities</legend></h2>
+      <button id="logout" type="button">Logout</button>
+      <button id="clear-local-storage" type="button">Clear HTML5 Local Storage</button>
+    </fieldset>
+
+    <div id="notify">
+      <p>Page loaded.</p>
+    </div>
+
+  </body>
+</html>

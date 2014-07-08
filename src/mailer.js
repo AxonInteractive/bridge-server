@@ -58,7 +58,6 @@ function sendMail ( mail, view, options, done ) {
     app.mailer.send(view, mail, function(err){
         if (err) {
             logger.verbose("An error occurred sending an e-mail. Error: " + JSON.stringify(err));
-            console.log("ERROR IN DAS MAILER");
             return;
         }
 
@@ -87,7 +86,7 @@ exports.sendVerificationEmail = function( req ){
     }
 
     var mail = {
-        to: user.Email,
+        to: user.email,
         subject: config.mailer.verificationEmailSubject,
     };
 

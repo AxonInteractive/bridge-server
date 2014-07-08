@@ -21,10 +21,10 @@
         "emailVerification": true,
 
          // The path to the root foler to be hosted by the server
-        "wwwRoot": "client/bower_components/bridge-client/",
+        "wwwRoot": "client/",
 
         // The path to the index.html file to host from wwwRoot
-        "indexPath": "example/index.html"
+        "indexPath": "index.html"
     },
 
     // Configuration settings about the database connection

@@ -2,8 +2,9 @@
 
 var revalidator = require('revalidator');
 
-var regex = require('../regex');
-var error = require('../error');
+var regex    = require( '../regex' );
+var error    = require( '../error' );
+var database = require( '../database' );
 
 var schema = {
     properties: {
@@ -18,13 +19,13 @@ var schema = {
                     required: true
                 },
 
-                'first-name': {
+                firstName: {
                     type: 'string',
                     allowEmpty: false,
                     required: true
                 },
 
-                'last-name': {
+                lastName: {
                     type: 'string',
                     allowEmpty: false,
                     required: true
@@ -39,9 +40,15 @@ var schema = {
                     }
                 },
 
+                appData: {
+                    type: 'object',
+                    required: false,
+                    description: "The user added data to go into the database along with the user"
+                },
+
                 regcode: {
                     type: 'string',
-                    required: true
+                    required: false
                 }
             },
         },
@@ -88,11 +95,16 @@ module.exports = function(req, res, next) {
     if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
         regError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
 
-        res.error = regError;
+        next(regError);
+        return;
+    }
 
-        if ( _.isFunction( next ) ) {
-            next( regError );
-        }
+    // Must be anonymous
+    if ( req.bridge.isAnon !== true ) {
+        regError = error.createError( 500, 'Need authentication', "Cannot register without authentication" );
+
+        // Throw the error
+        next( regError );
         return;
     }
 
@@ -101,16 +113,38 @@ module.exports = function(req, res, next) {
     if ( validation.valid === false ) {
         var firstError = validation.errors[ 0 ];
 
-        regError = error.createError( 400, 'Malformed registration request', firstError.property + " : " + firstError.message );
+        var errorCode;
 
-        res.error = regError;
-
-        if ( _.isFunction( next ) ) {
-            next();
+        switch ( firstError.property ) {
+        case 'content.email':     errorCode = 'Invalid email format';       break;
+        case 'content.password':  errorCode = 'Invalid HMAC format';        break;
+        case 'content.firstName': errorCode = 'Invalid first name format';  break;
+        case 'content.lastName':  errorCode = 'Invalid last name format';   break;
+        default:                  errorCode = 'Malformed register request'; break;
         }
+
+        regError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
+
+        next(regError);
         return;
     }
 
-    
+    req.bridge.user = req.body.content;
+
+    var reqHolder = req;
+    var resHolder = res;
+    var nextHolder = next;
+
+    database.registerUser( req, res )
+        .then( function ( ) {
+            res.send( {
+                message: "User account successfully created for " + req.bridge.user.EMAIL,
+                time: new Date().toISOString()
+            } );
+            res.status( 200 );
+        } )
+        .fail( function ( err ) {
+            next( err );
+        } );
 
 };

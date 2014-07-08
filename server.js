@@ -13,6 +13,8 @@ var underscore  = require( 'underscore'  );
 var resourceful = require( 'resourceful' );
 var winston     = require( 'winston'     );
 var Q           = require( 'q'           );
+var bodyParser  = require( 'body-parser' );
+
 winston.remove(winston.transports.Console);
 winston.add(winston.transports.Console, { level: 'info', colorize:true });
 
@@ -83,6 +85,8 @@ app.use( express.static( config.server.wwwRoot ) );
 // Decode URL Strings
 //app.use( express.urlencoded() );
 
+app.use( bodyParser.json() );
+
 app.use( function ( req, res, next ) {
     app.get( 'logger' ).silly( {
         "Request Body: ": req.body
@@ -102,16 +106,15 @@ app.use( bridgeWare.prepareBridgeObjects );
 // read the query string from a request and parse it as JSON
 app.use( bridgeWare.parseGetQueryString );
 
-//app.use( bridgeWare.bridgeHandleErrors );
-
-//app.use( '/api/1.0/', bridgeWare.bridgeHandleErrors );
-
-//app.use( '/api/1.0/', bridgeWare.verifyRequestStructure );
+app.use( '/api/1.0/', bridgeWare.verifyRequestStructure );
 
 // Setup bridge default routes
 routes.setup();
 
-app.use('/api/1.0/', bridgeWare.bridgeHandleErrors );
+setTimeout( function () {
+    app.use( bridgeWare.bridgeErrorHandler2 );
+}, 1000 );
+
 
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -120,6 +123,7 @@ app.use('/api/1.0/', bridgeWare.bridgeHandleErrors );
 
 // Setup the server for https mode
 if ( config.server.mode === "https" ) {
+
     var credentials = {
         key: fs.readFileSync( config.server.secure.keyfilepath, 'utf8' ),
         cert: fs.readFileSync( config.server.secure.certificatefilepath, 'utf8' )
@@ -138,7 +142,6 @@ else if ( config.server.mode === "http" ) {
 server.listen( port );
 
 
-
 // Log the start of the server
 app.get( 'logger' ).info( "Express server listening on port %d in %s mode", port, config.server.environment );
 
@@ -149,105 +152,27 @@ function cleanUp() {
     mailer.close();
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////
-///////   CHECKING FOR STANDARD ROUTES   ////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////
 
-/**
- * Checking the API to see if the correct routes have been setup by the API
- * @return {Undefined}
- */
- setTimeout( function () {
+// var promise = function( str ) {
+//     console.log('Hello');
+//     return str+"1";
+// };
 
-    //app.all( '/api/*', bridgeWare.bridgeHandleErrors );
-
-//     var routes = app.routes;
-//     var foundRegister = false;
-//     var foundLogin = false;
-//     var regex;
-//     var method;
-
-//     {
-
-//         regex = /.*\/users$/;
-//         method = routes.put;
-
-//         method.forEach( function ( element ) {
-//             var reg = regex.exec( element.path );
-
-//             if ( reg !== null ) {
-//                 foundRegister = true;
-//             }
-//         } );
-
-//     } {
-
-//         regex = /.*\/login$/;
-//         method = routes.get;
-
-//         method.forEach( function ( element ) {
-//             var reg = regex.exec( element.path );
-
-//             if ( reg !== null ) {
-//                 foundLogin = true;
-//             }
-//         } );
-
-//     }
-
-//     if (!foundLogin) {
-//         app.get( 'logger' ).error( "No login route found. this is needed for the normal operation of bridge" );
-//     }
-
-//     if ( !foundRegister ) {
-//         app.get( 'logger' ).error( "No register route found. this is needed for the normal operation of bridge" );
-//     }
-
-//     // var mail = {
-//     //     //to: "helocheck@cbl.abuseat.org",
-//     //     to: "info@jameszinger.com",
-//     //     from: "dev@jameszinger.com",
-//     //     subject: "Testing Mailer",
-//     //     html: "<h1>This is the HTML Body</h1>"
-//     // };
-
-//     // app.get( 'logger' ).info( 'Attempting to send mail', mail );
-
-//     // if ( mailer.sendMail( mail ) ) {
-//     //     app.get( 'logger' ).info( 'Mail sent successfully' );
-//     // }
-//     // else {
-//     //     app.get( 'logger' ).info( "Mail didn't send successfully", mail );
-//     // }
-
- }, 100 );
-
-
-
-/////////////////////////////////////////////////////////////////////////////////////////
-///////   CHECKING FOR STANDARD ROUTES COMPLETE   ///////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////
-
-var promise = function( str ) {
-    console.log('Hello');
-    return str+"1";
-};
-
-Q.fcall(promise, "str")
-    .then(function(str){
-        return str+"2";
-    })
-    .then(function(str){
-        return str+"3";
-    })
-    .then(function(str){
-        console.log(str);
-        return str;
-    })
-    .then(function(str){
-        throw "ERROR " + str;
-    })
-    .catch(function(err){
-        app.log.error(err);
-    });
+// Q.fcall(promise, "str")
+//     .then(function(str){
+//         return str+"2";
+//     })
+//     .then(function(str){
+//         return str+"3";
+//     })
+//     .then(function(str){
+//         console.log(str);
+//         return str;
+//     })
+//     .then(function(str){
+//         throw "ERROR " + str;
+//     })
+//     .catch(function(err){
+//         app.log.error(err);
+//     });
 
