@@ -23,7 +23,8 @@
     "express-mailer": "0.2.3",
     "ejs": "1.0.0",
     "revalidator": "0.2.0",
-    "resourceful": "^0.2.3"
+    "resourceful": "^0.2.3",
+    "q": "^1.0.1"
   },
   "devDependencies": {},
   "scripts": {

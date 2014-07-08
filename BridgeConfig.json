@@ -1,0 +1,87 @@
+{
+
+    // Configuration settings relating the server
+    "server": {
+        // The mode of the server. [http | https]
+        "mode": "https",
+
+        // The environment to run in. [development | production]
+        "environment": "development",
+
+        // The port the node server should listen on
+        "port": 3000,
+
+        // Settings used if the server is in https mode
+        "secure": {
+            "keyfilepath"        : "privatekey.pem", // The path to the private key file for the ssl connection.
+            "certificatefilepath": "certificate.pem" // The path to the certificate file for the ssl connection.
+        },
+
+        // Boolean switch for the system for email verification.
+        "emailVerification": true,
+
+         // The path to the root foler to be hosted by the server
+        "wwwRoot": "client/bower_components/bridge-client/",
+
+        // The path to the index.html file to host from wwwRoot
+        "indexPath": "example/index.html"
+    },
+
+    // Configuration settings about the database connection
+    "database": {
+        "user"     : "root",        // The username that should be used to connect to the database
+        "password" : "gr33np3pp3r", // The password for that user that should be used
+        "host"     : "localhost",   // The location of the database
+        "database" : "peir"         // The name of the database to use for the bridge structure
+    },
+
+    // Configuration settings about logging and verbosity
+    "logger": {
+        // Logging related to exceptions and errors
+        "exception": {
+            "filename"      : "logs/exceptions.log",
+            "writetoconsole": true
+        },
+        // Logging related to server actions such as starting and stopping
+        // as well as any request of any kind coming to the server
+        "server": {
+            "filename"     : "logs/server.log",
+            "level"        : "silly",
+            "consoleLevel" : "silly"
+        }
+    },
+
+    // Configuration settings relating to the SMTP server
+    "mailer": {
+        //"debug": true,
+        // The options for the mailer to use
+        // See express-mailer documentation for examples
+        // https://www.npmjs.org/package/express-mailer
+        "options": {
+            "from": "BridgeSMTPTest@gmail.com", // the email address to use if not authenticated
+            "host":"smtp.gmail.com",            // the location of the SMTP server
+            "secureConnection": true,           // use SSL
+            "port": 465,                        // port for secure SMTP
+            "transportMethod": "SMTP",          // default is SMTP. Accepts anything that nodemailer accepts
+            "auth": {                           // The authentication to use for the GMail Service
+                "user": "BridgeSMTPTest@gmail.com",
+                "pass": "mS2JY78Ao5bI8df3teFUxUCXyKK1ASYV4GFBLR5P"
+            }
+        },
+
+        // The path from the application root to the folder containing the view to be rendered
+        "viewPath": "templates",
+
+        // The subject line for verification emails
+        "verificationEmailSubject": "Bridge Example Email Verification",
+
+         // The path to the template HTML file used to send email verifications to newly registered users
+        "verifyEmailViewName": "registrationTemplate.ejs",
+
+        // The subject line for recovery emails
+        "recoveryEmailSubject": "Bridge Account Recovery",
+
+        // The path to the template HTML file used for password recovery emails
+        "recoverPasswordViewName": "recoverPasswordTemplate.ejs"
+    }
+}

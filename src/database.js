@@ -8,6 +8,8 @@ var mailer      = require('./mailer');
 
 var connection  = null;
 
+var Q = require('q');
+
 connection = mysql.createConnection(app.get('BridgeConfig').database);
 
 try {
@@ -36,6 +38,8 @@ exports.authenticateRequest = function ( req, res, cb ) {
         cb( authenticationError );
         return;
     }
+
+
 
     connection.query( 'SELECT * FROM users WHERE EMAIL = ?', [ req.body.email ], function ( err, rows ) {
 

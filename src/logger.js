@@ -4,11 +4,9 @@ var config = app.get( 'BridgeConfig' ).logger;
 var fs = require( 'fs' );
 var path = require( 'path' );
 
-var rootPath = path.dirname( module.parent.parent.filename );
-var logPath = path.join( rootPath, '/logs' );
 
-if ( !fs.existsSync( logPath ) ) {
-    fs.mkdir( logPath );
+if ( !fs.existsSync( 'logs' ) ) {
+    fs.mkdir( 'logs' );
 }
 
 var loggerConstObj = {

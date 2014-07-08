@@ -12,7 +12,7 @@ var express     = require( 'express'     );
 var underscore  = require( 'underscore'  );
 var resourceful = require( 'resourceful' );
 var winston     = require( 'winston'     );
-
+var Q           = require( 'q'           );
 winston.remove(winston.transports.Console);
 winston.add(winston.transports.Console, { level: 'info', colorize:true });
 
@@ -227,3 +227,27 @@ function cleanUp() {
 /////////////////////////////////////////////////////////////////////////////////////////
 ///////   CHECKING FOR STANDARD ROUTES COMPLETE   ///////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
+
+var promise = function( str ) {
+    console.log('Hello');
+    return str+"1";
+};
+
+Q.fcall(promise, "str")
+    .then(function(str){
+        return str+"2";
+    })
+    .then(function(str){
+        return str+"3";
+    })
+    .then(function(str){
+        console.log(str);
+        return str;
+    })
+    .then(function(str){
+        throw "ERROR " + str;
+    })
+    .catch(function(err){
+        app.log.error(err);
+    });
+
