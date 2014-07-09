@@ -16,7 +16,7 @@ exports.setup = function () {
 
     app.put( '/api/1.0/users', require('./requests/updateUser') );
 
-    app.put( '/api/1.0/recover-password', recoverPassword );
+    app.put( '/api/1.0/recover-password', require( './requests/recoverPassword') );
 
     app.put( '/api/1.0/forgot-password', require( './requests/forgotPassword' ) );
 

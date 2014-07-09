@@ -26,24 +26,24 @@ var loggerConstObj = {
             json: false,
             prettyPrint: true
         } )
-    ]
-    // exceptionHandlers: [
-    //     new winston.transports.DailyRotateFile( {
-    //         filename: config.exception.filename,
-    //         handleExceptions: true,
-    //         json: false
-    //     } )
-    // ],
-    // exitOnError: false
+    ],
+    exceptionHandlers: [
+        new winston.transports.DailyRotateFile( {
+            filename: config.exception.filename,
+            handleExceptions: true,
+            json: false
+        } )
+    ],
+    exitOnError: false
 };
 
-// if ( config.exception.writetoconsole === true ) {
+if ( config.exception.writetoconsole === true ) {
 
-//     loggerConstObj.exceptionHandlers.push( new winston.transports.Console( {
-//         prettyPrint: true,
-//         colorize: true
-//     } ) );
-// }
+    loggerConstObj.exceptionHandlers.push( new winston.transports.Console( {
+        prettyPrint: true,
+        colorize: true
+    } ) );
+}
 
 app.set( 'logger', new( winston.Logger )( loggerConstObj ) );
 

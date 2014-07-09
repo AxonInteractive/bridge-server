@@ -1,9 +1,25 @@
 "use strict";
 
-var revalidator = require('revalidator');
+var revalidator = require( 'revalidator' );
+var Q           = require( 'q' );
 
 var regex = require('../regex');
 var error = require('../error');
+var mailer = require('../mailer');
+
+module.exports = function( req, res, next ) {
+
+    checkStructureVerified( { req: req, res: res } )
+        .then( validateForgotPasswordRequest )
+        .then( sendForgotPasswordEMail )
+        .then( sendResponse )
+        .then( function () {
+            next();
+        } )
+        .fail( function ( err ) {
+            next( err );
+        } );
+};
 
 var schema = {
     properties: {
@@ -57,68 +73,83 @@ var schema = {
     }
 };
 
-function verifyStructure(req, res) {
+function checkStructureVerified( message ) {
+    return Q.Promise( function ( resolve, reject ) {
 
-    var structError;
+        var req = message.req;
+        var res = message.res;
 
-    if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
-        structError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
+        var structError;
 
-        throw structError;
-    }
-}
+        if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
+            structError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
 
-function validateRequest(req, res) {
-
-    var valError;
-    var validation = revalidator.validate( req.body, schema );
-
-    if ( validation.valid === false ) {
-
-        var firstError = validation.errors[ 0 ];
-
-        var errorCode;
-
-        switch ( firstError.property ) {
-        case 'content.message': errorCode = 'Invalid email format';              break;
-        default:                errorCode = 'Malformed forgot password request'; break;
+            reject( structError );
+            return;
         }
 
-        valError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
-
-        throw valError;
-    }
+        resolve( message );
+    });
 }
 
-function sendResponse(req, res) {
-    
-    res.send( {
-        content: {
-            message: "Password recovery email sent successfully",
-            time: new Date().toISOString()
+function validateForgotPasswordRequest( message ) {
+    return Q.Promise( function ( resolve, reject ) {
+
+        var req = message.req;
+        var res = message.res;
+
+        var valError;
+        var validation = revalidator.validate( req.body, schema );
+
+        if ( validation.valid === false ) {
+
+            var firstError = validation.errors[ 0 ];
+
+            var errorCode;
+
+            switch ( firstError.property ) {
+            case 'content.message':
+                errorCode = 'Invalid email format';
+                break;
+            default:
+                errorCode = 'Malformed forgot password request';
+                break;
+            }
+
+            valError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
+
+            reject( valError );
+            return;
         }
+
+        resolve( message );
     } );
-
-    res.status( 200 );
-
 }
 
+function sendForgotPasswordEMail( message ) {
+    return Q.Promise( function ( resolve, reject ) {
 
-module.exports = function( req, res, next ) {
+        mailer.sendForgotPasswordEMail( message.req );
 
-    var fpError = false;
+        resolve( message );
+    } );
+}
 
-    try {
-        verifyStructure( req );
-        validateRequest( req );
-        sendResponse( res );
-    }
+function sendResponse( message ) {
+    return Q.Promise( function ( resolve, reject ) {
+        var req = message.req;
+        var res = message.res;
 
-    catch (err) {
-        next(err);
-        return;
-    }
+        res.send( {
+            content: {
+                message: "Password recovery email sent successfully",
+                time: new Date().toISOString()
+            }
+        } );
 
-    next();
+        res.status( 200 );
 
-};
+        resolve();
+
+    } );
+}

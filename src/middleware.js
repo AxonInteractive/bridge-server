@@ -12,9 +12,12 @@ var database    = require( './database' );
  * @param {Object}   res  The express response object.
  * @param {Function} next The function to call when this function is complete.
  */
-exports.attachCORSHeaders = function ( req, res, next ) {
-    res.setHeader( 'Access-Control-Allow-Origin', req.headers.origin || '*' );
-    next();
+exports.attachCORSHeaders = function () {
+    app.log.debug( "CORS header middleware setup" );
+    return function ( req, res, next ) {
+        res.setHeader( 'Access-Control-Allow-Origin', req.headers.origin || '*' );
+        next();
+    };
 };
 
 /**
@@ -24,9 +27,12 @@ exports.attachCORSHeaders = function ( req, res, next ) {
  * @param  {Object}   res  The express response object.
  * @param  {Function} next The function to call when this function is complete.
  */
-exports.prepareBridgeObjects = function ( req, res, next ) {
-    req.bridge = {};
-    next();
+exports.prepareBridgeObjects = function () {
+    app.log.debug( "Bridge object preparation middleware setup" );
+    return function ( req, res, next ) {
+        req.bridge = {};
+        next();
+    };
 };
 
 /**
@@ -35,22 +41,25 @@ exports.prepareBridgeObjects = function ( req, res, next ) {
  * @param  {Object}    res The express response object.
  * @return {Undefined}
  */
-exports.handleOptionsRequest = function ( req, res, next ) {
+exports.handleOptionsRequest = function () {
+    app.log.debug( "Options request handler setup" );
+    return function ( req, res, next ) {
 
-    if ( req.method !== 'OPTIONS' ) {
-        next();
-        return;
-    }
+        if ( req.method !== 'OPTIONS' ) {
+            next();
+            return;
+        }
 
-    res.status( 204 );
+        res.status( 204 );
 
-    res.setHeader( 'access-control-allow-methods', 'GET, PUT, OPTIONS, POST, DELETE' );
-    res.setHeader( 'access-control-allow-headers', "content-type, accept" );
+        res.setHeader( 'access-control-allow-methods', 'GET, PUT, OPTIONS, POST, DELETE' );
+        res.setHeader( 'access-control-allow-headers', "content-type, accept" );
 
-    res.setHeader( 'access-control-max-age' , 10 );
-    res.setHeader( 'content-length'         , 0  );
+        res.setHeader( 'access-control-max-age', 10 );
+        res.setHeader( 'content-length', 0 );
 
-    res.send();
+        res.send();
+    };
 };
 
 /**
@@ -60,39 +69,41 @@ exports.handleOptionsRequest = function ( req, res, next ) {
  * @param  {Function}  next  The function to call when the middleware is complete.
  * @return {Undefined}
  */
-exports.parseGetQueryString = function ( req, res, next ) {
-    if ( req.method !== 'GET' ) {
+exports.parseGetQueryString = function () {
+    app.log.debug( "Query string parser setup" );
+    return function ( req, res, next ) {
+        if ( req.method !== 'GET' ) {
+            next();
+            return;
+        }
+
+        if ( req.query.payload == null ) {
+            next();
+            return;
+        }
+
+        var strObj = decodeURIComponent( req.query.payload );
+
+        if ( strObj == null || strObj === '' ) {
+            next();
+            return;
+        }
+
+        try {
+            req.body = JSON.parse( strObj );
+        } catch ( err ) {
+            var ErrQueryString = error.createError( 400, 'Request JSON failed to parse', "BAD JSON in the query string payload object" );
+
+            app.get( 'logger' ).verbose( {
+                Error: ErrQueryString,
+                JSONString: strObj
+            } );
+
+            next( ErrQueryString );
+            return;
+        }
         next();
-        return;
-    }
-
-    if ( req.query.payload == null ) {
-        next();
-        return;
-    }
-
-    var strObj = decodeURIComponent( req.query.payload );
-
-    if ( strObj == null || strObj === '' ) {
-        next();
-        return;
-    }
-
-    try {
-        req.body = JSON.parse( strObj );
-    } catch ( err ) {
-        var ErrQueryString = error.createError( 400, 'Request JSON failed to parse',"BAD JSON in the query string payload object" );
-
-        app.get( 'logger' ).verbose( {
-            Error: ErrQueryString,
-            JSONString: strObj
-        } );
-
-        res.error  = ErrQueryString;
-
-        return;
-    }
-    next();
+    };
 };
 
 /**
@@ -148,98 +159,71 @@ var bridgeRequestSchema = {
  * @param  {Object}   res  The express response object.
  * @param  {Function} next The function to call when this function is complete
  */
-exports.verifyRequestStructure = function ( req, res, next ) {
+exports.verifyRequestStructure = function () {
+    app.log.debug( "Bridge request structure middleware setup" );
+    return function ( req, res, next ) {
 
-    var validation = revalidator.validate(req.body, bridgeRequestSchema);
-    var vrsError;
+        var validation = revalidator.validate( req.body, bridgeRequestSchema );
+        var vrsError;
 
-    if (validation.valid === false) {
-        var firstError = validation.errors[ 0 ];
+        if ( validation.valid === false ) {
+            var firstError = validation.errors[ 0 ];
 
-        var errorCode = 'Basic request structure malformed';
+            var errorCode = 'Basic request structure malformed';
 
-        if ( firstError.property == 'email' ) {
-            errorCode = 'Invalid email format';
-        } else if ( firstError.property == 'time' ) {
-            errorCode = 'Invalid time format';
-        } else if ( firstError.property == 'HMAC' ) {
-            errorCode = 'Invalid HMAC format';
-        }
+            if ( firstError.property == 'email' ) {
+                errorCode = 'Invalid email format';
+            } else if ( firstError.property == 'time' ) {
+                errorCode = 'Invalid time format';
+            } else if ( firstError.property == 'HMAC' ) {
+                errorCode = 'Invalid HMAC format';
+            }
 
-        vrsError = error.createError( 400, errorCode, "Property " + firstError.property + " - " + firstError.message );
+            vrsError = error.createError( 400, errorCode, "Property " + firstError.property + " - " + firstError.message );
 
-        app.log.verbose( {
-            Error: vrsError,
-            RequestBody: req.body
-        } );
-
-        next(vrsError);
-        return;
-    }
-
-    req.bridge.isAnon = (req.body.email === "");
-
-    var hmacSalt;
-
-    if (req.bridge.isAnon === true) {
-        hmacSalt = "";
-
-        if ( !checkHmacSignature( req, hmacSalt ) ) {
-            vrsError = error.createError( 400, 'HMAC failed', 'HMAC check failed for anonymous request. *Caught in middleware*');
-
-            app.get( 'logger' ).verbose( {
-                Error: vrsError,
-                RequestBody: req.body
-            } );
-
-            next(vrsError);
+            next( vrsError );
             return;
         }
 
-        req.bridge.structureVerified = true;
-        next();
-        return;
-    }
+        req.bridge.isAnon = ( req.body.email === "" );
 
-    else {
+        var hmacSalt;
 
-        // database.promiseAuthenticateRequest( req, res )
-        //     .catch(function(error){
-        //         res.error();
-        //     });
-        database.authenticateRequest( req, res, function ( err ) {
-            if ( err ) {
-
-                app.get( 'logger' ).verbose( {
-                    Error: err,
-                    RequestBody: req.body
-                } );
-
-                next(err);
-                return;
-            }
-
-            hmacSalt = req.bridge.user.PASSWORD;
+        if ( req.bridge.isAnon === true ) {
+            hmacSalt = "";
 
             if ( !checkHmacSignature( req, hmacSalt ) ) {
-                vrsError = error.createError( 400, 'HMAC failed' ,'HMAC check failed for authenticated request. *Caught in middleware*' );
+                vrsError = error.createError( 400, 'HMAC failed', 'HMAC check failed for anonymous request. *Caught in middleware*' );
 
-                app.get( 'logger' ).verbose( {
-                    Error: vrsError,
-                    RequestBody: req.body
-                } );
-
-                next(vrsError);
+                next( vrsError );
                 return;
             }
 
             req.bridge.structureVerified = true;
             next();
             return;
-        } );
-    }
+        } else {
 
-    
+            database.authenticateRequest( req )
+                .then( function () {
+                    hmacSalt = req.bridge.user.PASSWORD;
+
+                    if ( !checkHmacSignature( req, hmacSalt ) ) {
+                        vrsError = error.createError( 400, 'HMAC failed', 'HMAC check failed for authenticated request. *Caught in middleware*' );
+
+                        next( vrsError );
+                        return;
+                    }
+
+                    req.bridge.structureVerified = true;
+                    next();
+                } )
+                .fail( function ( err ) {
+                    next( err );
+
+                } );
+        }
+    };
 };
 
 function checkHmacSignature( req, hmacSalt ) {
@@ -251,46 +235,49 @@ function checkHmacSignature( req, hmacSalt ) {
     return ( req.body.hmac === hmac );
 }
 
-exports.bridgeErrorHandler2 = function ( errContext, req, res, next ) {
+exports.bridgeErrorHandler = function () {
 
-    var err;
+    app.log.debug( 'Bridge error handler setup' );
 
-    if ( _.isArray( errContext ) )
-        err = errContext[ 0 ];
-    else
-        err = errContext;
+    return function ( errContext, req, res, next ) {
 
-    var validation = error.validateError( err );
+        var err;
 
-    if ( validation.valid === false ) {
+        if ( _.isArray( errContext ) )
+            err = errContext[ 0 ];
+        else
+            err = errContext;
 
-        app.log.error( 'Error malformed. Errors: ', validation.errors, err );
-        res.send();
-        res.status();
-        return;
-    }
+        var validation = error.validateError( err );
 
-    app.get( 'logger' ).silly( 'Bridge Error verified' );
-    var config = app.get( 'BridgeConfig' );
+        if ( validation.valid === false ) {
+            app.log.verbose( 'Error malformed. Errors: ', validation.errors, errContext );
+            next( errContext );
+            return;
+        }
 
-    err.time = new Date().toISOString();
+        app.get( 'logger' ).silly( 'Bridge Error verified' );
+        var config = app.get( 'BridgeConfig' );
 
-    res.status( err.status );
+        err.time = new Date().toISOString();
 
-    app.log.verbose( 'Sending Error', err );
+        res.status( err.status );
 
-    if ( config.server.environment == 'development' ) {
-        res.json( {
-            content: err
-        } );
-    } else {
-        res.json( {
-            content: {
-                status: err.status,
-                errorCode: err.errorCode,
-                time: err.time
-            }
-        } );
-    }
-    next();
+        app.log.verbose( 'Sending Error', err );
+
+        if ( config.server.environment == 'development' ) {
+            res.json( {
+                content: err
+            } );
+        } else {
+            res.json( {
+                content: {
+                    status: err.status,
+                    errorCode: err.errorCode,
+                    time: err.time
+                }
+            } );
+        }
+        next( errContext );
+    };
 };

@@ -19,135 +19,128 @@ try {
 /**
  * A filter used to authenticate a user from the bridge database.
  * @param  {Object}   req   The express request object.
- * @param  {Object}   res   The express response object.
- * @param  {Function} next  Callback for when the function is complete
- * @param  {Function} error Callback for when an error occurs
- * @return {Undefined}
+ * @return {Promise}        A Q promise object
  */
-exports.authenticateRequest = function ( req, res, cb ) {
+exports.authenticateRequest = function ( req, res ) {
+    return Q.Promise( function ( resolve, reject ) {
 
-    if ( req.bridge.isAnon === true ) {
-        var authenticationError = bridgeError.createError( 500, 'Failed to authenticate anonymous request', "Cannot authenticate" );
-        app.log.verbose( {
-            Error: authenticationError,
-            Reason: "Cannot authenticate an anonymous request",
-            RequestBody: JSON.stringify( req.body )
+        if ( req.bridge.isAnon === true ) {
+            var authenticationError = bridgeError.createError( 500, 'Failed to authenticate anonymous request', "Cannot authenticate" );
+
+            reject( authenticationError );
+            return;
+        }
+
+        connection.query( 'SELECT * FROM users WHERE lower(EMAIL) = lower(?)', [ req.body.email ], function ( err, rows ) {
+
+            if ( err ) {
+                var databaseError = bridgeError.createError( 403, 'Database query error', "Database query error. see log files for more information" );
+                reject( databaseError );
+                return;
+            }
+
+            if ( rows.length === 0 ) {
+                var resultError = bridgeError.createError( 403, 'Email not found', "User not found for that email" );
+                reject( resultError );
+                return;
+            }
+
+            var user = rows[ 0 ];
+
+            var hmac = crypto.createHmac( 'sha256', user.PASSWORD );
+            var concat = JSON.stringify( req.body.content ) + ( req.body.email ) + req.body.time;
+            hmac.update( concat );
+            var valHmac = hmac.digest( 'hex' );
+
+
+            if ( valHmac !== req.body.hmac ) {
+                var hmacError = bridgeError.createError( 403, 'HMAC failed', "Failed hmac check" );
+                reject( hmacError );
+                return;
+            }
+
+            if ( user.STATUS != 'NORMAL' ) {
+                var incorrectStatusError = bridgeError.createError( 403, 'Incorrect user state', "User is in the '" + ( user.STATUS.toLowerCase() ) + "' state" );
+                reject( incorrectStatusError );
+                return;
+            }
+
+            req.bridge.user = user;
+
+            resolve();
         } );
-        cb( authenticationError );
-        return;
-    }
-
-
-
-    connection.query( 'SELECT * FROM users WHERE lower(EMAIL) = lower(?)', [ req.body.email ], function ( err, rows ) {
-
-        if ( err ) {
-            var databaseError = bridgeError.createError( 403, 'Database query error', "Database query error. see log files for more information" );
-            cb( databaseError );
-            return;
-        }
-
-        if ( rows.length === 0 ) {
-            var resultError = bridgeError.createError( 403, 'Email not found', "User not found for that email" );
-            cb( resultError );
-            return;
-        }
-
-        var user = rows[ 0 ];
-
-        var hmac = crypto.createHmac( 'sha256', user.PASSWORD );
-        var concat = JSON.stringify( req.body.content ) + ( req.body.email ) + req.body.time;
-        hmac.update( concat );
-        var valHmac = hmac.digest( 'hex' );
-
-
-        if ( valHmac !== req.body.hmac ) {
-            var hmacError = bridgeError.createError( 403, 'HMAC failed', "Failed hmac check" );
-            cb( hmacError );
-            return;
-        }
-
-        if ( user.STATUS != 'NORMAL' ) {
-            var incorrectStatusError = bridgeError.createError( 403, 'Incorrect user state', "User is in the '" + ( user.STATUS.toLowerCase() ) + "' state" );
-            cb( incorrectStatusError );
-            return;
-        }
-
-        req.bridge.user = user;
-
-        cb();
     } );
 };
 
-/**
- * gets the users using the filter object added on
- * @param  {Object}    req  The request object.
- * @param  {Object}    res  The response object.
- * @param  {Function}  next The callback function for when the filter is complete.
- * @return {Undefined}      Nothing.
- */
-exports.getUser = function ( req, res, next, error ) {
-    var query = 'SELECT APP_DATA FROM users';
-    var values = [];
-    var first = true;
+// /**
+//  * gets the users using the filter object added on
+//  * @param  {Object}    req  The request object.
+//  * @param  {Object}    res  The response object.
+//  * @param  {Function}  next The callback function for when the filter is complete.
+//  * @return {Undefined}      Nothing.
+//  */
+// exports.getUser = function ( req, res, next, error ) {
+//     var query = 'SELECT APP_DATA FROM users';
+//     var values = [];
+//     var first = true;
 
-    if ( typeof req.filters !== 'undefined' ) {
-        query = query.concat( ' WHERE ' );
-        req.filters.forEach( function ( element ) {
+//     if ( typeof req.filters !== 'undefined' ) {
+//         query = query.concat( ' WHERE ' );
+//         req.filters.forEach( function ( element ) {
 
-            if ( first )
-                first = false;
-            else
-                query = query.concat( " AND " );
+//             if ( first )
+//                 first = false;
+//             else
+//                 query = query.concat( " AND " );
 
-            query = query.concat( element.field + ' = ?' );
-            values.push( element.value );
+//             query = query.concat( element.field + ' = ?' );
+//             values.push( element.value );
 
-        } );
-    }
+//         } );
+//     }
 
-    connection.query( query, values, function ( err, rows ) {
-        if ( err ) {
-            // Create the error
-            var queryFailedError = bridgeError.createError( 500, 'Database query error', "Database error. See logs for more information" );
+//     connection.query( query, values, function ( err, rows ) {
+//         if ( err ) {
+//             // Create the error
+//             var queryFailedError = bridgeError.createError( 500, 'Database query error', "Database error. See logs for more information" );
 
-            // Log the error with relevant information
-            app.get( 'logger' ).verbose( {
-                Error          : JSON.stringify( queryFailedError ),
-                Reason         : "Database rejected query",
-                Query          : query,
-                Values         : JSON.stringify( values ),
-                "Request Body" : JSON.stringify( req.body ),
-                DBError        : JSON.stringify( err )
-            } );
+//             // Log the error with relevant information
+//             app.get( 'logger' ).verbose( {
+//                 Error          : JSON.stringify( queryFailedError ),
+//                 Reason         : "Database rejected query",
+//                 Query          : query,
+//                 Values         : JSON.stringify( values ),
+//                 "Request Body" : JSON.stringify( req.body ),
+//                 DBError        : JSON.stringify( err )
+//             } );
 
-            // Throw the error
-            error( queryFailedError );
-            return;
-        }
+//             // Throw the error
+//             error( queryFailedError );
+//             return;
+//         }
 
-        var resAry = [];
+//         var resAry = [];
 
-        rows.forEach( function ( element ) {
-            resAry.push( element.APP_DATA );
-        } );
+//         rows.forEach( function ( element ) {
+//             resAry.push( element.APP_DATA );
+//         } );
 
-        res.content = resAry;
+//         res.content = resAry;
 
-        next();
-    } );
-};
+//         next();
+//     } );
+// };
 
 /**
  * AAdded the request user to the database.
- * @param  {Object}   req   The express request object.
- * @param  {Object}   res   The express response object.
- * @param  {Function} next  The callback for the sucessful completion of this function
- * @param  {Function} error The callback incase of an error occuring inside this filter
- * @return {Undefined}
+ * @param  {Object}   message   The express request object.
+ * @return {Promise}            A Q Promise
  */
-exports.registerUser = function ( req, res ) {
+exports.registerUser = function ( message ) {
     return Q.Promise( function ( resolve, reject ) {
+
+        var req = message.req;
+
         var user = req.bridge.user;
 
         var state = app.get( 'BridgeConfig' ).server.emailVerification ? 'CREATED' : 'NORMAL';
@@ -191,15 +184,11 @@ exports.registerUser = function ( req, res ) {
                 }
             }
 
-            resolve(req, res);
+            resolve( message );
 
-            if ( app.get( 'BridgeConfig' ).server.emailVerification === true ) {
-                mailer.sendVerificationEmail( req );
-            }
         } );
 
     } );
-
 };
 
 /**
@@ -210,10 +199,12 @@ exports.registerUser = function ( req, res ) {
  * @param  {Function} error The callback for when an error occurs
  * @return {Undefined}
  */
-exports.updateUser = function( req, res ) {
+exports.updateUser = function( message ) {
     return Q.Promise(function(resolve, reject){
 
         var updateUserError;
+
+        var req = message.req;
 
         if ( !_.has( req.bridge, "structureVerified" ) ) {
             var malformedMessageError = bridgeError.createError( 400, 'Request structure unverified', "Request has not been verified using the verify request middleware property" );
@@ -317,12 +308,7 @@ exports.updateUser = function( req, res ) {
                 return;
             }
 
-
-            res.content = {};
-
-            res.content.message = "Updaing user successful";
-
-            resolve();
+            resolve( message );
 
         } );
 
@@ -337,9 +323,11 @@ exports.updateUser = function( req, res ) {
  * @param  {Function} error The callback for when an error occurs
  * @return {Undefined}
  */
-exports.verifyEmail = function( req, res ){
+exports.verifyEmail = function ( message ) {
     return Q.Promise( function ( resolve, reject ) {
         var verifyEmailError;
+
+        var req = message.req;
 
         var query = "SELECT * FROM users WHERE USER_HASH = ?";
         var values = [ req.body.content.hash ];
@@ -347,7 +335,7 @@ exports.verifyEmail = function( req, res ){
         connection.query( query, values, function ( err, rows ) {
             if ( err ) {
                 verifyEmailError = bridgeError.createError( 500, 'Database query error', "Database error, See log for more details" );
-
+                app.log.debug( "Database Error: " + err );
                 reject( verifyEmailError );
                 return;
             }
@@ -359,8 +347,8 @@ exports.verifyEmail = function( req, res ){
                 return;
             }
 
-            if (rows[0].STATUS !== 'CREATED') {
-                verifyEmailError = bridgeError.createError( 400, 'Incorrect user state', "Tried to verify email that is not in the created state");
+            if ( rows[ 0 ].STATUS !== 'CREATED' ) {
+                verifyEmailError = bridgeError.createError( 400, 'Incorrect user state', "Tried to verify email that is not in the created state" );
 
                 reject( verifyEmailError );
                 return;
@@ -376,23 +364,52 @@ exports.verifyEmail = function( req, res ){
                     reject( verifyEmailError );
                     return;
                 }
-                resolve(req, res);
+                resolve( message );
             } );
         } );
     } );
 };
 
-exports.forgotPassword = function( req, res, next, error ) {
+exports.recoverPassword = function ( message ) {
+    return Q.Promise( function ( resolve, reject ) {
+        var recoverPasswordError;
 
-    var forgotPassword = require( './requests/forgotPassword' )( req.body );
+        var req = message.req;
 
-    if ( _.isArray( forgotPassword ) ) {
-        app.get('logger').verbose(forgotPassword);
-    }
+        var query = "SELECT * FROM users WHERE USER_HASH = ?";
+        var values = [ req.body.content.hash ];
 
-    next();
+        connection.query( query, values, function ( err, rows ) {
+            if (err) {
+                recoverPasswordError = bridgeError.createError( 500, 'Database query error', "Database error, See log for more details" );
+                app.log.debug( "Database Error: " + err );
+                reject( recoverPasswordError );
+                return;
+            }
+
+            if ( rows.length === 0 ) {
+                recoverPasswordError = bridgeError.createError( 400, 'User not found', "No user with that user hash" );
+
+                reject( recoverPasswordError );
+                return;
+            }
+
+            var query2 = "UPDATE users SET PASSWORD = ? WHERE id = ?";
+            var values2 = [ req.body.content.message, rows[ 0 ].ID ];
+
+            connection.query( query, values, function ( err2, rows ) {
+                if ( err2 ) {
+                    recoverPasswordError( 500, 'Database query error', "Database error, See log for more details" );
+
+                    reject( recoverPasswordError );
+                    return;
+                }
+                resolve( message );
+            } );
+
+        } ); // end of query
+    } ); // end of promise
 };
-
 
 /**
  * Closes the database connection.

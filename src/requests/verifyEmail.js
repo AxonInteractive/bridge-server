@@ -7,6 +7,20 @@ var regex    = require( '../regex' );
 var error    = require( '../error' );
 var database = require( '../database' );
 
+module.exports = function ( req, res, next ) {
+
+    checkStructureVerified( { req: req, res: res } )
+        .then( validateVerifyEmailRequest )
+        .then( database.verifyEmail )
+        .then( sendResponse )
+        .then( function () {
+            next();
+        } )
+        .fail( function ( err ) {
+            next( err );
+        } );
+};
+
 var schema = {
     properties: {
         content: {
@@ -58,46 +72,58 @@ var schema = {
     }
 };
 
-module.exports = function ( req, res, next ) {
-    var verifyError;
+function checkStructureVerified( message ) {
+    return Q.Promise( function ( resolve, reject ) {
 
-    if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
+        var req = message.req;
 
-        verifyError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
+        if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
 
-        next( verifyError );
-        return;
-    }
+            var verifyError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
 
-    var validation = revalidator.validate( req.body, schema );
+            reject( verifyError );
+            return;
+        }
 
-    if ( validation.valid === false ) {
-
-        var firstError = validation.errors[ 0 ];
-
-        verifyError = error.createError( 400, 'Malformed verify email request', firstError.property + " : " + firstError.message );
-
-        next( verifyError );
-        return;
-    }
-
-    var reqHolder = req;
-    var resHolder = res;
-    var nextHolder = next;
-
-    database.verifyEmail( req, res )
-        .then( function () {
-            res.send( {
-                content: {
-                    message: "Email account verified successfully!",
-                    time: new Date().toISOString()
-                }
-            } );
-
-            res.status( 200 );
-        } )
-
-    .fail( function ( err ) {
-        next( err );
+        resolve( message );
     } );
-};
+}
+
+function validateVerifyEmailRequest( message ) {
+    return Q.Promise( function ( resolve, reject ) {
+
+        var req = message.req;
+
+        var validation = revalidator.validate( req.body, schema );
+
+        if ( validation.valid === false ) {
+
+            var firstError = validation.errors[ 0 ];
+
+            var verifyError = error.createError( 400, 'Malformed verify email request', firstError.property + " : " + firstError.message );
+
+            reject( verifyError );
+            return;
+        }
+
+        resolve( message );
+    } );
+}
+
+function sendResponse( message ) {
+    return Q.Promise( function ( resolve, reject ) {
+        var res = message.res;
+
+        res.send({
+            content: {
+                message: "Email account verified successfully!",
+                time: new Date().toISOString()
+            }
+        });
+
+        res.status( 200 );
+
+        resolve( message );
+    } );
+}
+

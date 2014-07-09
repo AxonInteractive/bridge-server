@@ -3,73 +3,64 @@
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
 
-var regex    = require( '../regex' );
-var error    = require( '../error' );
-var database = require( '../database' );
-var mailer   = require( '../mailer' );
+var regex = require( '../regex' );
+var error = require( '../error' );
 
-module.exports = function(req, res, next) {
-
+module.exports = function ( req, res, next ) {
     checkStructureVerified( { req: req, res: res } )
-        .then( checkForAnonymousRequest )
-        .then( validateRegisterRequest )
-        .then( addUserObjectToBridge )
-        .then( database.registerUser )
-        .then( sendVerificationEmail )
-        .then( sendReponse )
-        .then( function () {
+        .then(checkForAnonymousRequest)
+        .then(validateRecoverPasswordRequest)
+        .then(sendReponse)
+        .then(function(){
             next();
-        } )
-        .fail( function ( err ) {
+        })
+        .fail(function(err){
             next( err );
-        } );
+        });
 };
 
 var schema = {
+    type: 'object',
+    required: true,
     properties: {
         content: {
             type: 'object',
             required: true,
-            description: "The content of the registration request",
             properties: {
-                email: {
-                    type: 'string',
-                    format: 'email',
-                    required: true
-                },
 
-                firstName: {
-                    type: 'string',
-                    allowEmpty: false,
-                    required: true
-                },
-
-                lastName: {
-                    type: 'string',
-                    allowEmpty: false,
-                    required: true
-                },
-
-                password: {
-                    type: 'string',
-                    pattern: regex.sha256,
+                hash: {
+                    type:'string',
+                    description: "The user has to find the account",
                     required: true,
+                    allowEmpty: false,
+                    pattern: regex.sha256,
                     messages: {
                         pattern: "not a valid hash"
                     }
                 },
 
-                appData: {
-                    type: 'object',
-                    required: false,
-                    description: "The user added data to go into the database along with the user"
-                },
-
-                regcode: {
+                message: {
                     type: 'string',
-                    required: false
+                    description: "The new password to put into the database",
+                    required: true,
+                    allowEmpty: false,
+                    pattern: regex.sha256,
+                    messages: {
+                        pattern: "not a valid hash"
+                    }
                 }
-            },
+
+                // time: {
+                //     type: 'string',
+                //     description: "The time the request was sent",
+                //     required: true,
+                //     allowEmpty: false,
+                //     pattern: regex.iSOTime,
+                //     messages: {
+                //         pattern: "not a valid time"
+                //     }
+                // }
+            }
         },
 
         email: {
@@ -141,7 +132,7 @@ function checkForAnonymousRequest( message ) {
     } );
 }
 
-function validateRegisterRequest( message ) {
+function validateRecoverPasswordRequest( message ) {
     return Q.Promise( function ( resolve, reject ) {
 
         var req = message.req;
@@ -154,47 +145,15 @@ function validateRegisterRequest( message ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'content.email':     errorCode = 'Invalid email format';       break;
-                case 'content.password':  errorCode = 'Invalid HMAC format';        break;
-                case 'content.firstName': errorCode = 'Invalid first name format';  break;
-                case 'content.lastName':  errorCode = 'Invalid last name format';   break;
-                default:                  errorCode = 'Malformed register request'; break;
+                default: errorCode = 'Malformed recover password request'; break;
             }
+            var err = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
 
-            var regError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
-
-            reject( regError );
+            reject( err );
             return;
         }
 
         resolve( message );
-
-    } );
-}
-
-function addUserObjectToBridge( message ) {
-    return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
-
-        req.bridge.user = req.body.content;
-
-        resolve( message );
-
-    } );
-}
-
-function sendVerificationEmail( message ) {
-    return Q.Promise( function ( resolve, reject ) {
-        if ( app.get( 'BridgeConfig' ).server.emailVerification === true ) {
-            mailer.sendVerificationEmail( message.req )
-                .then( function () {
-                    resolve( message );
-                } );
-        }
-        else {
-            resolve( message );
-        }
     } );
 }
 
@@ -202,14 +161,14 @@ function sendReponse( message ) {
     return Q.Promise( function( resolve, reject ) {
         var res = message.res;
 
-        res.send({
-            content: {
-                message: "User registered successfully!",
+        res.send( {
+            "content": {
+                message: "Password recovery successful!",
                 time: new Date().toISOString()
             }
-        });
+        } );
 
-        res.status(200);
+        res.status( 200 );
 
         resolve( message );
     } );

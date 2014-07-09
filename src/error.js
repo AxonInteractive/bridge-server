@@ -31,13 +31,14 @@ var schema = {
                     'Malformed equal on filter',
                     'Malformed forgot password request',
                     'Malformed login request',
+                    'Malformed recover password request',
                     'Malformed update user request',
                     'Malformed verify email request',
                     'Need authentication',
                     'Request JSON failed to parse',
                     'Request structure unverified',
                     'User appData could not parse to JSON',
-                    'User not found' 
+                    'User not found'
                 ]
         },
 
@@ -82,8 +83,6 @@ exports.createError = function ( httpCode, errorCode, debugMessage ) {
     };
 
     var validate = revalidator.validate( error, schema );
-
-    app.log.silly( error );
 
     if ( validate.valid === false ) {
         app.log.verbose( "Could not validate bridge error. Errors: ", validate.errors );

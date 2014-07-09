@@ -7,6 +7,22 @@ var Q = require( 'q' );
 var regex = require( '../regex' );
 var error = require( '../error' );
 var database = require( '../database' );
+
+module.exports = function ( req, res, next ) {
+
+    checkStructureVerified( { req: req, res: res } )
+        .then( checkForAuthenticateRequest )
+        .then( validateUpdateUserRequest )
+        .then( database.updateUser )
+        .then( sendResponse )
+        .then( function () {
+            next();
+        } )
+        .fail( function ( err ) {
+            next( err );
+        } );
+};
+
 var schema = {
     properties: {
         content: {
@@ -82,68 +98,83 @@ var schema = {
     }
 };
 
-module.exports = function ( req, res, next ) {
-    var updateError;
+function checkStructureVerified( message ) {
+    return Q.Promise( function( resolve, reject ) {
 
-    if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
+        var req = message.req;
 
-        updateError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
+        if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
 
-        next( updateError );
-        return;
-    }
+            var updateError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
 
-    // Must be logged in
-    if ( req.bridge.isAnon === true ) {
-        updateError = error.createError( 403, 'Failed to authenticate anonymous request', "Cannot authenticate a request that is anonymous" );
-
-        next( updateError );
-        return;
-    }
-
-    var validation = revalidator.validate( req.body, schema );
-
-    if ( validation.valid === false ) {
-
-        var firstError = validation.errors[ 0 ];
-
-        var errorCode;
-
-        switch ( firstError.property ) {
-        case 'content.email':
-            errorCode = 'Invalid email format';
-            break;
-        case 'content.password':
-            errorCode = 'Invalid HMAC format';
-            break;
-        case 'content.firstName':
-            errorCode = 'Invalid first name format';
-            break;
-        case 'content.lastName':
-            errorCode = 'Invalid last name format';
-            break;
-        default:
-            errorCode = 'Malformed update user request';
-            break;
+            reject( updateError );
+            return;
         }
 
-        updateError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
+        resolve( message );
+    } );
+}
 
-        next( updateError );
-        return;
-    }
+function checkForAuthenticateRequest( message ) {
+    return Q.Promise(function(resolve, reject){
+        var req = message.req;
 
-    database.updateUser( req, res )
-        .then( function () {
-            res.send( {
-                content: {
-                    message: "User updated successfully",
-                    time: new Date.toISOString()
-                }
-            } );
-        } )
-        .fail( function ( err ) {
-            next( err );
+        // Must be logged in
+        if ( req.bridge.isAnon === true ) {
+            var updateError = error.createError( 403, 'Failed to authenticate anonymous request', "Cannot authenticate a request that is anonymous" );
+
+            reject( updateError );
+            return;
+        }
+
+        resolve( message );
+    });
+}
+
+function validateUpdateUserRequest( message ) {
+    return Q.Promise( function( resolve, reject ) {
+
+        var req = message.req;
+
+        var validation = revalidator.validate( req.body, schema );
+
+        if ( validation.valid === false ) {
+
+            var firstError = validation.errors[ 0 ];
+
+            var errorCode;
+
+            switch ( firstError.property ) {
+                case 'content.email':     errorCode = 'Invalid email format';          break;
+                case 'content.password':  errorCode = 'Invalid HMAC format';           break;
+                case 'content.firstName': errorCode = 'Invalid first name format';     break;
+                case 'content.lastName':  errorCode = 'Invalid last name format';      break;
+                default:                  errorCode = 'Malformed update user request'; break;
+            }
+
+           var updateError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
+
+            reject( updateError );
+            return;
+        }
+
+            resolve( message );
+    } );
+}
+
+function sendResponse( message ) {
+    return Q.Promise( function( resolve, reject ) {
+        var res = message.res;
+
+        res.send( {
+            content: {
+                message: "User updated successfully",
+                time: new Date().toISOString()
+            }
         } );
 
-};
+        res.status( 200 );
+
+        resolve( message );
+    });
+}
