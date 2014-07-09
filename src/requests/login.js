@@ -115,12 +115,10 @@ function validateLoginRequest( message ) {
             var errorCode;
 
             switch ( firstError.property ) {
-            case 'email':
-                errorCode = 'Invalid email format';
-                break;
-            default:
-                errorCode = 'Malformed login request';
-                break;
+                case 'email': errorCode = 'Invalid email format';    break;
+                case 'hmac':  errorCode = 'Invalid HMAC format';     break;
+                case 'time':  errorCode = 'Invalid time format';     break;
+                default:      errorCode = 'Malformed login request'; break;
             }
 
             loginError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );

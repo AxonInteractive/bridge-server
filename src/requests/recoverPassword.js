@@ -145,7 +145,12 @@ function validateRecoverPasswordRequest( message ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                default: errorCode = 'Malformed recover password request'; break;
+                case 'content.hash':    errorCode = 'Invalid user has format';            break;
+                case 'content.message': errorCode = 'Invalid password format';            break;
+                case 'email':           errorCode = 'Invalid email format';               break;
+                case 'hmac':            errorCode = 'Invalid HMAC format';                break;
+                case 'time':            errorCode = 'Invalid time format';                break;
+                default:                errorCode = 'Malformed recover password request'; break;
             }
             var err = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
 

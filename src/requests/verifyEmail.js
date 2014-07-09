@@ -100,7 +100,17 @@ function validateVerifyEmailRequest( message ) {
 
             var firstError = validation.errors[ 0 ];
 
-            var verifyError = error.createError( 400, 'Malformed verify email request', firstError.property + " : " + firstError.message );
+            var errorCode;
+
+            switch(firstError.property) {
+                case 'content.hash': errorCode = 'Invalid user hash format';       break;
+                case 'email':        errorCode = 'Invalid email format';           break;
+                case 'hmac':         errorCode = 'Invalid HMAC format';            break;
+                case 'time':         errorCode = 'Invalid time format';            break;
+                default:             errorCode = 'Malformed verify email request'; break;
+            }
+
+            var verifyError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
 
             reject( verifyError );
             return;

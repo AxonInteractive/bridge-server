@@ -155,9 +155,12 @@ function validateRegisterRequest( message ) {
 
             switch ( firstError.property ) {
                 case 'content.email':     errorCode = 'Invalid email format';       break;
-                case 'content.password':  errorCode = 'Invalid HMAC format';        break;
+                case 'content.password':  errorCode = 'Invalid password format';    break;
                 case 'content.firstName': errorCode = 'Invalid first name format';  break;
                 case 'content.lastName':  errorCode = 'Invalid last name format';   break;
+                case 'email':             errorCode = 'Invalid email format';       break;
+                case 'hmac':              errorCode = 'Invalid HMAC format';        break;
+                case 'time':              errorCode = 'Invalid time format';        break;
                 default:                  errorCode = 'Malformed register request'; break;
             }
 
