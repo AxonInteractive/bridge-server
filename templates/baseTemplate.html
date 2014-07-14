@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PEIR e-mail Notification</title>
+</head>
+
+<body>
+
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td bgcolor="#ffffff" align="center">
+
+	<table width="640" border="0" cellspacing="0" cellpadding="1">
+          <tr>
+            <td colspan="3" width="600">
+            	<img src="<%= headerImageURL %>" width="600" height="67"> <!-- The path must be absolute to a web address at launch -->
+            </td>
+
+          </tr>
+          <tr>
+            <td width="10" bgcolor="#A2A2A2"></td>
+            <td width="600" bgcolor="#A2A2A2">
+
+                <table width="100%" border="0" cellspacing="0" cellpadding="10">
+                  <tr>
+                    <td bgcolor="#ffffff">
+                    	<font face="Frutiger,Arial" size="3" color="#333333">
+                        <h1 style="font-size:20px;font-weight:800;">E-mail Title</h1>
+
+                        <p>Greetings <%= name %>,</p>
+
+                        <p>You are receiving this e-mail to verify that you are trying to ________. <a href="<%= verificationURL %>" style="color:#43B44E">To verify, please click here.</a></p>
+
+                        <p>If you are unable to see a link above, please paste the URL below into your browser bar to verify:</p>
+                        <p><%= verificationURL %></p>
+
+                        <p>??? If you do not want to receive e-mails like this in the future, <a href="<%= unsubscribeURL %>" style="color:#43B44E">click here</a> (or copy the URL below into your browser) to unsubscribe.</p>
+
+                        <p><%= unsubscribeURL %></p>
+                        </font>
+                        </td>
+                  </tr>
+                </table>
+
+
+			</td>
+            <td background="<%= backgroundImageURL %>" width="29"></td> <!-- The path to the background image must be absolute to a web address at launch -->
+          </tr>
+          <tr>
+            <td colspan="3" width="600" align="center">
+            	<img src="<%= footerImageURL %>" width="457" height="32"> <!-- The path must be absolute to a web address at launch -->
+             </td>
+          </tr>
+</table>
+
+</td>
+</tr>
+</table>
+
+
+</body>
+</html>

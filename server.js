@@ -32,8 +32,7 @@ var config = require('./src/config');
 // Start the express app
 GLOBAL.app = express();
 
-app.set( 'SecureMode'  , config.server.mode );
-app.set( 'BridgeConfig', config );
+app.set( 'bridgeConfig', config );
 
 // Determine the port to listen on
 var port = config.server.port || 3000;

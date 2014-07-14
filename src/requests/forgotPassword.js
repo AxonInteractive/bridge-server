@@ -108,11 +108,11 @@ function validateForgotPasswordRequest( message ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'content.message': errorCode = 'Invalid email format';              break;
-                case 'email':           errorCode = 'Invalid email format';              break;
-                case 'hmac':            errorCode = 'Invalid HMAC format';               break;
-                case 'time':            errorCode = 'Invalid time format';               break;
-                default:                errorCode = 'Malformed forgot password request'; break;
+                case 'content.message': errorCode = 'Invalid email format'             ; break;
+                case 'email'          : errorCode = 'Invalid email format'             ; break;
+                case 'hmac'           : errorCode = 'Invalid HMAC format'              ; break;
+                case 'time'           : errorCode = 'Invalid time format'              ; break;
+                default               : errorCode = 'Malformed forgot password request'; break;
             }
 
             valError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );

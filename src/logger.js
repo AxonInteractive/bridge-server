@@ -45,7 +45,7 @@ if ( config.exception.writetoconsole === true ) {
     } ) );
 }
 
-app.set( 'logger', new( winston.Logger )( loggerConstObj ) );
+app.log = new( winston.Logger )( loggerConstObj );
 
 if ( app.get( 'env' ) === 'development' ) {
 
