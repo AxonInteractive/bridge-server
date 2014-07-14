@@ -196,6 +196,36 @@ var MailerConfig = resourceful.define('mailerConfig', function() {
             return false;
         }
     });
+
+    this.string('viewPath', {
+        required: true,
+        default: "templates",
+        allowEmpty: false
+    });
+
+    this.string('verificationEmailSubject', {
+        required: true,
+        default: "Bridge Example Email Verification",
+        allowEmpty: false
+    });
+
+    this.string('verifyEmailViewName', {
+        required: true,
+        default: "verificationEmailTemplate.ejs",
+        allowEmpty: false
+    });
+
+    this.string('recoveryEmailSubject', {
+        required: true,
+        default: "Bridge Account Recovery",
+        allowEmpty: false
+    });
+
+    this.string('recoverPasswordViewName', {
+        required: true,
+        default: "recoverPasswordTemplate.ejs",
+        allowEmpty: false
+    });
 } );
 
 var Config = resourceful.define('config', function(){
