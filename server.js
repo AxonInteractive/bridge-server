@@ -39,23 +39,24 @@ var port = config.server.port || 3000;
 process.env.PORT = port;
 
 // Export important files for bridge configuration and setup
-exports.app    = app;
 exports.config = config;
 
 // Read in local modules
-var loggerObj  = require( './src/logger'       );
-var database   = require( './src/database'     );
-var filters    = require( './src/filters'      );
-var bridgeWare = require( './src/middleware'   );
-var mailer     = require( './src/mailer'       );
-var routes     = require( './src/bridgeroutes' );
-var regex      = require( './src/regex'        );
+var loggerObj   = require( './src/logger'       );
+var database    = require( './src/database'     );
+var filters     = require( './src/filters'      );
+var bridgeWare  = require( './src/middleware'   );
+var mailer      = require( './src/mailer'       );
+var routes      = require( './src/bridgeroutes' );
+var regex       = require( './src/regex'        );
+var bridgeError = require( './src/error'        );
 
 // Prepare server variable
 var server = null;
 
 // Export local files for the API to use
-exports.filters         = filters;
+exports.filters = filters;
+exports.error   = bridgeError;
 
 app.log = app.get('logger');
 

@@ -45,7 +45,7 @@ var schema = {
         },
 
         message: {
-            type: 'string',
+            type: ['string', 'object'],
             allowEmpty: true,
             required: false
         }
