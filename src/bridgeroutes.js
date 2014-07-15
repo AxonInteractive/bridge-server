@@ -1,13 +1,9 @@
 "use strict";
 
-var pipeline = require( '../lib/pipeline' );
-var filters  = require( './filters'       );
-var database = require( './database'      );
-var mailer   = require( './mailer'        );
-var fs       = require( 'fs'              );
-var config   = app.get( 'BridgeConfig'    );
-var path     = require( 'path' );
-var middleware = require('./middleware');
+var fs         = require( 'fs'          );
+var path       = require( 'path'        );
+var config     = require( '../server'   ).config;
+
 exports.setup = function () {
 
     app.get( '/api/1.0/login', require('./requests/login') );
@@ -35,35 +31,4 @@ function serveIndex( req, res ) {
 
     res.status( 404 );
     res.send( "Could not find the homepage" );
-}
-
-function recoverPassword( req, res ) {
-
-}
-
-function updateUser( req, res ) {
-    var uUPipeline = new pipeline();
-
-    uUPipeline
-        .pipe( filters.authenticationFilter )
-        .pipe( database.updateUser );
-
-    uUPipeline.execute( req, function ( resBody, err ) {
-        if ( err != null ) {
-
-            res.status( err.StatusCode );
-
-            app.get( 'logger' ).verbose( {
-                req: req.body,
-                status: err.StatusCode,
-                err: err.Message
-            } );
-
-            res.send( err );
-            return;
-        }
-
-        res.status( 200 );
-        res.send( resBody );
-    } );
 }

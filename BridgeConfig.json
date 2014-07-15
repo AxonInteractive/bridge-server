@@ -7,7 +7,7 @@
         "hostname":"localhost:3000",
 
         // The mode of the server. [http | https]
-        "mode": "http",
+        "mode": "https",
 
         // The environment to run in. [development | production]
         "environment": "development",

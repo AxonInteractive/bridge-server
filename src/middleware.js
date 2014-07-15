@@ -1,10 +1,10 @@
 "use strict";
 
-var error       = require( './error' );
-var regex       = require( './regex' );
 var revalidator = require( 'revalidator' );
-var crypto      = require( 'crypto' );
-var database    = require( './database' );
+var crypto      = require( 'crypto'      );
+var error       = require( './error'     );
+var regex       = require( './regex'     );
+var database    = require( './database'  );
 
 /**
  * Add the nessesary CORS headers to the response object.
@@ -94,7 +94,7 @@ exports.parseGetQueryString = function () {
         } catch ( err ) {
             var ErrQueryString = error.createError( 400, 'Request JSON failed to parse', "BAD JSON in the query string payload object" );
 
-            app.get( 'logger' ).verbose( {
+            app.log.verbose( {
                 Error: ErrQueryString,
                 JSONString: strObj
             } );
@@ -256,8 +256,8 @@ exports.bridgeErrorHandler = function () {
             return;
         }
 
-        app.get( 'logger' ).silly( 'Bridge Error verified' );
-        var config = app.get( 'BridgeConfig' );
+        app.log.silly( 'Bridge Error verified' );
+        var config = require( '../server' ).config;
 
         err.time = new Date().toISOString();
 

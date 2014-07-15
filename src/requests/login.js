@@ -175,7 +175,9 @@ function sendReponse( message ) {
                     status: user.STATUS,
                     role: user.ROLE,
                     appData: appData
-                }
+                },
+
+                time: new Date().toISOString()
             }
         } );
 

@@ -1,8 +1,8 @@
 "use strict";
-var winston = require( 'winston' );
-var config = app.get( 'BridgeConfig' ).logger;
-var fs = require( 'fs' );
-var path = require( 'path' );
+var winston = require( 'winston'   );
+var config  = require( '../server' ).config.logger;
+var fs      = require( 'fs'        );
+var path    = require( 'path'      );
 
 
 if ( !fs.existsSync( 'logs' ) ) {

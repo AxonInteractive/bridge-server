@@ -1,7 +1,7 @@
 "use strict";
 
 var resourceful = require( 'resourceful' );
-resourceful.use('memory');
+resourceful.use( 'memory' );
 
 var jsonminify = require( 'jsonminify' );
 var fs         = require( 'fs'         );

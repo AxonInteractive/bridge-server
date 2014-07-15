@@ -4,7 +4,7 @@ var fs  = require('fs');
 var Q   = require('q');
 var URL = require('url');
 
-var config = app.get( 'BridgeConfig'   );
+var config = require( '../server'      ).config;
 var error  = require( './error'        );
 var mailer = require( 'express-mailer' );
 

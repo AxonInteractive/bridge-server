@@ -8,7 +8,9 @@ var mailer      = require( './mailer' );
 
 var connection  = null;
 
-connection = mysql.createConnection(app.get('BridgeConfig').database);
+var config = require('../server').config;
+
+connection = mysql.createConnection(config.database);
 
 try {
     connection.connect();
@@ -143,7 +145,7 @@ exports.registerUser = function ( message ) {
 
         var user = req.bridge.user;
 
-        var state = app.get( 'BridgeConfig' ).server.emailVerification ? 'CREATED' : 'NORMAL';
+        var state = config.server.emailVerification ? 'CREATED' : 'NORMAL';
 
         var hash = crypto.createHash( 'sha256' ).update( user.email + new Date() ).digest( 'hex' );
 
@@ -158,7 +160,7 @@ exports.registerUser = function ( message ) {
                 if ( err.code === "ER_DUP_ENTRY" ) {
                     var dupEntryError = bridgeError.createError( 409, 'Email already used', "The email that was enter has already been taken by another user" );
 
-                    app.get( 'logger' ).verbose( {
+                    app.log.debug( {
                         Error: JSON.stringify( dupEntryError ),
                         Reason: "Email that was to be registered was not unique",
                         Query: userInsertionQuery,
@@ -172,7 +174,7 @@ exports.registerUser = function ( message ) {
                     var queryFailedError = bridgeError.createError( 500, 'Database query error', "Query failed to register user" );
 
                     // Log the error and relevant information
-                    app.get( 'logger' ).verbose( {
+                    app.log.debug( {
                         Error: JSON.stringify( queryFailedError ),
                         Reason: "Database rejected query",
                         Query: userInsertionQuery,

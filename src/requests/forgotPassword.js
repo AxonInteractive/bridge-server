@@ -3,9 +3,9 @@
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
 
-var regex = require('../regex');
-var error = require('../error');
-var mailer = require('../mailer');
+var regex  = require( '../regex'  );
+var error  = require( '../error'  );
+var mailer = require( '../mailer' );
 
 module.exports = function( req, res, next ) {
 
