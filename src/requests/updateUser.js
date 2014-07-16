@@ -4,14 +4,16 @@ var revalidator = require( 'revalidator' );
 var Q = require( 'q' );
 
 
-var regex = require( '../regex' );
-var error = require( '../error' );
+var regex    = require( '../regex' );
+var error    = require( '../error' );
 var database = require( '../database' );
+var util     = require( '../utilities');
+
 
 module.exports = function ( req, res, next ) {
 
-    checkStructureVerified( { req: req, res: res } )
-        .then( checkForAuthenticateRequest )
+    util.checkRequestStructureVerified( { req: req, res: res } )
+        .then( util.mustBeLoggedIn )
         .then( validateUpdateUserRequest )
         .then( database.updateUser )
         .then( sendResponse )
@@ -97,39 +99,6 @@ var schema = {
         }
     }
 };
-
-function checkStructureVerified( message ) {
-    return Q.Promise( function( resolve, reject ) {
-
-        var req = message.req;
-
-        if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
-
-            var updateError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
-
-            reject( updateError );
-            return;
-        }
-
-        resolve( message );
-    } );
-}
-
-function checkForAuthenticateRequest( message ) {
-    return Q.Promise(function(resolve, reject){
-        var req = message.req;
-
-        // Must be logged in
-        if ( req.bridge.isAnon === true ) {
-            var updateError = error.createError( 403, 'Failed to authenticate anonymous request', "Cannot authenticate a request that is anonymous" );
-
-            reject( updateError );
-            return;
-        }
-
-        resolve( message );
-    });
-}
 
 function validateUpdateUserRequest( message ) {
     return Q.Promise( function( resolve, reject ) {

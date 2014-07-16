@@ -3,13 +3,14 @@
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
 
-var regex  = require( '../regex'  );
-var error  = require( '../error'  );
-var mailer = require( '../mailer' );
+var regex  = require( '../regex'    );
+var error  = require( '../error'    );
+var mailer = require( '../mailer'   );
+var util   = require( '../utilites' );
 
 module.exports = function( req, res, next ) {
 
-    checkStructureVerified( { req: req, res: res } )
+    util.checkRequestStructureVerified( { req: req, res: res } )
         .then( validateForgotPasswordRequest )
         .then( sendForgotPasswordEMail )
         .then( sendResponse )
@@ -72,25 +73,6 @@ var schema = {
         }
     }
 };
-
-function checkStructureVerified( message ) {
-    return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
-        var res = message.res;
-
-        var structError;
-
-        if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
-            structError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
-
-            reject( structError );
-            return;
-        }
-
-        resolve( message );
-    });
-}
 
 function validateForgotPasswordRequest( message ) {
     return Q.Promise( function ( resolve, reject ) {

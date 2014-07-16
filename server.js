@@ -46,15 +46,12 @@ var bridgeError = require( './src/error'        );
 var server = null;
 
 // Export local files for the API to use
-exports.filters = filters;
-exports.error   = bridgeError;
+exports.error = bridgeError;
 
-// Setting standard dictionary objects
-// database reference
-app.set( 'database',   database );
-app.set( 'bridge-ext', {} );
+exports.database = database;
+exports.util = require( './src/utilities' );
 
-
+// Setting the standard view engine
 app.set( 'views', config.mailer.viewPath );
 app.set( 'view engine', 'ejs' );
 
@@ -72,11 +69,6 @@ app.enable( 'trust proxy' );
 app.use( express.static( config.server.wwwRoot ) );
 
 // Automatically parse the body to JSON
-//app.use( express.json() );
-
-// Decode URL Strings
-//app.use( express.urlencoded() );
-
 app.use( bodyParser.json() );
 
 app.use( function ( req, res, next ) {
@@ -100,7 +92,7 @@ app.use( bridgeWare.handleOptionsRequest() );
 app.use( '/api/', bridgeWare.prepareBridgeObjects() );
 
 // read the query string from a request and parse it as JSON
-app.use( '/api/1.0/', bridgeWare.parseGetQueryString() );
+app.use( '/api/', bridgeWare.parseGetQueryString() );
 
 app.use( '/api/1.0/', bridgeWare.verifyRequestStructure() );
 

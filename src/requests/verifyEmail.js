@@ -6,10 +6,12 @@ var Q           = require('q');
 var regex    = require( '../regex' );
 var error    = require( '../error' );
 var database = require( '../database' );
+var util     = require( '../utilities');
+
 
 module.exports = function ( req, res, next ) {
 
-    checkStructureVerified( { req: req, res: res } )
+    util.checkRequestStructureVerified( { req: req, res: res } )
         .then( validateVerifyEmailRequest )
         .then( database.verifyEmail )
         .then( sendResponse )
@@ -71,23 +73,6 @@ var schema = {
         }
     }
 };
-
-function checkStructureVerified( message ) {
-    return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
-
-        if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
-
-            var verifyError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
-
-            reject( verifyError );
-            return;
-        }
-
-        resolve( message );
-    } );
-}
 
 function validateVerifyEmailRequest( message ) {
     return Q.Promise( function ( resolve, reject ) {
