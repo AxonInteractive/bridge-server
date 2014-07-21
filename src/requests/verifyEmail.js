@@ -11,16 +11,33 @@ var util     = require( '../utilities');
 
 module.exports = function ( req, res, next ) {
 
-    util.checkRequestStructureVerified( { req: req, res: res } )
-        .then( validateVerifyEmailRequest )
-        .then( database.verifyEmail )
-        .then( sendResponse )
-        .then( function () {
-            next();
-        } )
-        .fail( function ( err ) {
-            next( err );
-        } );
+    // Check that the basic request structure is verified.
+    util.checkRequestStructureVerified( req )
+
+    // Validate the request to conform with the Verify Email request
+    .then( function () {
+        return validateVerifyEmailRequest( req );
+    } )
+
+    // Verify the email in the datebase
+    .then( function () {
+        return database.verifyEmail( req );
+    } )
+
+    // Send the successful response message
+    .then( function () {
+        return sendResponse( res );
+    } )
+
+    // Move onto the next middle ware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any error that occurred on the on the above promises
+    .fail( function ( err ) {
+        next( err );
+    } );
 };
 
 var schema = {
@@ -74,10 +91,9 @@ var schema = {
     }
 };
 
-function validateVerifyEmailRequest( message ) {
+function validateVerifyEmailRequest( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        var req = message.req;
 
         var validation = revalidator.validate( req.body, schema );
 
@@ -87,7 +103,7 @@ function validateVerifyEmailRequest( message ) {
 
             var errorCode;
 
-            switch(firstError.property) {
+            switch( firstError.property ) {
                 case 'content.hash': errorCode = 'Invalid user hash format';       break;
                 case 'email':        errorCode = 'Invalid email format';           break;
                 case 'hmac':         errorCode = 'Invalid HMAC format';            break;
@@ -101,13 +117,12 @@ function validateVerifyEmailRequest( message ) {
             return;
         }
 
-        resolve( message );
+        resolve();
     } );
 }
 
-function sendResponse( message ) {
+function sendResponse( res ) {
     return Q.Promise( function ( resolve, reject ) {
-        var res = message.res;
 
         res.send({
             content: {
@@ -118,7 +133,7 @@ function sendResponse( message ) {
 
         res.status( 200 );
 
-        resolve( message );
+        resolve();
     } );
 }
 

@@ -5,19 +5,37 @@ var Q           = require( 'q' );
 
 var regex = require( '../regex' );
 var error = require( '../error' );
-var util   = require( '../utilites' );
+var util   = require( '../utilities' );
 
 module.exports = function ( req, res, next ) {
-    util.checkRequestStructureVerified( { req: req, res: res } )
-        .then( util.mustBeAnonymous )
-        .then( validateRecoverPasswordRequest )
-        .then( sendReponse )
-        .then( function () {
-            next();
-        } )
-        .fail( function ( err ) {
-            next( err );
-        } );
+
+    // Check that the basic request structure is verified
+    util.checkRequestStructureVerified( req )
+
+    // The request must be anonymous. (Not logged in)
+    .then( function () {
+        return util.mustBeAnonymous( req );
+    } )
+
+    // Validate the request structure related to Recover Password requests
+    .then( function () {
+        return validateRecoverPasswordRequest( req );
+    } )
+
+    // Send the success response
+    .then( function () {
+        return sendReponse( res );
+    } )
+
+    // Move onto the next middle ware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any errors that occurred in the above promises
+    .fail( function ( err ) {
+        next( err );
+    } );
 };
 
 var schema = {
@@ -100,10 +118,8 @@ var schema = {
 };
 
 
-function validateRecoverPasswordRequest( message ) {
+function validateRecoverPasswordRequest( req ) {
     return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
 
         var validation = revalidator.validate( req.body, schema );
 
@@ -126,13 +142,12 @@ function validateRecoverPasswordRequest( message ) {
             return;
         }
 
-        resolve( message );
+        resolve();
     } );
 }
 
-function sendReponse( message ) {
+function sendReponse( res ) {
     return Q.Promise( function( resolve, reject ) {
-        var res = message.res;
 
         res.send( {
             "content": {
@@ -143,6 +158,6 @@ function sendReponse( message ) {
 
         res.status( 200 );
 
-        resolve( message );
+        resolve();
     } );
 }

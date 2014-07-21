@@ -12,6 +12,10 @@ exports.setup = function () {
 
     app.put( '/api/1.0/users', require('./requests/updateUser') );
 
+    app.get( '/api/1.0/users', function( req, res, next){
+        next();
+    });
+
     app.put( '/api/1.0/recover-password', require( './requests/recoverPassword') );
 
     app.put( '/api/1.0/forgot-password', require( './requests/forgotPassword' ) );

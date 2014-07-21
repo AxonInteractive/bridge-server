@@ -14,7 +14,7 @@ var loggerConstObj = {
         new winston.transports.DailyRotateFile( {
             filename: config.server.filename,
             level: config.server.level,
-            timestamp: true,
+            timeccstamp: true,
             silent: false,
             json: false
         } ),

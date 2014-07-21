@@ -4,11 +4,9 @@ var Q = require( 'q' );
 
 var error = require( './error' );
 
-exports.checkRequestStructureVerified = function ( message ) {
+exports.checkRequestStructureVerified = function ( req ) {
     return Q.Promise( function ( resolve, reject ) {
         var loginError;
-
-        var req = message.req;
 
         if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
 
@@ -18,14 +16,12 @@ exports.checkRequestStructureVerified = function ( message ) {
             return;
         }
 
-        resolve( message );
+        resolve();
     } );
 };
 
-exports.mustBeLoggedIn = function ( message ) {
+exports.mustBeLoggedIn = function ( req ) {
     return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
 
         var loginError;
 
@@ -36,14 +32,12 @@ exports.mustBeLoggedIn = function ( message ) {
             return;
         }
 
-        resolve( message );
+        resolve();
     } );
 };
 
-exports.mustBeAnonymous = function( message ) {
-    return Q.Promise( function( resolve, reject ) {
-
-        var req = message.req;
+exports.mustBeAnonymous = function ( req ) {
+    return Q.Promise( function ( resolve, reject ) {
 
         // Must be anonymous
         if ( req.bridge.isAnon !== true ) {
@@ -53,7 +47,7 @@ exports.mustBeAnonymous = function( message ) {
             return;
         }
 
-        resolve( message );
+        resolve();
 
     } );
 };

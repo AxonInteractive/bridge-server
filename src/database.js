@@ -1,7 +1,7 @@
 "use strict";
-var mysql       = require( 'mysql' );
-var crypto      = require( 'crypto' );
-var Q           = require( 'Q' );
+var mysql     = require( 'mysql' );
+var crypto    = require( 'crypto' );
+var Q         = require( 'q' );
 
 var bridgeError = require( './error' );
 var mailer      = require( './mailer' );
@@ -23,7 +23,7 @@ try {
  * @param  {Object}   req   The express request object.
  * @return {Promise}        A Q promise object
  */
-exports.authenticateRequest = function ( req, res ) {
+exports.authenticateRequest = function ( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
         if ( req.bridge.isAnon === true ) {
@@ -55,11 +55,11 @@ exports.authenticateRequest = function ( req, res ) {
             var valHmac = hmac.digest( 'hex' );
 
 
-            if ( valHmac !== req.body.hmac ) {
-                var hmacError = bridgeError.createError( 403, 'HMAC failed', "Failed hmac check" );
-                reject( hmacError );
-                return;
-            }
+            // if ( valHmac !== req.body.hmac ) {
+            //     var hmacError = bridgeError.createError( 403, 'HMAC failed', "Failed hmac check" );
+            //     reject( hmacError );
+            //     return;
+            // }
 
             if ( user.STATUS != 'NORMAL' ) {
                 var incorrectStatusError = bridgeError.createError( 403, 'Incorrect user state', "User is in the '" + ( user.STATUS.toLowerCase() ) + "' state" );
@@ -74,76 +74,72 @@ exports.authenticateRequest = function ( req, res ) {
     } );
 };
 
-// /**
-//  * gets the users using the filter object added on
-//  * @param  {Object}    req  The request object.
-//  * @param  {Object}    res  The response object.
-//  * @param  {Function}  next The callback function for when the filter is complete.
-//  * @return {Undefined}      Nothing.
-//  */
-// exports.getUser = function ( req, res, next, error ) {
-//     var query = 'SELECT APP_DATA FROM users';
-//     var values = [];
-//     var first = true;
+exports.getUser = function ( req ) {
+    return Q.Promise( function ( resolve, reject ) {
 
-//     if ( typeof req.filters !== 'undefined' ) {
-//         query = query.concat( ' WHERE ' );
-//         req.filters.forEach( function ( element ) {
+        var query = 'SELECT APP_DATA FROM users';
+        var values = [];
+        var first = true;
 
-//             if ( first )
-//                 first = false;
-//             else
-//                 query = query.concat( " AND " );
+        if ( typeof req.bridge.filters !== 'undefined' ) {
+            query = query.concat( ' WHERE ' );
 
-//             query = query.concat( element.field + ' = ?' );
-//             values.push( element.value );
+            for ( var key in req.bridge.filters ) {
+                if ( req.bridge.filters.hasOwnProperty( key ) ) {
 
-//         } );
-//     }
+                    if ( first )
+                        first = false;
 
-//     connection.query( query, values, function ( err, rows ) {
-//         if ( err ) {
-//             // Create the error
-//             var queryFailedError = bridgeError.createError( 500, 'Database query error', "Database error. See logs for more information" );
+                    else
+                        query = query.concat( " AND " );
 
-//             // Log the error with relevant information
-//             app.get( 'logger' ).verbose( {
-//                 Error          : JSON.stringify( queryFailedError ),
-//                 Reason         : "Database rejected query",
-//                 Query          : query,
-//                 Values         : JSON.stringify( values ),
-//                 "Request Body" : JSON.stringify( req.body ),
-//                 DBError        : JSON.stringify( err )
-//             } );
+                    query = query.content( key + ' = ?' );
 
-//             // Throw the error
-//             error( queryFailedError );
-//             return;
-//         }
+                    values.push( req.bridge.filters[ key ] );
+                }
+            }
+        }
 
-//         var resAry = [];
+        connection.query( query, values, function ( err, rows ) {
+            if ( err ) {
+                // Create the error
+                var queryFailedError = bridgeError.createError( 500, 'Database query error', "Database error. See logs for more information" );
 
-//         rows.forEach( function ( element ) {
-//             resAry.push( element.APP_DATA );
-//         } );
+                // Log the error with relevant information
+                app.get( 'logger' ).verbose( {
+                    Error       : JSON.stringify( queryFailedError ),
+                    Reason      : "Database rejected query",
+                    Query       : query,
+                    Values      : JSON.stringify( values ),
+                    RequestBody : JSON.stringify( req.body ),
+                    DBError     : JSON.stringify( err )
+                } );
 
-//         res.content = resAry;
+                // Throw the error
+                reject( queryFailedError );
+                return;
+            }
 
-//         next();
-//     } );
-// };
+            var resAry = [];
+
+            rows.forEach( function ( element ) {
+                resAry.push( element.APP_DATA );
+            } );
+
+            req.bridge.content = resAry;
+
+            resolve();
+        } );
+    } );
+};
 
 /**
  * AAdded the request user to the database.
  * @param  {Object}   message   The express request object.
  * @return {Promise}            A Q Promise
  */
-exports.registerUser = function ( message ) {
+exports.registerUser = function ( user ) {
     return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
-
-        var user = req.bridge.user;
 
         var state = config.server.emailVerification ? 'CREATED' : 'NORMAL';
 
@@ -169,6 +165,7 @@ exports.registerUser = function ( message ) {
                     } );
 
                     reject( dupEntryError );
+                    return;
                 } else {
                     // Create the Error
                     var queryFailedError = bridgeError.createError( 500, 'Database query error', "Query failed to register user" );
@@ -182,11 +179,12 @@ exports.registerUser = function ( message ) {
                         DBError: JSON.stringify( err )
                     } );
 
-                    reject(queryFailedError);
+                    reject( queryFailedError );
+                    return;
                 }
             }
 
-            resolve( message );
+            resolve();
 
         } );
 
@@ -201,12 +199,10 @@ exports.registerUser = function ( message ) {
  * @param  {Function} error The callback for when an error occurs
  * @return {Undefined}
  */
-exports.updateUser = function( message ) {
+exports.updateUser = function( req ) {
     return Q.Promise(function(resolve, reject){
 
         var updateUserError;
-
-        var req = message.req;
 
         if ( !_.has( req.bridge, "structureVerified" ) ) {
             var malformedMessageError = bridgeError.createError( 400, 'Request structure unverified', "Request has not been verified using the verify request middleware property" );
@@ -310,7 +306,7 @@ exports.updateUser = function( message ) {
                 return;
             }
 
-            resolve( message );
+            resolve();
 
         } );
 
@@ -325,11 +321,9 @@ exports.updateUser = function( message ) {
  * @param  {Function} error The callback for when an error occurs
  * @return {Undefined}
  */
-exports.verifyEmail = function ( message ) {
+exports.verifyEmail = function ( req ) {
     return Q.Promise( function ( resolve, reject ) {
         var verifyEmailError;
-
-        var req = message.req;
 
         var query = "SELECT * FROM users WHERE USER_HASH = ?";
         var values = [ req.body.content.hash ];
@@ -366,17 +360,15 @@ exports.verifyEmail = function ( message ) {
                     reject( verifyEmailError );
                     return;
                 }
-                resolve( message );
+                resolve();
             } );
         } );
     } );
 };
 
-exports.recoverPassword = function ( message ) {
+exports.recoverPassword = function ( req ) {
     return Q.Promise( function ( resolve, reject ) {
         var recoverPasswordError;
-
-        var req = message.req;
 
         var query = "SELECT * FROM users WHERE USER_HASH = ?";
         var values = [ req.body.content.hash ];
@@ -406,11 +398,34 @@ exports.recoverPassword = function ( message ) {
                     reject( recoverPasswordError );
                     return;
                 }
-                resolve( message );
+                resolve();
             } );
 
         } ); // end of query
     } ); // end of promise
+};
+
+exports.query = function ( query, values ) {
+    return Q.Promise( function ( resolve, reject ) {
+        if ( !_.isString( query ) ) {
+            reject( "Query must be a string" );
+            return;
+        }
+
+        if ( !_.isArray( values ) ) {
+            reject( "Values must be an array" );
+            return;
+        }
+
+        connection.query( query, values, function ( err, rows ) {
+            if ( err ) {
+                reject( err );
+                return;
+            }
+
+            resolve( rows );
+        } );
+    } );
 };
 
 /**

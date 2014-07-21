@@ -116,7 +116,7 @@ window.onload = function () {
   // =====
 
   // Initialize your Bridge with the base URL of your API and a timeout (in milliseconds):
-  Bridge.init( 'http://localhost:3000/api/1.0/', 10000 );
+  Bridge.init( 'https://localhost:3000/api/1.0/', 10000 );
 
   // Hook up the registration process to a button:
   $( '#register' ).click( function ( evt ) {

@@ -12,17 +12,38 @@ var util     = require( '../utilities');
 
 module.exports = function ( req, res, next ) {
 
-    util.checkRequestStructureVerified( { req: req, res: res } )
-        .then( util.mustBeLoggedIn )
-        .then( validateUpdateUserRequest )
-        .then( database.updateUser )
-        .then( sendResponse )
-        .then( function () {
-            next();
-        } )
-        .fail( function ( err ) {
-            next( err );
-        } );
+    // Check that the basic request structure is verified.
+    util.checkRequestStructureVerified( req )
+
+    // The request must be in a Logged In State
+    .then( function () {
+        return util.mustBeLoggedIn( req );
+    } )
+
+    // Validate the request to conform with an UpdateUser Request
+    .then( function () {
+        return validateUpdateUserRequest( req );
+    } )
+
+    // Update the user object inside of the database.
+    .then( function () {
+        return database.updateUser( req );
+    } )
+
+    // Send the successful response message
+    .then( function () {
+        return sendResponse( res );
+    } )
+
+    // Move onto the next middle ware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any error that might have occurred in the previous promises.
+    .fail( function ( err ) {
+        next( err );
+    } );
 };
 
 var schema = {
@@ -100,10 +121,8 @@ var schema = {
     }
 };
 
-function validateUpdateUserRequest( message ) {
+function validateUpdateUserRequest( req ) {
     return Q.Promise( function( resolve, reject ) {
-
-        var req = message.req;
 
         var validation = revalidator.validate( req.body, schema );
 
@@ -130,13 +149,12 @@ function validateUpdateUserRequest( message ) {
             return;
         }
 
-            resolve( message );
+            resolve();
     } );
 }
 
-function sendResponse( message ) {
+function sendResponse( res ) {
     return Q.Promise( function( resolve, reject ) {
-        var res = message.res;
 
         res.send( {
             content: {
@@ -147,6 +165,6 @@ function sendResponse( message ) {
 
         res.status( 200 );
 
-        resolve( message );
+        resolve();
     });
 }

@@ -9,18 +9,38 @@ var util        = require( '../utilities' );
 
 module.exports = function ( req, res, next ) {
 
-    util.checkRequestStructureVerified( { req: req, res: res } )
-        .then( util.mustBeLoggedIn )
-        .then( validateLoginRequest )
-        .then( parseAppData )
-        .then( sendReponse )
-        .then( function () {
-            next();
-        } )
-        .fail( function ( err ) {
-            next( err );
-        } );
+    // Check that the basic structure is verified
+    util.checkRequestStructureVerified( req )
 
+    // Must be logged in
+    .then( function () {
+        return util.mustBeLoggedIn( req );
+    } )
+
+    // Validate the request
+    .then( function () {
+        return validateLoginRequest( req );
+    } )
+
+    // Parse the application data from the database
+    .then( function () {
+        return parseAppData( req );
+    } )
+
+    // Send the success response
+    .then( function ( appData ) {
+        return sendReponse( req, res, appData );
+    } )
+
+    // Move onto the next middleware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any errors from the above promises
+    .fail( function ( err ) {
+        next( err );
+    } );
 };
 
 var schema = {
@@ -61,11 +81,8 @@ var schema = {
     }
 };
 
-function validateLoginRequest( message ) {
+function validateLoginRequest( req ) {
     return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
-        var res = message.res;
 
         var loginError;
 
@@ -90,16 +107,13 @@ function validateLoginRequest( message ) {
             return;
         }
 
-        resolve ( message );
+        resolve ();
         return;
     } );
 }
 
-function parseAppData( message ) {
+function parseAppData( req ) {
     return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
-        var res = message.res;
 
         var appData = {};
 
@@ -115,18 +129,13 @@ function parseAppData( message ) {
             return;
         }
 
-        message.appData = appData;
-
-        resolve( message );
+        resolve( appData );
     } );
 }
 
-function sendReponse( message ) {
+function sendReponse( req, res, appData ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        var req = message.req;
-        var res = message.res;
-        var appData = message.appData;
         var user = req.bridge.user;
 
         res.send( {
@@ -146,7 +155,7 @@ function sendReponse( message ) {
 
         res.status( 200 );
 
-        resolve( message );
+        resolve();
     } );
 }
 

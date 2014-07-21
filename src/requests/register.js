@@ -7,22 +7,53 @@ var regex    = require( '../regex' );
 var error    = require( '../error' );
 var database = require( '../database' );
 var mailer   = require( '../mailer' );
-var util     = require( '../utilities');
+var util     = require( '../utilities' );
+var config   = require( '../../server' ).config;
+
 module.exports = function ( req, res, next ) {
 
-    util.checkRequestStructureVerified( { req: req, res: res } )
-        .then( util.mustBeAnonymous )
-        .then( validateRegisterRequest )
-        .then( addUserObjectToBridge )
-        .then( database.registerUser )
-        .then( sendVerificationEmail )
-        .then( sendReponse )
-        .then( function () {
-            next();
-        } )
-        .fail( function ( err ) {
-            next( err );
-        } );
+    // Check that the basic request structure is verified.
+    util.checkRequestStructureVerified( req )
+
+    // Check that the request is Anonymous (Not Logged in)
+    .then( function () {
+        return util.mustBeAnonymous( req );
+    } )
+
+    // Validate the structure of the request against the registration schema
+    .then( function () {
+        return validateRegisterRequest( req );
+    } )
+
+    // Get the user object out of the request
+    .then( function () {
+        return getUserObject( req );
+    } )
+
+    // Register the user object using the re
+    .then( function ( user ) {
+        return database.registerUser( user );
+    } )
+
+    // Send the verification email
+    .then( function () {
+        return sendVerificationEmail( req );
+    } )
+
+    // Send the successful response message
+    .then( function () {
+        sendReponse( res );
+    } )
+
+    // Move onto the next middle ware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any errors that occurred in the above middle ware
+    .fail( function ( err ) {
+        next( err );
+    } );
 };
 
 var schema = {
@@ -107,10 +138,8 @@ var schema = {
     }
 };
 
-function validateRegisterRequest( message ) {
+function validateRegisterRequest( req ) {
     return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
 
         var validation = revalidator.validate( req.body, schema );
 
@@ -136,50 +165,42 @@ function validateRegisterRequest( message ) {
             return;
         }
 
-        resolve( message );
+        resolve();
 
     } );
 }
 
-function addUserObjectToBridge( message ) {
+function getUserObject( req ) {
     return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
-
-        req.bridge.user = req.body.content;
-
-        resolve( message );
-
+        resolve( req.body.content );
     } );
 }
 
-function sendVerificationEmail( message ) {
+function sendVerificationEmail( req ) {
     return Q.Promise( function ( resolve, reject ) {
-        if ( app.get( 'BridgeConfig' ).server.emailVerification === true ) {
-            mailer.sendVerificationEmail( message.req )
+        if ( config.server.emailVerification === true ) {
+            mailer.sendVerificationEmail( req )
                 .then( function () {
-                    resolve( message );
+                    resolve();
                 } );
-        }
-        else {
-            resolve( message );
+        } else {
+            resolve();
         }
     } );
 }
 
-function sendReponse( message ) {
-    return Q.Promise( function( resolve, reject ) {
-        var res = message.res;
+function sendReponse( req ) {
+    return Q.Promise( function ( resolve, reject ) {
 
-        res.send({
+        req.res.send( {
             content: {
                 message: "User registered successfully!",
                 time: new Date().toISOString()
             }
-        });
+        } );
 
-        res.status(200);
+        req.res.status( 200 );
 
-        resolve( message );
+        resolve();
     } );
 }
