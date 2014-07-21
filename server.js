@@ -18,12 +18,13 @@ winston.remove( winston.transports.Console );
 winston.add( winston.transports.Console, { level: 'info', colorize:true } );
 
 // Setup global variables
-GLOBAL._ = underscore._;
+var _ = underscore._;
+exports._ = _;
 
 var config = require('./src/config');
 
 // Start the express app
-GLOBAL.app = express();
+var app = exports.app = express();
 
 // Determine the port to listen on
 var port = config.server.port;

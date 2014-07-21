@@ -1,6 +1,7 @@
 "use strict";
 
 var revalidator = require( 'revalidator' );
+var app = require('../server').app;
 
 var schema = {
     properties: {

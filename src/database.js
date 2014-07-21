@@ -9,6 +9,9 @@ var mailer      = require( './mailer' );
 var connection  = null;
 
 var config = require('../server').config;
+var app = require('../server').app;
+var _ = require('underscore')._;
+
 
 connection = mysql.createConnection(config.database);
 

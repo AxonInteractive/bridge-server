@@ -6,6 +6,9 @@ var error       = require( './error'     );
 var regex       = require( './regex'     );
 var database    = require( './database'  );
 
+var _ = require( 'underscore' )._;
+var app = require( '../server' ).app;
+
 /**
  * Add the nessesary CORS headers to the response object.
  * @param {Object}   req  The express request object.

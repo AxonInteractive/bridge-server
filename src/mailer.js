@@ -3,6 +3,9 @@
 var fs  = require('fs');
 var Q   = require('q');
 var URL = require('url');
+var _ = require('underscore')._;
+
+var app = require('../server').app;
 
 var config = require( '../server'      ).config;
 var error  = require( './error'        );

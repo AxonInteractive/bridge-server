@@ -3,6 +3,8 @@
 var fs         = require( 'fs'          );
 var path       = require( 'path'        );
 var config     = require( '../server'   ).config;
+var app        = require( '../server'   ).app;
+
 
 exports.setup = function () {
 

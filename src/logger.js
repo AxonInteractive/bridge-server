@@ -3,7 +3,7 @@ var winston = require( 'winston'   );
 var config  = require( '../server' ).config.logger;
 var fs      = require( 'fs'        );
 var path    = require( 'path'      );
-
+var app = require('../server').app;
 
 if ( !fs.existsSync( 'logs' ) ) {
     fs.mkdir( 'logs' );

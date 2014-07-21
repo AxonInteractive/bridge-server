@@ -2,6 +2,8 @@
 
 var Q = require( 'q' );
 
+var _ = require('underscore')._;
+
 var error = require( './error' );
 
 exports.checkRequestStructureVerified = function ( req ) {
