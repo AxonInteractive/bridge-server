@@ -3,9 +3,10 @@
 var resourceful = require( 'resourceful' );
 resourceful.use('memory');
 
-var jsonminify = require( 'jsonminify' );
-var fs         = require( 'fs'         );
-var winston    = require( 'winston'    );
+    var jsonminify = require( 'jsonminify' );
+    var fs = require( 'fs' );
+    var winston = require( 'winston' );
+    var _ = require( 'underscore' )._;
 
 var SecureServerConfig = resourceful.define( 'secureServerConfig', function () {
 

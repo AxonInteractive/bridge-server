@@ -2,11 +2,14 @@
 
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
+var _           = require( 'underscore' )._;
 
 var regex    = require( '../regex' );
 var error    = require( '../error' );
 var database = require( '../database' );
 var mailer   = require( '../mailer' );
+var config   = require( '../../server' ).conifg;
+
 
 module.exports = function(req, res, next) {
 
@@ -86,7 +89,7 @@ var schema = {
         time: {
             description: "The time the request was made",
             type: 'string',
-            pattern: regex.iSOTime,
+            pattern: regex.ISOTime,
             allowEmpty: false,
             required: true,
             messages: {
@@ -189,7 +192,7 @@ function addUserObjectToBridge( message ) {
 
 function sendVerificationEmail( message ) {
     return Q.Promise( function ( resolve, reject ) {
-        if ( app.get( 'BridgeConfig' ).server.emailVerification === true ) {
+        if ( config.server.emailVerification === true ) {
             mailer.sendVerificationEmail( message.req )
                 .then( function () {
                     resolve( message );

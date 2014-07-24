@@ -6,6 +6,8 @@ var Q           = require( 'q' );
 var regex = require( '../regex' );
 var error = require( '../error' );
 
+var _ = require('underscore')._;
+
 module.exports = function ( req, res, next ) {
     checkStructureVerified( { req: req, res: res } )
         .then(checkForAnonymousRequest)
@@ -55,7 +57,7 @@ var schema = {
                 //     description: "The time the request was sent",
                 //     required: true,
                 //     allowEmpty: false,
-                //     pattern: regex.iSOTime,
+                //     pattern: regex.ISOTime,
                 //     messages: {
                 //         pattern: "not a valid time"
                 //     }
@@ -77,7 +79,7 @@ var schema = {
         time: {
             description: "The time the request was made",
             type: 'string',
-            pattern: regex.iSOTime,
+            pattern: regex.ISOTime,
             allowEmpty: false,
             required: true,
             messages: {

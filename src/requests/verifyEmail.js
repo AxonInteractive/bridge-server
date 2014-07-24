@@ -1,7 +1,8 @@
 "use strict";
 
-var revalidator = require("revalidator");
-var Q           = require('q');
+var revalidator = require( "revalidator" );
+var Q           = require( 'q' );
+var _           = require( 'underscore' )._;
 
 var regex    = require( '../regex' );
 var error    = require( '../error' );
@@ -51,7 +52,7 @@ var schema = {
         time: {
             description: "The time the request was made",
             type: 'string',
-            pattern: regex.iSOTime,
+            pattern: regex.ISOTime,
             allowEmpty: false,
             required: true,
             messages: {

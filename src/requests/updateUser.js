@@ -1,11 +1,11 @@
 "use strict";
 
 var revalidator = require( 'revalidator' );
-var Q = require( 'q' );
+var Q           = require( 'q' );
+var _           = require( 'underscore' )._;
 
-
-var regex = require( '../regex' );
-var error = require( '../error' );
+var regex    = require( '../regex' );
+var error    = require( '../error' );
 var database = require( '../database' );
 
 module.exports = function ( req, res, next ) {
@@ -77,7 +77,7 @@ var schema = {
         time: {
             description: "The time the request was made",
             type: 'string',
-            pattern: regex.iSOTime,
+            pattern: regex.ISOTime,
             allowEmpty: false,
             required: true,
             messages: {

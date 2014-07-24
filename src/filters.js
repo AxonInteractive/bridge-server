@@ -10,7 +10,7 @@ var filterSchema = {
     properties: {
         "date-max": {
             type: 'string',
-            pattern: regex.iSOTime,
+            pattern: regex.ISOTime,
             required: false,
             messages: {
                 pattern: "is not in ISO format"
@@ -19,7 +19,7 @@ var filterSchema = {
 
         "date-min": {
             type: 'string',
-            pattern: regex.iSOTime,
+            pattern: regex.ISOTime,
             required: false,
             messages: {
                 pattern: "is not in ISO format"

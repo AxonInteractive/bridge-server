@@ -3,11 +3,16 @@
 var fs = require('fs');
 var Q  = require('q');
 
-var config     = app.get( 'BridgeConfig'   );
-var error      = require( './error'        );
-var mailer     = require( 'express-mailer' );
+var app   = require( '../server' ).app;
+var error = require( '../server' ).app;
 
-var options   = config.mailer.options;
+var config = app.get( 'BridgeConfig'   );
+var error  = require( './error'        );
+var mailer = require( 'express-mailer' );
+
+var options = config.mailer.options;
+
+var _ = require('underscore')._;
 
 var mailerOptionsObject = {
     from: config.mailer.fromAddress
@@ -103,6 +108,22 @@ exports.sendVerificationEmail = function( req ){
 
 exports.sendForgotPasswordEMail = function( req ) {
     return Q.Promise( function( resolve, reject ) {
+
+        var user = req.bridge.user;
+
+        app.log.debug( "Sending forgot password email for user:" + user );
+
+        var mail = {
+            to: user.email,
+            subject: config.mailer.recoveryEmailSubject
+        };
+
+        var view = config.mailer.recoverPasswordViewName;
+
+        app.log.debug( "Send forgot password recovery email" );
+
+        sendMail( mail, view );
+
         resolve();
     } );
 };

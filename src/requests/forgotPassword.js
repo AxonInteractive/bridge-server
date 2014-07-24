@@ -2,17 +2,28 @@
 
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
+var _           = require( 'underscore' )._;
 
-var regex = require('../regex');
-var error = require('../error');
-var mailer = require('../mailer');
+var regex    = require( '../regex' );
+var error    = require( '../error' );
+var mailer   = require( '../mailer' );
+var database = require( '../database' );
 
 module.exports = function( req, res, next ) {
 
-    checkStructureVerified( { req: req, res: res } )
-        .then( validateForgotPasswordRequest )
-        .then( sendForgotPasswordEMail )
-        .then( sendResponse )
+    checkStructureVerified( req, res )
+        .then( function() {
+            return validateForgotPasswordRequest( req );
+        } )
+        .then( function() {
+            return checkUserExists( req );
+        } )
+        .then( function() {
+            return sendForgotPasswordEMail( req );
+        } )
+        .then( function() {
+            return sendResponse( res );
+        } )
         .then( function () {
             next();
         } )
@@ -52,7 +63,7 @@ var schema = {
         time: {
             description: "The time the request was made",
             type: 'string',
-            pattern: regex.iSOTime,
+            pattern: regex.ISOTime,
             allowEmpty: false,
             required: true,
             messages: {
@@ -73,11 +84,8 @@ var schema = {
     }
 };
 
-function checkStructureVerified( message ) {
+function checkStructureVerified( req ) {
     return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
-        var res = message.res;
 
         var structError;
 
@@ -88,15 +96,12 @@ function checkStructureVerified( message ) {
             return;
         }
 
-        resolve( message );
+        resolve();
     });
 }
 
-function validateForgotPasswordRequest( message ) {
+function validateForgotPasswordRequest( req ) {
     return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
-        var res = message.res;
 
         var valError;
         var validation = revalidator.validate( req.body, schema );
@@ -121,23 +126,50 @@ function validateForgotPasswordRequest( message ) {
             return;
         }
 
-        resolve( message );
+        resolve();
     } );
 }
 
-function sendForgotPasswordEMail( message ) {
+function checkUserExists( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        mailer.sendForgotPasswordEMail( message.req );
+        var query = "SELECT EMAIL FROM users WHERE EMAIL = ?";
+        var values = [ req.body.content.message ];
 
-        resolve( message );
+        database.query( query, values )
+            .then( function ( rows ) {
+
+                if ( rows.length !== 1 ) {
+                    reject( error.createError( 400, 'Email not found', "No user found with that email" ) );
+                    return;
+                }
+
+                resolve();
+            } )
+            .fail( function ( err ) {
+
+                reject( error.createError( 500, 'Database query error', err ) );
+
+            } );
     } );
 }
 
-function sendResponse( message ) {
+function sendForgotPasswordEMail( req ) {
     return Q.Promise( function ( resolve, reject ) {
-        var req = message.req;
-        var res = message.res;
+
+        // Prep the user object for the forgot password email
+        req.bridge.user = {
+            email: req.body.content.email
+        };
+
+        mailer.sendForgotPasswordEMail( req );
+
+        resolve();
+    } );
+}
+
+function sendResponse( res ) {
+    return Q.Promise( function ( resolve, reject ) {
 
         res.send( {
             content: {

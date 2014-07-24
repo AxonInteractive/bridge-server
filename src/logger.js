@@ -1,5 +1,6 @@
 "use strict";
 var winston = require( 'winston' );
+var app = require( '../server' ).app;
 var config = app.get( 'BridgeConfig' ).logger;
 var fs = require( 'fs' );
 var path = require( 'path' );

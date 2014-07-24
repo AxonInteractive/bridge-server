@@ -2,8 +2,11 @@
 var mysql       = require( 'mysql' );
 var crypto      = require( 'crypto' );
 var Q           = require( 'Q' );
+var _           = require( 'underscore' )._;
 
-var bridgeError = require( './error' );
+var server      = require( '../server' );
+var app         = server.app;
+var bridgeError = server.error;
 var mailer      = require( './mailer' );
 
 var connection  = null;
@@ -53,11 +56,11 @@ exports.authenticateRequest = function ( req, res ) {
             var valHmac = hmac.digest( 'hex' );
 
 
-            if ( valHmac !== req.body.hmac ) {
-                var hmacError = bridgeError.createError( 403, 'HMAC failed', "Failed hmac check" );
-                reject( hmacError );
-                return;
-            }
+            // if ( valHmac !== req.body.hmac ) {
+            //     var hmacError = bridgeError.createError( 403, 'HMAC failed', "Failed hmac check" );
+            //     reject( hmacError );
+            //     return;
+            // }
 
             if ( user.STATUS != 'NORMAL' ) {
                 var incorrectStatusError = bridgeError.createError( 403, 'Incorrect user state', "User is in the '" + ( user.STATUS.toLowerCase() ) + "' state" );
@@ -71,65 +74,6 @@ exports.authenticateRequest = function ( req, res ) {
         } );
     } );
 };
-
-// /**
-//  * gets the users using the filter object added on
-//  * @param  {Object}    req  The request object.
-//  * @param  {Object}    res  The response object.
-//  * @param  {Function}  next The callback function for when the filter is complete.
-//  * @return {Undefined}      Nothing.
-//  */
-// exports.getUser = function ( req, res, next, error ) {
-//     var query = 'SELECT APP_DATA FROM users';
-//     var values = [];
-//     var first = true;
-
-//     if ( typeof req.filters !== 'undefined' ) {
-//         query = query.concat( ' WHERE ' );
-//         req.filters.forEach( function ( element ) {
-
-//             if ( first )
-//                 first = false;
-//             else
-//                 query = query.concat( " AND " );
-
-//             query = query.concat( element.field + ' = ?' );
-//             values.push( element.value );
-
-//         } );
-//     }
-
-//     connection.query( query, values, function ( err, rows ) {
-//         if ( err ) {
-//             // Create the error
-//             var queryFailedError = bridgeError.createError( 500, 'Database query error', "Database error. See logs for more information" );
-
-//             // Log the error with relevant information
-//             app.get( 'logger' ).verbose( {
-//                 Error          : JSON.stringify( queryFailedError ),
-//                 Reason         : "Database rejected query",
-//                 Query          : query,
-//                 Values         : JSON.stringify( values ),
-//                 "Request Body" : JSON.stringify( req.body ),
-//                 DBError        : JSON.stringify( err )
-//             } );
-
-//             // Throw the error
-//             error( queryFailedError );
-//             return;
-//         }
-
-//         var resAry = [];
-
-//         rows.forEach( function ( element ) {
-//             resAry.push( element.APP_DATA );
-//         } );
-
-//         res.content = resAry;
-
-//         next();
-//     } );
-// };
 
 /**
  * AAdded the request user to the database.
@@ -399,7 +343,7 @@ exports.recoverPassword = function ( message ) {
 
             connection.query( query, values, function ( err2, rows ) {
                 if ( err2 ) {
-                    recoverPasswordError( 500, 'Database query error', "Database error, See log for more details" );
+                    recoverPasswordError = bridgeError.createError( 500, 'Database query error', "Database error, See log for more details" );
 
                     reject( recoverPasswordError );
                     return;
@@ -409,6 +353,34 @@ exports.recoverPassword = function ( message ) {
 
         } ); // end of query
     } ); // end of promise
+};
+
+exports.query = function ( query, values ) {
+    return Q.Promise( function ( resolve, reject ) {
+
+        var error;
+
+        if ( !_.isString( query ) ) {
+            error = bridgeError.createError( 500, 'Database query error', "Query is not a string" );
+            reject();
+            return;
+        }
+
+        if ( !_.isArray( values ) && !_.isUndefined( values ) ) {
+            error = bridgeError.createError( 500, 'Database query error', "Query values is not an Array" );
+            reject();
+            return;
+        }
+
+        connection.query( query, values, function ( err, rows ) {
+            if ( err ) {
+                reject( err );
+                return;
+            }
+
+            resolve( rows );
+        } );
+    } );
 };
 
 /**

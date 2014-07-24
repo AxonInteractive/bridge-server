@@ -21,16 +21,13 @@ Q.longStackSupport = true;
 winston.remove( winston.transports.Console );
 winston.add( winston.transports.Console, { level: 'info', colorize:true } );
 
-// Setup global variables
-GLOBAL._ = underscore._;
-
 // Export pipeline object as a utility
-exports.pipeline = require('./lib/pipeline');
-
 var config = require('./src/config');
 
 // Start the express app
-GLOBAL.app = express();
+var app = express();
+exports.app = app;
+exports.express = express;
 
 app.set( 'SecureMode'  , config.server.mode );
 app.set( 'BridgeConfig', config );
@@ -42,22 +39,27 @@ process.env.PORT = port;
 // Export important files for bridge configuration and setup
 exports.config = config;
 
-// Read in local modules
-var loggerObj   = require( './src/logger'       );
-var database    = require( './src/database'     );
-var filters     = require( './src/filters'      );
-var bridgeWare  = require( './src/middleware'   );
-var mailer      = require( './src/mailer'       );
+// Read in local modules that are to be exported
+
+var regex       = require( './src/regex' );
+var bridgeError = require( './src/error' );
+
+exports.error    = bridgeError;
+exports.regex    = regex;
+
+var database    = require( './src/database' );
+
+// Export local files for the API to use
+exports.database = database;
+
+// Read in non exported local modules
+var bridgeWare  = require( './src/middleware' );
+var loggerObj   = require( './src/logger' );
+var mailer      = require( './src/mailer' );
 var routes      = require( './src/bridgeroutes' );
-var regex       = require( './src/regex'        );
-var bridgeError = require( './src/error'        );
 
 // Prepare server variable
 var server = null;
-
-// Export local files for the API to use
-exports.filters = filters;
-exports.error   = bridgeError;
 
 app.log = app.get('logger');
 

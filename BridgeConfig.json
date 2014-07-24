@@ -1,20 +1,16 @@
 {
 
-    // Configuration settings relating the server
     "server": {
-        // The mode of the server. [http | https]
         "mode": "https",
 
-        // The environment to run in. [development | production]
         "environment": "development",
 
-        // The port the node server should listen on
         "port": 3000,
 
         // Settings used if the server is in https mode
         "secure": {
-            "keyfilepath"        : "privatekey.pem", // The path to the private key file for the ssl connection.
-            "certificatefilepath": "certificate.pem" // The path to the certificate file for the ssl connection.
+            "keyfilepath"        : "key.pem", // The path to the private key file for the ssl connection.
+            "certificatefilepath": "cert.pem" // The path to the certificate file for the ssl connection.
         },
 
         // Boolean switch for the system for email verification.
@@ -37,18 +33,21 @@
 
     // Configuration settings about logging and verbosity
     "logger": {
-        // Logging related to exceptions and errors
-        "exception": {
-            "filename"      : "logs/exceptions.log",
-            "writetoconsole": true
-        },
+
         // Logging related to server actions such as starting and stopping
         // as well as any request of any kind coming to the server
         "server": {
             "filename"     : "logs/server.log",
             "level"        : "silly",
             "consoleLevel" : "silly"
+        },
+
+        // Logging related to exceptions and errors
+        "exception": {
+            "filename"      : "logs/exceptions.log",
+            "writetoconsole": true
         }
+
     },
 
     // Configuration settings relating to the SMTP server
