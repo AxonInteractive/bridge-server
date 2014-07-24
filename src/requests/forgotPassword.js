@@ -11,25 +11,39 @@ var database = require( '../database' );
 
 module.exports = function( req, res, next ) {
 
-    checkStructureVerified( req, res )
-        .then( function() {
-            return validateForgotPasswordRequest( req );
-        } )
-        .then( function() {
-            return checkUserExists( req );
-        } )
-        .then( function() {
-            return sendForgotPasswordEMail( req );
-        } )
-        .then( function() {
-            return sendResponse( res );
-        } )
-        .then( function () {
-            next();
-        } )
-        .fail( function ( err ) {
-            next( err );
-        } );
+    // Check that the request has passed the structure test
+    util.checkRequestStructureVerified( req )
+
+    // Check that the request is in the valid format
+    .then( function () {
+        return validateForgotPasswordRequest( req );
+    } )
+    
+    // Check that the request user exists in the database
+    
+    .then( function() {
+        return checkUserExists( req );
+    } )
+
+    // Send the email related to recovering the password
+    .then( function () {
+        return sendForgotPasswordEMail( req );
+    } )
+
+    // Send the success response
+    .then( function () {
+        return sendResponse( res );
+    } )
+
+    // Move onto the next middle ware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any errors that occurred in the above promises
+    .fail( function ( err ) {
+        next( err );
+    } );
 };
 
 var schema = {
@@ -84,22 +98,6 @@ var schema = {
     }
 };
 
-function checkStructureVerified( req ) {
-    return Q.Promise( function ( resolve, reject ) {
-
-        var structError;
-
-        if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
-            structError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
-
-            reject( structError );
-            return;
-        }
-
-        resolve();
-    });
-}
-
 function validateForgotPasswordRequest( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
@@ -113,11 +111,11 @@ function validateForgotPasswordRequest( req ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'content.message': errorCode = 'Invalid email format';              break;
-                case 'email':           errorCode = 'Invalid email format';              break;
-                case 'hmac':            errorCode = 'Invalid HMAC format';               break;
-                case 'time':            errorCode = 'Invalid time format';               break;
-                default:                errorCode = 'Malformed forgot password request'; break;
+                case 'content.message': errorCode = 'Invalid email format'             ; break;
+                case 'email'          : errorCode = 'Invalid email format'             ; break;
+                case 'hmac'           : errorCode = 'Invalid HMAC format'              ; break;
+                case 'time'           : errorCode = 'Invalid time format'              ; break;
+                default               : errorCode = 'Malformed forgot password request'; break;
             }
 
             valError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );

@@ -1,10 +1,9 @@
 "use strict";
-var winston = require( 'winston' );
-var app = require( '../server' ).app;
-var config = app.get( 'BridgeConfig' ).logger;
-var fs = require( 'fs' );
-var path = require( 'path' );
-
+var winston = require( 'winston'   );
+var config  = require( '../server' ).config.logger;
+var fs      = require( 'fs'        );
+var path    = require( 'path'      );
+var app = require('../server').app;
 
 if ( !fs.existsSync( 'logs' ) ) {
     fs.mkdir( 'logs' );
@@ -46,7 +45,7 @@ if ( config.exception.writetoconsole === true ) {
     } ) );
 }
 
-app.set( 'logger', new( winston.Logger )( loggerConstObj ) );
+app.log = new( winston.Logger )( loggerConstObj );
 
 if ( app.get( 'env' ) === 'development' ) {
 

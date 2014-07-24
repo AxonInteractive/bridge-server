@@ -1,6 +1,7 @@
 "use strict";
 
 var revalidator = require( 'revalidator' );
+var app = require('../server').app;
 
 var app = require('../server').app;
 
@@ -23,6 +24,7 @@ var schema = {
                     'Email already used',
                     'Email not found',
                     'Failed to authenticate anonymous request',
+                    'Filter is not a string',
                     'HMAC failed',
                     'Incorrect user state',
                     'Invalid email format',

@@ -4,24 +4,45 @@ var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
 var _           = require( 'underscore' )._;
 
-var regex       = require( '../regex' );
-var error       = require( '../error' );
+var regex       = require( '../regex'     );
+var error       = require( '../error'     );
+var util        = require( '../utilities' );
 
 
 module.exports = function ( req, res, next ) {
 
-    checkStructureVerified( { req: req, res: res } )
-        .then( checkForAuthenticatedRequest )
-        .then( validateLoginRequest )
-        .then( parseAppData )
-        .then( sendReponse )
-        .then( function () {
-            next();
-        } )
-        .fail( function ( err ) {
-            next( err );
-        } );
+    // Check that the basic structure is verified
+    util.checkRequestStructureVerified( req )
 
+    // Must be logged in
+    .then( function () {
+        return util.mustBeLoggedIn( req );
+    } )
+
+    // Validate the request
+    .then( function () {
+        return validateLoginRequest( req );
+    } )
+
+    // Parse the application data from the database
+    .then( function () {
+        return parseAppData( req );
+    } )
+
+    // Send the success response
+    .then( function ( appData ) {
+        return sendReponse( req, res, appData );
+    } )
+
+    // Move onto the next middleware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any errors from the above promises
+    .fail( function ( err ) {
+        next( err );
+    } );
 };
 
 var schema = {
@@ -62,49 +83,8 @@ var schema = {
     }
 };
 
-function checkStructureVerified( result ) {
+function validateLoginRequest( req ) {
     return Q.Promise( function ( resolve, reject ) {
-        var loginError;
-
-        var req = result.req;
-        var res = result.res;
-
-        if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
-
-            loginError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
-
-            reject( loginError );
-            return;
-        }
-
-        resolve( { req: req, res: res } );
-    } );
-}
-
-function checkForAuthenticatedRequest( result ) {
-    return Q.Promise( function ( resolve, reject ) {
-
-        var req = result.req;
-        var res = result.res;
-
-        var loginError;
-
-        if ( req.bridge.isAnon === true ) {
-            loginError = error.createError( 403, 'Failed to authenticate anonymous request', "Cannot authenticate a request that is anonymous" );
-
-            reject( loginError );
-            return;
-        }
-
-        resolve( { req: req, res: res } );
-    } );
-}
-
-function validateLoginRequest( message ) {
-    return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
-        var res = message.res;
 
         var loginError;
 
@@ -129,16 +109,13 @@ function validateLoginRequest( message ) {
             return;
         }
 
-        resolve ( message );
+        resolve ();
         return;
     } );
 }
 
-function parseAppData( message ) {
+function parseAppData( req ) {
     return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
-        var res = message.res;
 
         var appData = {};
 
@@ -154,18 +131,13 @@ function parseAppData( message ) {
             return;
         }
 
-        message.appData = appData;
-
-        resolve( message );
+        resolve( appData );
     } );
 }
 
-function sendReponse( message ) {
+function sendReponse( req, res, appData ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        var req = message.req;
-        var res = message.res;
-        var appData = message.appData;
         var user = req.bridge.user;
 
         res.send( {
@@ -177,13 +149,15 @@ function sendReponse( message ) {
                     status: user.STATUS,
                     role: user.ROLE,
                     appData: appData
-                }
+                },
+
+                time: new Date().toISOString()
             }
         } );
 
         res.status( 200 );
 
-        resolve( message );
+        resolve();
     } );
 }
 

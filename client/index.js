@@ -22,7 +22,7 @@ window.onload = function () {
     $( '#notify' ).prepend( timestamp( '<strong>requestLogin() successful!</strong>' ) );
     $( '#notify' ).prepend( timestamp( 'Bridge.user: ' + JSON.stringify( Bridge.user ) ) );
     $( '#notify' ).prepend( timestamp( 'Bridge.isLoggedIn() result: ' + Bridge.isLoggedIn() ) );
-    $( '#notify' ).prepend( timestamp( 'HTML5 stored identity:' + 
+    $( '#notify' ).prepend( timestamp( 'HTML5 stored identity:' +
       JSON.stringify( jQuery.jStorage.get( 'bridge-client-identity', 'Not found!' ) ) ) );
   };
 
@@ -46,7 +46,7 @@ window.onload = function () {
     if ( error.status === 0 ) {
       $( '#notify' ).prepend( timestamp( '<strong>requestRegister() timed out!</strong>' ) );
       $( '#notify' ).prepend( timestamp( 'Check your internet connection...' ) );
-    } 
+    }
     else {
       $( '#notify' ).prepend( timestamp( '<strong>requestRegister() error!</strong>  ' + JSON.stringify( error ) ) );
       $( '#notify' ).prepend( timestamp( 'Registration request failed...' ) );
@@ -69,7 +69,7 @@ window.onload = function () {
     $( '#notify' ).prepend( timestamp( '<strong>requestForgotPassword() called!</strong>' ) );
     $( '#notify' ).prepend( timestamp( 'Waiting for a response from the server...' ) );
   };
-  
+
   // You can listen for the login function being called:
   Bridge.onLoginCalled = function () {
     $( '#notify' ).prepend( timestamp( '<strong>requestLogin() called!</strong>' ) );
@@ -82,7 +82,7 @@ window.onload = function () {
     $( '#notify' ).prepend( timestamp( 'Bridge.user: ' + JSON.stringify( Bridge.user ) ) );
     $( '#notify' ).prepend( timestamp( 'Bridge.additionalData: ' + JSON.stringify( Bridge.additionalData ) ) );
     $( '#notify' ).prepend( timestamp( 'Bridge.isLoggedIn() result: ' + Bridge.isLoggedIn() ) );
-    $( '#notify' ).prepend( timestamp( 'HTML5 stored identity:' + 
+    $( '#notify' ).prepend( timestamp( 'HTML5 stored identity:' +
       JSON.stringify( jQuery.jStorage.get( 'bridge-client-identity', 'Not found!' ) ) ) );
   };
 
@@ -100,7 +100,7 @@ window.onload = function () {
 
   // You can listen for each request:
   Bridge.onRequestCalled = function ( method, resource, payload ) {
-    jQuery( '#notify' ).prepend( timestamp( 'Request >> ' + method + ' resource ' + resource + 
+    jQuery( '#notify' ).prepend( timestamp( 'Request >> ' + method + ' resource ' + resource +
       ' = ' + JSON.stringify( payload ) ) );
   };
 
@@ -145,7 +145,7 @@ window.onload = function () {
     // Send a verify email request using Bridge.
     Bridge.requestVerifyEmail( email, hash )
       .done( function ( data, jqXHR ) {
-        
+
         $( '#notify' ).prepend( timestamp( '<strong>Email account verified successfully!</strong>' ) );
 
       } )
@@ -240,7 +240,7 @@ window.onload = function () {
 
   // Hook up the logout process to a button:
   $( '#logout' ).click( function ( evt ) {
-    
+
     // Call Bridge.logout() to clear the user from Bridge.
     Bridge.logout();
 

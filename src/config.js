@@ -1,12 +1,15 @@
 "use strict";
 
 var resourceful = require( 'resourceful' );
-resourceful.use('memory');
+resourceful.use( 'memory' );
 
     var jsonminify = require( 'jsonminify' );
     var fs = require( 'fs' );
     var winston = require( 'winston' );
     var _ = require( 'underscore' )._;
+
+var _ = require('underscore')._;
+
 
 var SecureServerConfig = resourceful.define( 'secureServerConfig', function () {
 
@@ -25,6 +28,13 @@ var SecureServerConfig = resourceful.define( 'secureServerConfig', function () {
 var errors = [];
 
 var ServerConfig = resourceful.define( 'serverConfig', function () {
+
+    this.string( 'hostname', {
+        allowEmpty: false,
+        required: true,
+        default: "localhost:3000"
+    } );
+
     this.string( 'mode', {
         enum: [ "http", "https" ],
         required: true,
@@ -37,7 +47,7 @@ var ServerConfig = resourceful.define( 'serverConfig', function () {
         required: true,
         allowEmpty: false,
         default: "production"
-    });
+    } );
 
     this.number( 'port', {
         minimum: 0,
@@ -290,7 +300,7 @@ var Config = resourceful.define('config', function(){
 
 var config;
 
-// Check if a user config can be loaded 
+// Check if a user config can be loaded
 if ( fs.existsSync( 'BridgeConfig.json' ) ) {
 
     // Read and parse the Config file to make a User Configuration Object

@@ -2,38 +2,32 @@
 //server.js
 
 // Bring in external libraries
-var fs           = require( 'fs' );
-var crypto       = require( 'crypto' );
-var jsonminify   = require( 'jsonminify' );
-var https        = require( 'https' );
-var http         = require( 'http' );
-var path         = require( 'path' );
-var express      = require( 'express' );
-var underscore   = require( 'underscore' );
-var resourceful  = require( 'resourceful' );
-var winston      = require( 'winston' );
-var Q            = require( 'q' );
-var bodyParser   = require( 'body-parser' );
-var errorHandler = require( 'errorhandler' );
+var fs         = require( 'fs'          );
+var https      = require( 'https'       );
+var http       = require( 'http'        );
+var path       = require( 'path'        );
+var express    = require( 'express'     );
+var underscore = require( 'underscore'  );
+var winston    = require( 'winston'     );
+var Q          = require( 'q'           );
+var bodyParser = require( 'body-parser' );
 
 Q.longStackSupport = true;
 
 winston.remove( winston.transports.Console );
 winston.add( winston.transports.Console, { level: 'info', colorize:true } );
 
-// Export pipeline object as a utility
+// Setup global variables
+var _ = underscore._;
+exports._ = _;
+
 var config = require('./src/config');
 
 // Start the express app
-var app = express();
-exports.app = app;
-exports.express = express;
-
-app.set( 'SecureMode'  , config.server.mode );
-app.set( 'BridgeConfig', config );
+var app = exports.app = express();
 
 // Determine the port to listen on
-var port = config.server.port || 3000;
+var port = config.server.port;
 process.env.PORT = port;
 
 // Export important files for bridge configuration and setup
@@ -86,16 +80,13 @@ app.enable( 'trust proxy' );
 app.use( express.static( config.server.wwwRoot ) );
 
 // Automatically parse the body to JSON
-//app.use( express.json() );
-
-// Decode URL Strings
-//app.use( express.urlencoded() );
-
 app.use( bodyParser.json() );
 
 app.use( function ( req, res, next ) {
-    app.get( 'logger' ).silly( {
-        RequestBody: req.body
+    app.log.silly( {
+        RequestBody: req.body,
+        Method: req.method,
+        Resource: req.path
     } );
     next();
 } );
@@ -114,17 +105,43 @@ app.use( bridgeWare.handleOptionsRequest() );
 app.use( '/api/', bridgeWare.prepareBridgeObjects() );
 
 // read the query string from a request and parse it as JSON
-app.use( '/api/1.0/', bridgeWare.parseGetQueryString() );
+app.use( '/api/', bridgeWare.parseGetQueryString() );
 
 app.use( '/api/1.0/', bridgeWare.verifyRequestStructure() );
-
-// app.use( '/api/1.0/', bridgeWare.bridgeErrorHandler() );
 
 // Setup bridge default routes
 routes.setup();
 
 setTimeout( function () {
+
     app.use( '/api/1.0/', bridgeWare.bridgeErrorHandler() );
+
+    app.all( '*', function ( req, res, next ) {
+
+        if ( !_.isEmpty( res.body ) ) {
+            next();
+            return;
+        }
+
+        res.status( 404 );
+
+        var NotFoundPath = path.join( config.server.wwwRoot, "404.html" );
+
+        fs.exists(NotFoundPath, function(exists){
+
+            if (!exists) {
+                res.send( "404 - Not found" );
+                next();
+                return;
+            }
+
+            res.sendfile( NotFoundPath );
+
+        } );
+
+        return;
+    } );
+
 }, 1000 );
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -152,12 +169,11 @@ else if ( config.server.mode === "http" ) {
 server.listen( port );
 
 // Log the start of the server
-app.get( 'logger' ).info( "Express server listening on port %d in %s mode", port, config.server.environment );
+app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
 
 // Setup the kill state handler
 function cleanUp() {
-    app.get( 'logger' ).info( "Termination signal received. Closing server." );
+    app.log.info( "Termination signal received. Closing server." );
     database.close();
     mailer.close();
 }
-

@@ -29,9 +29,9 @@ function sendMail ( mail, view, options, done ) {
 
     app.log.silly('send mail request recieved. Mail:', mail);
 
-    var baseErrorString = "Could not end e-mail. ";
+    var baseErrorString  = "Could not end e-mail. ";
     var existErrorString = "Mail has no '%s' property";
-    var typeErrorString = "Mail property '%s' is not a %s";
+    var typeErrorString  = "Mail property '%s' is not a %s";
 
     if ( !_.has( mail, "to" ) ) {
         app.log.verbose( baseErrorString + existErrorString, "to", mail );
@@ -88,12 +88,23 @@ exports.sendVerificationEmail = function( req ){
         app.log.debug( "Sending verification email with User: ", user );
 
         if ( config.server.emailVerification === false ) {
-            app.log.warn( "Tried to send verification email while the server is not in verification mode" );
+            app.log.verbose( "Tried to send verification email while the server is not in verification mode" );
         }
 
+        var url = config.server.mode + "://" + config.server.hostname;
+
+        url = URL.parse(url).href;
+
         var mail = {
-            to: user.email,
-            subject: config.mailer.verificationEmailSubject,
+            to                : user.email,
+            subject           : config.mailer.verificationEmailSubject,
+            verificationURL   : url,
+            email             : user.email,
+            name              : user.firstName + " " + user.lastName,
+            unsubscribeURL    : "",
+            footerImageURL    : URL.parse( url + "email/peir-footer.png"    ).href,
+            headerImageURL    : URL.parse( url + "email/peir-header.png"    ).href,
+            backgroundImageURL: URL.parse( url + "email/right-gradient.png" ).href
         };
 
         var view = config.mailer.verifyEmailViewName;
@@ -133,4 +144,3 @@ exports.sendUpdatedAccountEmail = function( req ) {
         resolve();
     } );
 };
-

@@ -24,7 +24,7 @@ try {
  * @param  {Object}   req   The express request object.
  * @return {Promise}        A Q promise object
  */
-exports.authenticateRequest = function ( req, res ) {
+exports.authenticateRequest = function ( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
         if ( req.bridge.isAnon === true ) {
@@ -75,12 +75,13 @@ exports.authenticateRequest = function ( req, res ) {
     } );
 };
 
+
 /**
  * AAdded the request user to the database.
  * @param  {Object}   message   The express request object.
  * @return {Promise}            A Q Promise
  */
-exports.registerUser = function ( message ) {
+exports.registerUser = function ( user ) {
     return Q.Promise( function ( resolve, reject ) {
 
         var req = message.req;
@@ -102,7 +103,7 @@ exports.registerUser = function ( message ) {
                 if ( err.code === "ER_DUP_ENTRY" ) {
                     var dupEntryError = bridgeError.createError( 409, 'Email already used', "The email that was enter has already been taken by another user" );
 
-                    app.get( 'logger' ).verbose( {
+                    app.log.debug( {
                         Error: JSON.stringify( dupEntryError ),
                         Reason: "Email that was to be registered was not unique",
                         Query: userInsertionQuery,
@@ -111,12 +112,13 @@ exports.registerUser = function ( message ) {
                     } );
 
                     reject( dupEntryError );
+                    return;
                 } else {
                     // Create the Error
                     var queryFailedError = bridgeError.createError( 500, 'Database query error', "Query failed to register user" );
 
                     // Log the error and relevant information
-                    app.get( 'logger' ).verbose( {
+                    app.log.debug( {
                         Error: JSON.stringify( queryFailedError ),
                         Reason: "Database rejected query",
                         Query: userInsertionQuery,
@@ -124,11 +126,12 @@ exports.registerUser = function ( message ) {
                         DBError: JSON.stringify( err )
                     } );
 
-                    reject(queryFailedError);
+                    reject( queryFailedError );
+                    return;
                 }
             }
 
-            resolve( message );
+            resolve();
 
         } );
 
@@ -143,12 +146,10 @@ exports.registerUser = function ( message ) {
  * @param  {Function} error The callback for when an error occurs
  * @return {Undefined}
  */
-exports.updateUser = function( message ) {
+exports.updateUser = function( req ) {
     return Q.Promise(function(resolve, reject){
 
         var updateUserError;
-
-        var req = message.req;
 
         if ( !_.has( req.bridge, "structureVerified" ) ) {
             var malformedMessageError = bridgeError.createError( 400, 'Request structure unverified', "Request has not been verified using the verify request middleware property" );
@@ -252,7 +253,7 @@ exports.updateUser = function( message ) {
                 return;
             }
 
-            resolve( message );
+            resolve();
 
         } );
 
@@ -267,11 +268,9 @@ exports.updateUser = function( message ) {
  * @param  {Function} error The callback for when an error occurs
  * @return {Undefined}
  */
-exports.verifyEmail = function ( message ) {
+exports.verifyEmail = function ( req ) {
     return Q.Promise( function ( resolve, reject ) {
         var verifyEmailError;
-
-        var req = message.req;
 
         var query = "SELECT * FROM users WHERE USER_HASH = ?";
         var values = [ req.body.content.hash ];
@@ -308,17 +307,15 @@ exports.verifyEmail = function ( message ) {
                     reject( verifyEmailError );
                     return;
                 }
-                resolve( message );
+                resolve();
             } );
         } );
     } );
 };
 
-exports.recoverPassword = function ( message ) {
+exports.recoverPassword = function ( req ) {
     return Q.Promise( function ( resolve, reject ) {
         var recoverPasswordError;
-
-        var req = message.req;
 
         var query = "SELECT * FROM users WHERE USER_HASH = ?";
         var values = [ req.body.content.hash ];
@@ -348,7 +345,7 @@ exports.recoverPassword = function ( message ) {
                     reject( recoverPasswordError );
                     return;
                 }
-                resolve( message );
+                resolve();
             } );
 
         } ); // end of query

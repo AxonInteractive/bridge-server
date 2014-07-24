@@ -1,15 +1,10 @@
 "use strict";
 
-var fs   = require( 'fs' );
-var path = require( 'path' );
-var app  = require( '../server' ).app;
+var fs         = require( 'fs'          );
+var path       = require( 'path'        );
+var config     = require( '../server'   ).config;
+var app        = require( '../server'   ).app;
 
-var filters    = require( './filters' );
-var database   = require( './database' );
-var mailer     = require( './mailer' );
-var middleware = require( './middleware' );
-
-var config = app.get( 'BridgeConfig' );
 
 exports.setup = function () {
 
