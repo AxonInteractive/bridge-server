@@ -46,26 +46,3 @@ if ( config.exception.writetoconsole === true ) {
 }
 
 app.log = new( winston.Logger )( loggerConstObj );
-
-if ( app.get( 'env' ) === 'development' ) {
-
-    app.set( 'devLogger', new( winston.Logger )( {
-        transports: [
-            new winston.transports.File( {
-                level: 'silly',
-                filename: 'logs/dev.log',
-                timestamp: true,
-                silent: false,
-                json: false
-            } )
-        ]
-    } ) );
-    app.get( 'devLogger' ).add( winston.transports.Console, {
-        level: 'debug',
-        colorize: true
-    } );
-}
-
-else {
-    app.set( 'devLogger', new( winston.Logger )( {} ) );
-}

@@ -11,7 +11,7 @@ var mailer      = require( './mailer' );
 
 var connection  = null;
 
-connection = mysql.createConnection(app.get('BridgeConfig').database);
+connection = mysql.createConnection( server.config.database );
 
 try {
     connection.connect();

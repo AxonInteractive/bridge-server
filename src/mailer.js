@@ -1,14 +1,16 @@
 "use strict";
 
-var fs = require('fs');
-var Q  = require('q');
-
-var app   = require( '../server' ).app;
-var error = require( '../server' ).app;
-
-var config = app.get( 'BridgeConfig'   );
-var error  = require( './error'        );
+var fs     = require( 'fs' );
+var Q      = require( 'q' );
+var URL    = require( 'url' );
 var mailer = require( 'express-mailer' );
+
+var server = require( '../server' );
+
+var app    = server.app;
+var error  = server.app;
+var config = server.config;
+
 
 var options = config.mailer.options;
 

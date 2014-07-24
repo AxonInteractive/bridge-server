@@ -9,8 +9,8 @@
 
         // Settings used if the server is in https mode
         "secure": {
-            "keyfilepath"        : "key.pem", // The path to the private key file for the ssl connection.
-            "certificatefilepath": "cert.pem" // The path to the certificate file for the ssl connection.
+            "keyfilepath"        : "privatekey.pem", // The path to the private key file for the ssl connection.
+            "certificatefilepath": "certificate.pem" // The path to the certificate file for the ssl connection.
         },
 
         // Boolean switch for the system for email verification.

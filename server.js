@@ -20,8 +20,11 @@ winston.add( winston.transports.Console, { level: 'info', colorize:true } );
 // Setup global variables
 var _ = underscore._;
 exports._ = _;
+exports.express = express;
 
 var config = require('./src/config');
+// Export important files for bridge configuration and setup
+exports.config = config;
 
 // Start the express app
 var app = exports.app = express();
@@ -30,16 +33,16 @@ var app = exports.app = express();
 var port = config.server.port;
 process.env.PORT = port;
 
-// Export important files for bridge configuration and setup
-exports.config = config;
+
 
 // Read in local modules that are to be exported
-
 var regex       = require( './src/regex' );
 var bridgeError = require( './src/error' );
+var util        = require( './src/utilities');
 
 exports.error    = bridgeError;
 exports.regex    = regex;
+exports.util     = util;
 
 var database    = require( './src/database' );
 
@@ -47,22 +50,17 @@ var database    = require( './src/database' );
 exports.database = database;
 
 // Read in non exported local modules
-var bridgeWare  = require( './src/middleware' );
 var loggerObj   = require( './src/logger' );
+var bridgeWare  = require( './src/middleware' );
+
 var mailer      = require( './src/mailer' );
 var routes      = require( './src/bridgeroutes' );
 
 // Prepare server variable
 var server = null;
 
-app.log = app.get('logger');
-
 // Setting standard dictionary objects
 // database reference
-app.set( 'database',   database );
-app.set( 'bridge-ext', {} );
-
-
 app.set( 'views', config.mailer.viewPath );
 app.set( 'view engine', 'ejs' );
 
@@ -118,7 +116,7 @@ setTimeout( function () {
 
     app.all( '*', function ( req, res, next ) {
 
-        if ( !_.isEmpty( res.body ) ) {
+        if ( _.has( res, 'finished' ) && res.finished === true ) {
             next();
             return;
         }

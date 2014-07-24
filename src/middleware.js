@@ -2,12 +2,10 @@
 
 var revalidator = require( 'revalidator' );
 var crypto      = require( 'crypto' );
+var _           = require( 'underscore' )._;
 
 var server = require( '../server' );
-
-var regex = require( './regex' );
-
-var _ = require('underscore')._;
+var regex  = require( './regex' );
 
 var error    = server.error;
 var database = server.database;

@@ -8,6 +8,7 @@ var regex    = require( '../regex' );
 var error    = require( '../error' );
 var mailer   = require( '../mailer' );
 var database = require( '../database' );
+var util     = require( '../../server').util;
 
 module.exports = function( req, res, next ) {
 
@@ -18,9 +19,9 @@ module.exports = function( req, res, next ) {
     .then( function () {
         return validateForgotPasswordRequest( req );
     } )
-    
+
     // Check that the request user exists in the database
-    
+
     .then( function() {
         return checkUserExists( req );
     } )
