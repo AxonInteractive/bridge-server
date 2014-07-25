@@ -20,6 +20,7 @@ var schema = {
             required: true,
             enum: [
                     'Basic request structure malformed',
+                    'Could not determine filters for GET request',
                     'Database query error',
                     'Email already used',
                     'Email not found',
@@ -34,7 +35,6 @@ var schema = {
                     'Invalid password format',
                     'Invalid time format',
                     'Invalid user hash format',
-                    'Malformed equal on filter',
                     'Malformed forgot password request',
                     'Malformed login request',
                     'Malformed recover password request',
