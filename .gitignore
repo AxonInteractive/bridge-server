@@ -30,3 +30,6 @@ node_modules
 # Private key and cert information
 *.pem
 *.csr
+
+# Configuration Files
+BridgeConfig.json
