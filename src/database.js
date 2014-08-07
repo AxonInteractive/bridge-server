@@ -1,7 +1,7 @@
 "use strict";
 var mysql       = require( 'mysql' );
 var crypto      = require( 'crypto' );
-var Q           = require( 'Q' );
+var Q           = require( 'q' );
 var _           = require( 'underscore' )._;
 
 var server      = require( '../server' );
