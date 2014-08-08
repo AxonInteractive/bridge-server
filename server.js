@@ -73,41 +73,7 @@ app.enable( 'trust proxy' );
 ///////    STARTING SETUP OF MIDDLEWARE    //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
-app.use( function ( req, res, next ) {
-
-    var typeRegex =  /\.[A-Za-z0-9]+$/;
-
-    var regexResult = typeRegex.exec( req.path );
-
-    if ( _.isUndefined( regexResult ) ) {
-        next();
-        return;
-    }
-
-    if ( _.isNull( regexResult ) ) {
-        next();
-        return;
-    }
-
-    if ( regexResult.length === 0 ) {
-        next();
-        return;
-    }
-
-    var extension = regexResult[ regexResult.length - 1 ];
-
-    var type = extension.slice(1, extension.length );
-
-    res.type( type );
-
-    app.log.debug( "Setting the content type to: " + res.get( 'Content-Type' ) );
-
-    next();
-} );
-
-// Server any static content under that client folder
-// Should be first due to wanting to server content before API whatever happens.
-app.use( express.static( config.server.wwwRoot ) );
+app.use( express.static( path.resolve( config.server.wwwRoot ) ) );
 
 // Automatically parse the body to JSON
 app.use( bodyParser.json() );
@@ -120,7 +86,6 @@ app.use( function ( req, res, next ) {
     } );
     next();
 } );
-
 
 // Add the CORS headers to the response
 app.use( bridgeWare.attachCORSHeaders() );
