@@ -100,7 +100,7 @@ app.use( function ( req, res, next ) {
 
     res.type( type );
 
-    app.log.info( res.get( 'Content-Type' ) );
+    app.log.debug( "Setting the content type to: " + res.get( 'Content-Type' ) );
 
     next();
 } );
