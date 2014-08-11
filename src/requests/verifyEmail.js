@@ -2,7 +2,7 @@
 
 var revalidator = require( "revalidator" );
 var Q           = require( 'q' );
-var _           = require( 'underscore' )._;
+var _           = require( 'lodash' )._;
 
 var regex    = require( '../regex' );
 var error    = require( '../error' );

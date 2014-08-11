@@ -2,7 +2,7 @@
 var mysql       = require( 'mysql' );
 var crypto      = require( 'crypto' );
 var Q           = require( 'q' );
-var _           = require( 'underscore' )._;
+var _           = require( 'lodash' )._;
 
 var server      = require( '../server' );
 var app         = server.app;
@@ -13,11 +13,15 @@ var connection  = null;
 
 connection = mysql.createConnection( server.config.database );
 
-try {
-    connection.connect();
-} catch ( err ) {
-    app.log.error( "Could not connect to database. Error: " + err );
-}
+connection.connect( function(err) {
+    if (err) {
+        app.log.error( "Could not connect to database. Error: " + err );
+        return;
+    }
+
+    app.log.info( "Connected to database successfully as id " + connection.threadId );
+} );
+
 
 /**
  * A filter used to authenticate a user from the bridge database.
@@ -78,15 +82,11 @@ exports.authenticateRequest = function ( req ) {
 
 /**
  * AAdded the request user to the database.
- * @param  {Object}   message   The express request object.
+ * @param  {Object}   user   The user object
  * @return {Promise}            A Q Promise
  */
 exports.registerUser = function ( user ) {
     return Q.Promise( function ( resolve, reject ) {
-
-        var req = message.req;
-
-        var user = req.bridge.user;
 
         var state = app.get( 'BridgeConfig' ).server.emailVerification ? 'CREATED' : 'NORMAL';
 

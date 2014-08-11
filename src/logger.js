@@ -1,12 +1,27 @@
 "use strict";
-var winston = require( 'winston'   );
+var winston = require( 'winston' );
 var config  = require( '../server' ).config.logger;
-var fs      = require( 'fs'        );
-var path    = require( 'path'      );
-var app = require('../server').app;
+var fs      = require( 'fs' );
+var path    = require( 'path' );
+var app     = require( '../server' ).app;
+var mkdirp  = require( 'mkdirp' );
 
-if ( !fs.existsSync( 'logs' ) ) {
-    fs.mkdir( 'logs' );
+config.server.filename = path.normalize( config.server.filename );
+
+var dir = path.dirname( config.server.filename );
+
+if ( !fs.existsSync( dir ) ) {
+    winston.warn("Log directory '" + dir + "' doesn't exist. Attempting to make directory now...");
+    mkdirp( dir, function ( err ) {
+        if ( err ) {
+            winston.error( "Error making directory '" + dir + "', Reason: " + err );
+            return;
+        }
+
+        winston.info( "Log directory created successfully." );
+    } );
+} else {
+    winston.info( "Log directory found." );
 }
 
 var loggerConstObj = {

@@ -1,11 +1,10 @@
 "use strict";
 
-var fs     = require( 'fs' );
-var Q      = require( 'q' );
-var URL    = require( 'url' );
-var mailer = require( 'express-mailer' );
-
-var server = require( '../server' );
+var fs        = require( 'fs' ),
+    Q         = require( 'q' ),
+    URLmodule = require( 'url' ),
+    mailer    = require( 'express-mailer' ),
+    server    = require( '../server' );
 
 var app    = server.app;
 var error  = server.app;
@@ -14,7 +13,7 @@ var config = server.config;
 
 var options = config.mailer.options;
 
-var _ = require('underscore')._;
+var _ = require('lodash')._;
 
 var mailerOptionsObject = {
     from: config.mailer.fromAddress
@@ -95,7 +94,7 @@ exports.sendVerificationEmail = function( req ){
 
         var url = config.server.mode + "://" + config.server.hostname;
 
-        url = URL.parse(url).href;
+        url = URLmodule.parse(url).href;
 
         var mail = {
             to                : user.email,
@@ -104,9 +103,9 @@ exports.sendVerificationEmail = function( req ){
             email             : user.email,
             name              : user.firstName + " " + user.lastName,
             unsubscribeURL    : "",
-            footerImageURL    : URL.parse( url + "email/peir-footer.png"    ).href,
-            headerImageURL    : URL.parse( url + "email/peir-header.png"    ).href,
-            backgroundImageURL: URL.parse( url + "email/right-gradient.png" ).href
+            footerImageURL    : URLmodule.parse( url + "email/peir-footer.png"    ).href,
+            headerImageURL    : URLmodule.parse( url + "email/peir-header.png"    ).href,
+            backgroundImageURL: URLmodule.parse( url + "email/right-gradient.png" ).href
         };
 
         var view = config.mailer.verifyEmailViewName;

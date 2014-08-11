@@ -2,7 +2,7 @@
 
 var revalidator = require( 'revalidator' );
 var crypto      = require( 'crypto' );
-var _           = require( 'underscore' )._;
+var _           = require( 'lodash' )._;
 
 var server = require( '../server' );
 var regex  = require( './regex' );

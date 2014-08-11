@@ -19,13 +19,15 @@
     "winston": "0.7.3",
     "mysql": "2.3.0",
     "jsonminify": "0.2.3",
-    "underscore": "1.6.0",
     "express-mailer": "0.2.3",
     "ejs": "1.0.0",
     "revalidator": "0.2.0",
     "resourceful": "^0.2.3",
     "q": "^1.0.1",
-    "body-parser": "^1.4.3"
+    "body-parser": "^1.4.3",
+    "lodash": "^2.4.1",
+    "wkhtmltopdf": "^0.1.5",
+    "mkdirp": "^0.5.0"
   },
   "devDependencies": {},
   "scripts": {

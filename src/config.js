@@ -1,302 +1,281 @@
 "use strict";
 
-var resourceful = require( 'resourceful' );
-resourceful.use( 'memory' );
+var jsonminify = require( 'jsonminify' );
+var fs         = require( 'fs' );
+var winston    = require( 'winston' );
+var _          = require( 'lodash' )._;
+var revalidator = require( 'revalidator');
 
-    var jsonminify = require( 'jsonminify' );
-    var fs = require( 'fs' );
-    var winston = require( 'winston' );
-    var _ = require( 'underscore' )._;
-
-var _ = require('underscore')._;
-
-
-var SecureServerConfig = resourceful.define( 'secureServerConfig', function () {
-
-    this.string( 'keyfilepath', {
-        required: true,
-        allowEmpty: false,
-        default: "./key.pem"
-    } );
-    this.string( 'certificatefilepath', {
-        required: true,
-        allowEmpty: false,
-        default: "./cert.pem"
-    } );
-} );
-
-var errors = [];
-
-var ServerConfig = resourceful.define( 'serverConfig', function () {
-
-    this.string( 'hostname', {
-        allowEmpty: false,
-        required: true,
-        default: "localhost:3000"
-    } );
-
-    this.string( 'mode', {
-        enum: [ "http", "https" ],
-        required: true,
-        allowEmpty: false,
-        default: "http"
-    } );
-
-    this.string( 'environment', {
-        enum: ["development","production"],
-        required: true,
-        allowEmpty: false,
-        default: "production"
-    } );
-
-    this.number( 'port', {
-        minimum: 0,
-        maximum: 65535,
-        required: true,
-        divisibleBy: 1,
-        default: 3000
-    } );
-
-    this.object( 'secure', {
-        required: true,
-        default: new SecureServerConfig(),
-        conform: function(val) {
-            if (val.resource === "SecureServerConfig")
-            {
-                var validation = val.validate(val, SecureServerConfig);
-                if(validation.errors.length !== 0) errors.push(validation.errors);
-                return validation.valid;
-            }
-            return false;
+var defaults = {
+    server: {
+        mode              : "http",
+        environment       : "production",
+        port              : 3000,
+        emailVerification : false,
+        wwwRoot           : "/client/",
+        indexPath         : "index.html",
+        pdfPath           : "/pdfs",
+        pdfLifetimeMinutes: 10,
+        secure: {
+            keyfilepath: "key.pem",
+            certificatefilepath: "cert.pem"
         }
-    } );
+    },
 
-    this.bool( 'emailVerification', {
-        required: true,
-        default: true
-    } );
+    database: {
+        user    : 'root',
+        password: '',
+        host    : 'localhost',
+        database: 'peir'
+    },
 
-    this.string( 'wwwRoot', {
-        required: true,
-        default: 'client/'
-    } );
+    logger: {
+        server: {
+            filename: "logs/server.log",
+            level: 'verbose',
+            consoleLevel: 'info'
+        },
 
-    this.string( 'indexPath', {
-        required: true,
-        default: 'index.html'
-    } );
-} );
-
-var DatabaseConfig = resourceful.define( 'databaseConfig', function () {
-    this.string( 'user', {
-        required: true,
-        allowEmpty: false,
-        default: "root"
-    } );
-
-    this.string( 'password', {
-        required: true,
-        allowEmpty: true,
-        default: ""
-    } );
-
-    this.string( 'host', {
-        required: true,
-        allowEmpty: false,
-        default: "localhost"
-    } );
-
-    this.string( 'database', {
-        required: true,
-        allowEmpty: false,
-        default: "bridge"
-    } );
-} );
-
-var ExceptionLoggerConfig = resourceful.define('exceptionLoggerConfig', function() {
-    this.string( 'filename', {
-        required: true,
-        allowEmpty: false,
-        default: "logs/exceptions.log"
-    } );
-
-    this.bool( 'writetoconsole', {
-        required: true,
-        default: false,
-    } );
-} );
-
-var ServerLoggerConfig    = resourceful.define('serverLoggerConfig', function() {
-    this.string('filename', {
-        required: true,
-        default: "logs/server.log",
-        allowEmpty: false
-    });
-
-    this.string('level', {
-        required: true,
-        default: 'info',
-        allowEmpty: false,
-        enum: ['silly', 'debug', 'verbose', 'info', 'warn', 'error']
-    });
-
-    this.string('consoleLevel', {
-        required: true,
-        default: 'warn',
-        allowEmpty: false,
-        enum: ['silly', 'debug', 'verbose', 'info', 'warn', 'error']
-    } );
-} );
-
-var LoggerConfig = resourceful.define('loggerConfig', function() {
-    this.object('exception', {
-        required: true,
-        default: new ExceptionLoggerConfig(),
-        conform: function(val){
-            if (val.resource === "ExceptionLoggerConfig")
-            {
-                var validation = val.validate(val, ExceptionLoggerConfig);
-                if(validation.errors.length !== 0) errors.push(validation.errors);
-                return validation.valid;
-            }
-            return false;
+        exception: {
+            filename: 'logs/exceptions.log',
+            writetoconsole: true
         }
-    });
+    },
 
-    this.object('server', {
-        required: true,
-        default: new ServerLoggerConfig(),
-        conform: function(val) {
-            if (val.resource === "ServerLoggerConfig")
-            {
-                var validation = val.validate(val, ServerLoggerConfig);
-                if(validation.errors.length !== 0) errors.push(validation.errors);
-                return validation.valid;
+    mailer: {
+        viewPath: "templates",
+        verificationEmailSubject: "Bridge Example Email Verification",
+        verifyEmailViewName: "registrationTemplate.ejs",
+        recoveryEmailSubject: "Bridge Example Account Recovery",
+        recoverPasswordViewName: "recoverPasswordTemplate.ejs",
+        options: {
+            from: "BridgeSMTPTest@gmail.com",
+            host: "smtp.gmail.com",
+            secureConnection: true,
+            port:465,
+            transportMethod: "SMTP",
+            auth: {
+                user: "BridgeSMTPTest@gmail.com",
+                pass: "mS2JY78Ao5bI8df3teFUxUCXyKK1ASYV4GFBLR5P"
             }
-            return false;
         }
-    });
-} );
+    }
+};
 
-var OptionsMailerConfig = resourceful.define('optionsMailerConfig', function() {
-    this.string('from', {
-        required: true,
-        allowEmpty: false,
-        format: 'email',
-        default: "theteam@axoninteractive.ca"
-    });
+var schema = {
+    type: 'object',
+    required: true,
+    properties: {
 
-    this.string('transportMethod', {
-        required: true,
-        allowEmpty: false,
-        default: 'direct'
-    });
-} );
+        server: {
+            type:'object',
+            required: true,
+            properties: {
 
-var MailerConfig = resourceful.define('mailerConfig', function() {
-    this.object('options', {
-        required: true,
-        default: new OptionsMailerConfig(),
-        conform: function(val) {
-            if (val.resource === "OptionsMailerConfig")
-            {
-                var validation = val.validate(val, OptionsMailerConfig);
-                if(validation.errors.length !== 0) errors.push(validation.errors);
-                return validation.valid;
+                mode: {
+                    type: 'string',
+                    required: true,
+                    enum: [ 'http', 'https' ],
+                    messages: {
+                        enum: "Server mode must be http or https"
+                    }
+                },
+
+                environment: {
+                    type: 'string',
+                    required: true,
+                    enum: [ 'development', 'production' ],
+                    messages: {
+                        enum: "Server environment must be 'development' or 'production'"
+                    }
+                },
+
+                port: {
+                    type: 'integer',
+                    required: true,
+                    minimum: 1,
+                    maximum: 65535
+                },
+
+                emailVerification: {
+                    type: 'boolean',
+                    required: true
+                },
+
+                wwwRoot: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                indexPath: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                pdfPath: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                pdfLifetimeMinutes: {
+                    type: 'number',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                secure: {
+                    type: 'object',
+                    required: true,
+                    properties: {
+                        keyfilepath: {
+                            type:'string',
+                            required: true,
+                            allowEmpty: false
+                        },
+
+                        certificatefilepath: {
+                            type: 'string',
+                            required: true,
+                            allowEmpty: false
+                        }
+                    }
+                }
             }
-            return false;
-        }
-    });
+        },
 
-    this.string('viewPath', {
-        required: true,
-        default: "templates",
-        allowEmpty: false
-    });
+        database: {
+            type: 'object',
+            required: false,
+            properties: {
+                user: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
 
-    this.string('verificationEmailSubject', {
-        required: true,
-        default: "Bridge Example Email Verification",
-        allowEmpty: false
-    });
+                password: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: true
+                },
 
-    this.string('verifyEmailViewName', {
-        required: true,
-        default: "verificationEmailTemplate.ejs",
-        allowEmpty: false
-    });
+                host: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
 
-    this.string('recoveryEmailSubject', {
-        required: true,
-        default: "Bridge Account Recovery",
-        allowEmpty: false
-    });
-
-    this.string('recoverPasswordViewName', {
-        required: true,
-        default: "recoverPasswordTemplate.ejs",
-        allowEmpty: false
-    });
-} );
-
-var Config = resourceful.define('config', function(){
-
-    this.object('server', {
-        required: true,
-        default: new ServerConfig(),
-        conform: function(val) {
-            if (val.resource === "ServerConfig")
-            {
-                var validation = val.validate(val, ServerConfig);
-                if(validation.errors.length !== 0) errors.push(validation.errors);
-                return validation.valid;
+                database: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                }
             }
-            return false;
-        }
-    });
+        },
 
-    this.object('database', {
-        required: true,
-        default: new DatabaseConfig(),
-        conform: function(val) {
-            if (val.resource === "DatabaseConfig")
-            {
-                var validation = val.validate(val, DatabaseConfig);
-                if(validation.errors.length !== 0) errors.push(validation.errors);
-                return validation.valid;
-            }
-            return false;
-        }
-    });
+        logger: {
+            type:'object',
+            required: true,
+            properties: {
+                server: {
+                    type: 'object',
+                    required: true,
+                    properties: {
 
-    this.object('logger', {
-        required: true,
-        default: new LoggerConfig(),
-        conform: function(val) {
-            if (val.resource === "LoggerConfig")
-            {
-                var validation = val.validate(val, LoggerConfig);
-                if(validation.errors.length !== 0) errors.push(validation.errors);
-                return validation.valid;
-            }
-            return false;
-        }
-    });
+                        filename: {
+                            type: 'string',
+                            required: true,
+                            allowEmpty: false
+                        },
 
-    this.object('mailer', {
-        required: true,
-        default: new MailerConfig(),
-        conform: function(val) {
-            if (val.resource === "MailerConfig")
-            {
-                var validation = val.validate(val, MailerConfig);
-                if(validation.errors.length !== 0) errors.push(validation.errors);
-                return validation.valid;
+                        level: {
+                            type: 'string',
+                            required: true,
+                            enum: [ 'silly', 'debug', 'verbose', 'info', 'warn', 'error' ],
+                            messages: {
+                                enum: "Server logger level must by one of the following levels: silly, debug, verbose, info, warn, error"
+                            }
+                        },
+
+                        consoleLevel: {
+                            type: 'string',
+                            required: true,
+                            enum: [ 'silly', 'debug', 'verbose', 'info', 'warn', 'error' ],
+                            messages: {
+                                enum: "Server console logger level must by one of the following levels: silly, debug, verbose, info, warn, error"
+                            }
+                        }
+                    }
+                },
+
+                exception: {
+                    type: 'object',
+                    required: true,
+                    properties: {
+
+                        filename: {
+                            type: 'string',
+                            required: true,
+                            allowEmpty: false
+                        },
+
+                        writetoconsole: {
+                            type: 'boolean',
+                            required: true
+                        }
+
+                    }
+                }
             }
-            return false;
+        },
+
+        mailer: {
+            type: 'object',
+            required: true,
+            properties: {
+
+                viewPath: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                verificationEmailSubject: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                verifyEmailViewName: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                recoveryEmailSubject: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                recoverPasswordViewName: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                options: {
+                    type: 'object',
+                    required: true
+                }
+            }
         }
-    });
-} );
+
+    }
+};
 
 var config;
 
@@ -307,54 +286,25 @@ if ( fs.existsSync( 'BridgeConfig.json' ) ) {
     var userConfigString = fs.readFileSync( 'BridgeConfig.json', 'utf8' );
     var userConfig = JSON.parse( JSON.minify( userConfigString ) );
 
-    // Fill in the gaps that the user configuration file might have.
-    if ( _.has( userConfig, 'server' ) ) {
-        if ( _.has( userConfig.server, 'secure' ) ) {
-            userConfig.server.secure = new SecureServerConfig( userConfig.server.secure );
-        }
-        userConfig.server = new ServerConfig( userConfig.server );
-    }
-
-    if ( _.has( userConfig, 'database' ) ) {
-        userConfig.database = new DatabaseConfig( userConfig.database );
-    }
-
-    if ( _.has( userConfig, 'logger' ) ) {
-        if ( _.has( userConfig.logger, 'exception' ) ) {
-            userConfig.logger.exception = new ExceptionLoggerConfig( userConfig.logger.exception );
-        }
-        if ( _.has( userConfig.logger, 'server' ) ) {
-            userConfig.logger.server = new ServerLoggerConfig( userConfig.logger.server );
-        }
-        userConfig.logger = new LoggerConfig( userConfig.logger );
-    }
-
-    if ( _.has( userConfig, 'mailer' ) ) {
-        if ( _.has( userConfig.mailer, 'options' ) ) {
-            userConfig.mailer.options = new OptionsMailerConfig( userConfig.mailer.options );
-        }
-        userConfig.mailer = new MailerConfig( userConfig.mailer );
-    }
 
     // Use the complete user configuration object to make a complete configuration object
-    config = new Config( userConfig );
+    config = _.defaults( userConfig, defaults );
 
 }
 // If no user config can be loaded make a default one
 else {
-    config = new Config();
+
+    config = _.cloneDeep( defaults );
+    config.isDefault = true;
     winston.warn('Configuration file not found. Using defaults. This may have undesired effects. Please make "BridgeConfig.json"');
 }
 
-var validation = config.validate( config, Config );
+var validation = revalidator.validate( config, schema );
 
-if (validation.valid === false)
-{
-    winston.error('Configuration file is not valid and could not be loaded. Errors: ', _.flatten(errors), ", Other Errors: ", JSON.stringify(validation.errors));
-}
-else
-{
-    winston.info('Configuration file loaded successfully');
+if ( validation.valid === false ) {
+    winston.error( 'Configuration file is not valid and could not be loaded. Errors: ', JSON.stringify( validation.errors ) );
+} else {
+    winston.info( 'Configuration file loaded successfully' );
 }
 
 // Export the object

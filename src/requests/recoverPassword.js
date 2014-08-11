@@ -7,7 +7,7 @@ var regex = require( '../regex' );
 var error = require( '../error' );
 var util   = require( '../utilities' );
 
-var _ = require('underscore')._;
+var _ = require('lodash')._;
 
 module.exports = function ( req, res, next ) {
 
