@@ -1,10 +1,11 @@
 "use strict";
 var winston = require( 'winston' );
-var config  = require( '../server' ).config.logger;
 var fs      = require( 'fs' );
 var path    = require( 'path' );
-var app     = require( '../server' ).app;
 var mkdirp  = require( 'mkdirp' );
+
+var config  = require( '../server' ).config.logger;
+var app     = require( '../server' ).app;
 
 config.server.filename = path.normalize( config.server.filename );
 

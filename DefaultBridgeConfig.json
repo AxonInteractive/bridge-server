@@ -22,6 +22,9 @@
         "indexPath": "index.html",
 
         // The path to the location where PDF files are stored
+        // Becareful to not put a '/' at the beginning of the path.
+        // That will act like a linux path to the current drive( if windows )
+        // otherwise its just like the paramerter of a cd command in linux
         "pdfPath": "/pdfs",
 
         // The amount of minutes that a PDF file should live for before being deleted

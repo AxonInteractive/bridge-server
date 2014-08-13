@@ -23,6 +23,7 @@ exports._ = _;
 exports.express = express;
 
 var config = require('./src/config');
+
 // Export important files for bridge configuration and setup
 exports.config = config;
 
@@ -33,16 +34,18 @@ var app = exports.app = express();
 var port = config.server.port;
 process.env.PORT = port;
 
-
+var loggerObj  = require( './src/logger' );
 
 // Read in local modules that are to be exported
-var regex       = require( './src/regex' );
-var bridgeError = require( './src/error' );
-var util        = require( './src/utilities');
+var regex        = require( './src/regex' );
+var bridgeError  = require( './src/error' );
+var util         = require( './src/utilities');
+var pdfGenerator = require( './src/html2pdf' );
 
-exports.error    = bridgeError;
-exports.regex    = regex;
-exports.util     = util;
+exports.error        = bridgeError;
+exports.regex        = regex;
+exports.util         = util;
+exports.pdfGenerator = pdfGenerator;
 
 var database    = require( './src/database' );
 
@@ -50,11 +53,9 @@ var database    = require( './src/database' );
 exports.database = database;
 
 // Read in non exported local modules
-var loggerObj   = require( './src/logger' );
-var bridgeWare  = require( './src/middleware' );
-
-var mailer      = require( './src/mailer' );
-var routes      = require( './src/bridgeroutes' );
+var bridgeWare = require( './src/middleware' );
+var mailer     = require( './src/mailer' );
+var routes     = require( './src/bridgeroutes' );
 
 // Prepare server variable
 var server = null;
@@ -122,9 +123,9 @@ setTimeout( function () {
 
         var NotFoundPath = path.join( config.server.wwwRoot, "404.html" );
 
-        fs.exists(NotFoundPath, function(exists){
+        fs.exists( NotFoundPath, function ( exists ) {
 
-            if (!exists) {
+            if ( !exists ) {
                 res.send( "404 - Not found" );
                 next();
                 return;
@@ -172,3 +173,26 @@ function cleanUp() {
     database.close();
     mailer.close();
 }
+
+process.stdin.resume();//so the program will not close instantly
+
+function exitHandler(options, err) {
+    if (options.cleanup) {
+        app.log.debug( 'Bridge application closing. Good Bye!' );
+    }
+    if (err) {
+        app.log.info(err.stack);
+    }
+    if (options.exit) {
+        process.exit();
+    }
+}
+
+//do something when app is closing
+process.on('exit', exitHandler.bind(null,{cleanup:true}));
+
+//catches ctrl+c event
+process.on('SIGINT', exitHandler.bind(null, {exit:true}));
+
+//catches uncaught exceptions
+process.on('uncaughtException', exitHandler.bind(null, {exit:true}));

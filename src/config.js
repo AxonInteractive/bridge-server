@@ -288,7 +288,7 @@ if ( fs.existsSync( 'BridgeConfig.json' ) ) {
 
 
     // Use the complete user configuration object to make a complete configuration object
-    config = _.defaults( userConfig, defaults );
+    config = _.merge( defaults, userConfig );
 
 }
 // If no user config can be loaded make a default one

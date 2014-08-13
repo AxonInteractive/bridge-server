@@ -2,7 +2,7 @@
 
 var Q = require( 'q' );
 
-var _ = require('lodash')._;
+var _ = require( 'lodash' )._;
 
 var error = require( './error' );
 

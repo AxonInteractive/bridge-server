@@ -15,7 +15,9 @@ var app    = server.app;
 
 config.server.pdfPath = path.normalize( config.server.pdfPath );
 
-var dir = path.dirname( config.server.pdfPath );
+var dir = config.server.pdfPath;
+
+app.log.info( dir );
 
 if ( !fs.existsSync( config.server.pdfPath ) ) {
     app.log.warn("PDF directory '" + dir +"' doesn't exist. Attempting to make directory" );
@@ -31,6 +33,8 @@ if ( !fs.existsSync( config.server.pdfPath ) ) {
     app.log.info( "PDF directory found." );
 }
 
+app.log.debug( "PDF Path: " + path.resolve( dir ) );
+
 function deleteFile( pathToPDF, timesCalled ) {
 
     if ( _.isUndefined( timesCalled ) ) {
@@ -45,12 +49,14 @@ function deleteFile( pathToPDF, timesCalled ) {
         if ( exists ) {
             fs.unlink( pathToPDF, function ( err ) {
                 if ( err ) {
-                    app.log.warn( "Could not delete file" );
+                    app.log.warn( "Could not delete file: " + pathToPDF );
                     timesCalled += 1;
                     setTimeout( deleteFile, 10000, pathToPDF, timesCalled );
                     return;
                 }
             } );
+
+            app.log.debug( "Successfully deleted file: " + pathToPDF );
         }
     } );
 

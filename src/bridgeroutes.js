@@ -5,6 +5,22 @@ var path       = require( 'path'        );
 var config     = require( '../server'   ).config;
 var app        = require( '../server'   ).app;
 
+var indexPath = path.join( config.server.wwwRoot, config.server.indexPath );
+
+app.log.debug( "Index Path: " + path.resolve( indexPath ) );
+
+function serveIndex( req, res ) {
+
+    var indexPath = path.join( config.server.wwwRoot, config.server.indexPath );
+
+    if ( fs.existsSync( indexPath ) ) {
+        res.sendfile( indexPath );
+        return;
+    }
+
+    res.status( 404 );
+    res.send( "Could not find the homepage" );
+}
 
 exports.setup = function () {
 
@@ -25,14 +41,3 @@ exports.setup = function () {
     app.log.debug( 'Bridge routes setup' );
 
 };
-
-function serveIndex( req, res ) {
-    var indexPath = path.join( config.server.wwwRoot, config.server.indexPath );
-    if ( fs.existsSync( indexPath ) ) {
-        res.sendfile( indexPath );
-        return;
-    }
-
-    res.status( 404 );
-    res.send( "Could not find the homepage" );
-}
