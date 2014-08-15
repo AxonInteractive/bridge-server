@@ -15,7 +15,7 @@ connection = mysql.createConnection( server.config.database );
 
 connection.connect( function(err) {
     if (err) {
-        app.log.error( "Could not connect to database. Error: " + err );
+        app.log.error( "Could not connect to database. " + err );
         return;
     }
 

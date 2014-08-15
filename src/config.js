@@ -1,21 +1,20 @@
 "use strict";
 
-var jsonminify = require( 'jsonminify' );
-var fs         = require( 'fs' );
-var winston    = require( 'winston' );
-var _          = require( 'lodash' )._;
+var jsonminify  = require( 'jsonminify' );
+var fs          = require( 'fs' );
+var winston     = require( 'winston' );
+var _           = require( 'lodash' )._;
 var revalidator = require( 'revalidator');
+var path        = require( 'path' );
 
 var defaults = {
     server: {
-        mode              : "http",
-        environment       : "production",
-        port              : 3000,
-        emailVerification : false,
-        wwwRoot           : "/client/",
-        indexPath         : "index.html",
-        pdfPath           : "/pdfs",
-        pdfLifetimeMinutes: 10,
+        mode                   : "http",
+        environment            : "production",
+        port                   : 3000,
+        emailVerification      : false,
+        wwwRoot                : "/client/",
+        indexPath              : "index.html",
         secure: {
             keyfilepath: "key.pem",
             certificatefilepath: "cert.pem"
@@ -43,7 +42,7 @@ var defaults = {
     },
 
     mailer: {
-        viewPath: "templates",
+        templateDirectory: "templates/email",
         verificationEmailSubject: "Bridge Example Email Verification",
         verifyEmailViewName: "registrationTemplate.ejs",
         recoveryEmailSubject: "Bridge Example Account Recovery",
@@ -59,6 +58,12 @@ var defaults = {
                 pass: "mS2JY78Ao5bI8df3teFUxUCXyKK1ASYV4GFBLR5P"
             }
         }
+    },
+
+    pdfGenerator: {
+        templatePath: "templates/pdfs",
+        cachePath: "pdfs/",
+        cacheLifetimeMinutes: 10
     }
 };
 
@@ -110,18 +115,6 @@ var schema = {
 
                 indexPath: {
                     type: 'string',
-                    required: true,
-                    allowEmpty: false
-                },
-
-                pdfPath: {
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false
-                },
-
-                pdfLifetimeMinutes: {
-                    type: 'number',
                     required: true,
                     allowEmpty: false
                 },
@@ -237,7 +230,7 @@ var schema = {
             required: true,
             properties: {
 
-                viewPath: {
+                templateDirectory: {
                     type: 'string',
                     required: true,
                     allowEmpty: false
@@ -272,6 +265,27 @@ var schema = {
                     required: true
                 }
             }
+        },
+
+        pdfGenerator: {
+
+            templatePath: {
+                type: 'string',
+                required: true,
+                allowEmpty: false
+            },
+
+            cachePath: {
+                type: 'string',
+                required: true,
+                allowEmpty: false
+            },
+
+            cacheLifetimeMinutes: {
+                type: 'number',
+                required: true,
+                allowEmpty: false
+            }
         }
 
     }
@@ -279,13 +293,27 @@ var schema = {
 
 var config;
 
+winston.verbose( "Verifying that BridgeConfig.json exists" );
+winston.debug  ( path.resolve( 'BridgeConfig.json' ) );
+
 // Check if a user config can be loaded
 if ( fs.existsSync( 'BridgeConfig.json' ) ) {
 
+    winston.verbose( "BridgeConfig.json found. Reading file...." );
+
     // Read and parse the Config file to make a User Configuration Object
     var userConfigString = fs.readFileSync( 'BridgeConfig.json', 'utf8' );
-    var userConfig = JSON.parse( JSON.minify( userConfigString ) );
 
+    var userConfig;
+
+    try {
+        userConfig = JSON.parse( JSON.minify( userConfigString ) );
+    }
+    catch (err) {
+        winston.error( "Could not parse BridgeConfig.json as JSON. ", err );
+    }
+
+    winston.verbose( "Bridge config successfully read and parsed as JSON" );
 
     // Use the complete user configuration object to make a complete configuration object
     config = _.merge( defaults, userConfig );
@@ -309,7 +337,3 @@ if ( validation.valid === false ) {
 
 // Export the object
 module.exports = config;
-
-
-
-//////////////////////////////////////////

@@ -15,14 +15,14 @@ var bodyParser = require( 'body-parser' );
 Q.longStackSupport = true;
 
 winston.remove( winston.transports.Console );
-winston.add( winston.transports.Console, { level: 'info', colorize:true } );
+winston.add( winston.transports.Console, { level: 'verbose', colorize:true } );
 
 // Setup global variables
 var _ = underscore._;
 exports._ = _;
 exports.express = express;
 
-var config = require('./src/config');
+var config = require( './src/config' );
 
 // Export important files for bridge configuration and setup
 exports.config = config;
@@ -39,7 +39,7 @@ var loggerObj  = require( './src/logger' );
 // Read in local modules that are to be exported
 var regex        = require( './src/regex' );
 var bridgeError  = require( './src/error' );
-var util         = require( './src/utilities');
+var util         = require( './src/utilities' );
 var pdfGenerator = require( './src/html2pdf' );
 
 exports.error        = bridgeError;
