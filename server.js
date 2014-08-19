@@ -131,7 +131,7 @@ setTimeout( function () {
                 return;
             }
 
-            res.sendfile( NotFoundPath );
+            res.sendFile( path.resolve( NotFoundPath ) );
 
         } );
 
