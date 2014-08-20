@@ -11,11 +11,15 @@ var mailer      = require( './mailer' );
 
 var connection  = null;
 
+
 connection = mysql.createConnection( server.config.database );
+
+
 
 connection.connect( function(err) {
     if (err) {
-        app.log.error( "Could not connect to database. " + err );
+        app.log.error( "Could not connect to database. ", err );
+        app.log.error( "Connection Information: ", server.config.database );
         return;
     }
 

@@ -1,7 +1,7 @@
 "use strict";
 
-var nodeFs        = require( 'fs' );
-var fs        = require( 'q-io/fs');
+var nodeFs    = require( 'fs' );
+var fs        = require( 'q-io/fs' );
 var htmlToPdf = require( 'wkhtmltopdf' );
 var path      = require( 'path' );
 var mkdirp    = require( 'mkdirp' );
