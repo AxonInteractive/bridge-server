@@ -198,7 +198,7 @@ module.exports = function ( req, res, next ) {
 
     // Register the user object using the re
     .then( function ( user ) {
-        return database.registerUser( user );
+        return database.registerUser( req, user );
     } )
 
     // Send the verification email

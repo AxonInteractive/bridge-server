@@ -89,7 +89,7 @@ exports.authenticateRequest = function ( req ) {
  * @param  {Object}   user   The user object
  * @return {Promise}            A Q Promise
  */
-exports.registerUser = function ( user ) {
+exports.registerUser = function ( req, user ) {
     return Q.Promise( function ( resolve, reject ) {
 
         var state = config.server.emailVerification ? 'created' : 'normal';
