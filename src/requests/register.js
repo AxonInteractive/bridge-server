@@ -208,7 +208,7 @@ module.exports = function ( req, res, next ) {
 
     // Send the successful response message
     .then( function () {
-        sendReponse( res );
+        return sendReponse( res );
     } )
 
     // Move onto the next middle ware
