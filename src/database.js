@@ -70,7 +70,7 @@ exports.authenticateRequest = function ( req ) {
                 return;
             }
 
-            if ( user.STATUS !== 'NORMAL' ) {
+            if ( user.STATUS !== 'normal' ) {
                 var incorrectStatusError = bridgeError.createError( 403, 'Incorrect user state', "User is in the '" + ( user.STATUS.toLowerCase() ) + "' state" );
                 reject( incorrectStatusError );
                 return;
