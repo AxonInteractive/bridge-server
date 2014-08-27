@@ -95,9 +95,17 @@ app.use( function ( req, res, next ) {
         Resource: req.path
     } );
 
-    res.on( 'end', function() {
-        app.log.silly( "Response to non static request: ", res.body );
+    res.on( 'finish', function() {
+        app.log.silly( "Response to request: (finish event): ", res.body );
     } )
+
+    res.on ( 'end', function() {
+        app.log.silly( "Response to request (end event): ", res.body );
+    } );
+
+    res.on ( 'close', function() {
+        app.log.silly( "Response to request (close event): ", res.body );
+    } );
 
     next();
 } );

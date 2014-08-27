@@ -8,6 +8,7 @@ var server      = require( '../server' );
 var app         = server.app;
 var bridgeError = server.error;
 var mailer      = require( './mailer' );
+var config      = server.config;
 
 var connection  = null;
 
@@ -91,7 +92,7 @@ exports.authenticateRequest = function ( req ) {
 exports.registerUser = function ( user ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        var state = app.get( 'BridgeConfig' ).server.emailVerification ? 'CREATED' : 'NORMAL';
+        var state = config.server.emailVerification ? 'created' : 'normal';
 
         var hash = crypto.createHash( 'sha256' ).update( user.email + new Date() ).digest( 'hex' );
 
@@ -299,14 +300,14 @@ exports.verifyEmail = function ( req ) {
                 return;
             }
 
-            if ( rows[ 0 ].STATUS !== 'CREATED' ) {
+            if ( rows[ 0 ].STATUS !== 'created' ) {
                 verifyEmailError = bridgeError.createError( 400, 'Incorrect user state', "Tried to verify email that is not in the created state" );
 
                 reject( verifyEmailError );
                 return;
             }
 
-            var query2 = "UPDATE users SET STATUS = 'NORMAL' WHERE id = ?";
+            var query2 = "UPDATE users SET STATUS = 'normal' WHERE id = ?";
             var values2 = [ rows[ 0 ].ID ];
 
             connection.query( query2, values2, function ( err2, rows2 ) {
