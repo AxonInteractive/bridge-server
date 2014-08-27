@@ -2,6 +2,7 @@
 
 var fs         = require( 'fs'          );
 var path       = require( 'path'        );
+var express    = require( 'express'     );
 var config     = require( '../server'   ).config;
 var app        = require( '../server'   ).app;
 
@@ -24,20 +25,29 @@ function serveIndex( req, res ) {
 
 exports.setup = function () {
 
-    app.get( '/api/1.0/login', require('./requests/login') );
+    var router = express.Router();
 
-    app.post( '/api/1.0/users', require('./requests/register') );
+    router.route( '/api/1.0/login' )
+        .get( require( './requests/login' ) );
 
-    app.put( '/api/1.0/users', require('./requests/updateUser') );
+    router.route( '/api/1.0/users' )
+        .post( require( './requests/register' ) )
+        .put( require( './requests/updateUser' ) );
 
-    app.put( '/api/1.0/recover-password', require( './requests/recoverPassword') );
+    router.route( '/api/1.0/recover-password' )
+        .put( require( './requests/recoverPassword' ) );
 
-    app.put( '/api/1.0/forgot-password', require( './requests/forgotPassword' ) );
+    router.route( '/api/1.0/forgot-password' )
+        .put( require( './requests/forgotPassword' ) );
 
-    app.put( '/api/1.0/verify-email', require( './requests/verifyEmail' ) );
+    router.route( '/api/1.0/verify-email' )
+        .put( require( './requests/verifyEmail' ) );
 
-    app.get( '/', serveIndex );
+    router.route( '/' )
+        .get( serveIndex );
 
-    app.log.debug( 'Bridge routes setup' );
+    app.use ( router );
+
+    app.log.debug( 'Bridge router setup' );
 
 };

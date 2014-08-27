@@ -64,6 +64,10 @@ var defaults = {
         templatePath: "templates/pdfs",
         cachePath: "pdfs/",
         cacheLifetimeMinutes: 10
+    },
+
+    excelGenerator: {
+        cachePath: "xlsx/"
     }
 };
 

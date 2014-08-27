@@ -168,23 +168,25 @@ function wkHTMLToPDFFound() {
                 .then( function( text ) {
                     var html = ejs.render( text, variables );
 
-                    htmlToPdf( html, { output: pathToPDF } );
+                    htmlToPdf( html, { output: pathToPDF }, function( code, signal ) {
 
-                    setTimeout( deleteFile, config.pdfGenerator.cacheLifetimeMinutes * 60 * 1000, pathToPDF );
+                        setTimeout( deleteFile, config.pdfGenerator.cacheLifetimeMinutes * 60 * 1000, pathToPDF );
 
-                    var pdfURL = url.format( {
-                        protocol: config.server.mode,
-                        host: config.server.hostname,
-                        pathName: config.pdfGenerator.cachePath
+                        var pdfURL = url.format( {
+                            protocol: config.server.mode,
+                            host: config.server.hostname,
+                            pathName: config.pdfGenerator.cachePath
+                        } );
+
+                        var urlPathToFile = path.join( config.pdfGenerator.cachePath, folder, path.basename( pathToPDF ) );
+
+                        pdfURL = url.resolve( pdfURL, urlPathToFile );
+
+                        pdfURL = pdfURL.replace( /\\+/g, '/');
+
+                        resolve( pdfURL );
+
                     } );
-
-                    var urlPathToFile = path.join( config.pdfGenerator.cachePath, folder, path.basename( pathToPDF ) );
-
-                    pdfURL = url.resolve( pdfURL, urlPathToFile );
-
-                    pdfURL = pdfURL.replace( /\\+/g, '/');
-
-                    resolve( pdfURL );
                 } )
                 .fail( function(err) {
                     reject( err );

@@ -9,42 +9,6 @@ var error    = require( '../error' );
 var database = require( '../database' );
 var util     = require( '../utilities');
 
-module.exports = function ( req, res, next ) {
-
-    // Check that the basic request structure is verified.
-    util.checkRequestStructureVerified( req )
-
-    // The request must be in a Logged In State
-    .then( function () {
-        return util.mustBeLoggedIn( req );
-    } )
-
-    // Validate the request to conform with an UpdateUser Request
-    .then( function () {
-        return validateUpdateUserRequest( req );
-    } )
-
-    // Update the user object inside of the database.
-    .then( function () {
-        return database.updateUser( req );
-    } )
-
-    // Send the successful response message
-    .then( function () {
-        return sendResponse( res );
-    } )
-
-    // Move onto the next middle ware
-    .then( function () {
-        next();
-    } )
-
-    // Catch any error that might have occurred in the previous promises.
-    .fail( function ( err ) {
-        next( err );
-    } );
-};
-
 var schema = {
     properties: {
         content: {
@@ -123,7 +87,7 @@ var schema = {
 function validateUpdateUserRequest( req ) {
     return Q.Promise( function( resolve, reject ) {
 
-        var validation = revalidator.validate( req.body, schema );
+        var validation = revalidator.validate( req.headers.bridge, schema );
 
         if ( validation.valid === false ) {
 
@@ -132,23 +96,39 @@ function validateUpdateUserRequest( req ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'content.email':     errorCode = 'Invalid email format';          break;
-                case 'content.password':  errorCode = 'Invalid HMAC format';           break;
-                case 'content.firstName': errorCode = 'Invalid first name format';     break;
-                case 'content.lastName':  errorCode = 'Invalid last name format';      break;
-                case 'email':             errorCode = 'Invalid email format';          break;
-                case 'hmac':              errorCode = 'Invalid HMAC format';           break;
-                case 'time':              errorCode = 'Invalid time format';           break;
-                default:                  errorCode = 'Malformed update user request'; break;
+                case 'content.email':
+                    errorCode = 'Invalid email format';
+                    break;
+                case 'content.password':
+                    errorCode = 'Invalid HMAC format';
+                    break;
+                case 'content.firstName':
+                    errorCode = 'Invalid first name format';
+                    break;
+                case 'content.lastName':
+                    errorCode = 'Invalid last name format';
+                    break;
+                case 'email':
+                    errorCode = 'Invalid email format';
+                    break;
+                case 'hmac':
+                    errorCode = 'Invalid HMAC format';
+                    break;
+                case 'time':
+                    errorCode = 'Invalid time format';
+                    break;
+                default:
+                    errorCode = 'Malformed update user request';
+                    break;
             }
 
-           var updateError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
+            var updateError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
 
             reject( updateError );
             return;
         }
 
-            resolve();
+        resolve();
     } );
 }
 
@@ -167,3 +147,39 @@ function sendResponse( res ) {
         resolve();
     });
 }
+
+module.exports = function ( req, res, next ) {
+
+    // Check that the basic request structure is verified.
+    util.checkRequestStructureVerified( req )
+
+    // The request must be in a Logged In State
+    .then( function () {
+        return util.mustBeLoggedIn( req );
+    } )
+
+    // Validate the request to conform with an UpdateUser Request
+    .then( function () {
+        return validateUpdateUserRequest( req );
+    } )
+
+    // Update the user object inside of the database.
+    .then( function () {
+        return database.updateUser( req );
+    } )
+
+    // Send the successful response message
+    .then( function () {
+        return sendResponse( res );
+    } )
+
+    // Move onto the next middle ware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any error that might have occurred in the previous promises.
+    .fail( function ( err ) {
+        next( err );
+    } );
+};

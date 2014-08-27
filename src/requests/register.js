@@ -11,52 +11,6 @@ var mailer   = require( '../mailer' );
 var util     = require( '../utilities' );
 var config   = require( '../../server' ).config;
 
-module.exports = function ( req, res, next ) {
-
-    // Check that the basic request structure is verified.
-    util.checkRequestStructureVerified( req )
-
-    // Check that the request is Anonymous (Not Logged in)
-    .then( function () {
-        return util.mustBeAnonymous( req );
-    } )
-
-    // Validate the structure of the request against the registration schema
-    .then( function () {
-        return validateRegisterRequest( req );
-    } )
-
-    // Get the user object out of the request
-    .then( function () {
-        return getUserObject( req );
-    } )
-
-    // Register the user object using the re
-    .then( function ( user ) {
-        return database.registerUser( user );
-    } )
-
-    // Send the verification email
-    .then( function () {
-        return sendVerificationEmail( req );
-    } )
-
-    // Send the successful response message
-    .then( function () {
-        sendReponse( res );
-    } )
-
-    // Move onto the next middle ware
-    .then( function () {
-        next();
-    } )
-
-    // Catch any errors that occurred in the above middle ware
-    .fail( function ( err ) {
-        next( err );
-    } );
-};
-
 var schema = {
     properties: {
         content: {
@@ -142,7 +96,7 @@ var schema = {
 function validateRegisterRequest( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        var validation = revalidator.validate( req.body, schema );
+        var validation = revalidator.validate( req.headers.bridge, schema );
 
         if ( validation.valid === false ) {
             var firstError = validation.errors[ 0 ];
@@ -150,14 +104,30 @@ function validateRegisterRequest( req ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'content.email':     errorCode = 'Invalid email format';       break;
-                case 'content.password':  errorCode = 'Invalid password format';    break;
-                case 'content.firstName': errorCode = 'Invalid first name format';  break;
-                case 'content.lastName':  errorCode = 'Invalid last name format';   break;
-                case 'email':             errorCode = 'Invalid email format';       break;
-                case 'hmac':              errorCode = 'Invalid HMAC format';        break;
-                case 'time':              errorCode = 'Invalid time format';        break;
-                default:                  errorCode = 'Malformed register request'; break;
+                case 'content.email':
+                    errorCode = 'Invalid email format';
+                    break;
+                case 'content.password':
+                    errorCode = 'Invalid password format';
+                    break;
+                case 'content.firstName':
+                    errorCode = 'Invalid first name format';
+                    break;
+                case 'content.lastName':
+                    errorCode = 'Invalid last name format';
+                    break;
+                case 'email':
+                    errorCode = 'Invalid email format';
+                    break;
+                case 'hmac':
+                    errorCode = 'Invalid HMAC format';
+                    break;
+                case 'time':
+                    errorCode = 'Invalid time format';
+                    break;
+                default:
+                    errorCode = 'Malformed register request';
+                    break;
             }
 
             var regError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
@@ -173,7 +143,7 @@ function validateRegisterRequest( req ) {
 
 function getUserObject( req ) {
     return Q.Promise( function ( resolve, reject ) {
-        resolve( req.body.content );
+        resolve( req.headers.bridge.content );
     } );
 }
 
@@ -205,3 +175,49 @@ function sendReponse( req ) {
         resolve();
     } );
 }
+
+module.exports = function ( req, res, next ) {
+
+    // Check that the basic request structure is verified.
+    util.checkRequestStructureVerified( req )
+
+    // Check that the request is Anonymous (Not Logged in)
+    .then( function () {
+        return util.mustBeAnonymous( req );
+    } )
+
+    // Validate the structure of the request against the registration schema
+    .then( function () {
+        return validateRegisterRequest( req );
+    } )
+
+    // Get the user object out of the request
+    .then( function () {
+        return getUserObject( req );
+    } )
+
+    // Register the user object using the re
+    .then( function ( user ) {
+        return database.registerUser( user );
+    } )
+
+    // Send the verification email
+    .then( function () {
+        return sendVerificationEmail( req );
+    } )
+
+    // Send the successful response message
+    .then( function () {
+        sendReponse( res );
+    } )
+
+    // Move onto the next middle ware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any errors that occurred in the above middle ware
+    .fail( function ( err ) {
+        next( err );
+    } );
+};

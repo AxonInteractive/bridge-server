@@ -7,7 +7,7 @@ var https      = require( 'https'       );
 var http       = require( 'http'        );
 var path       = require( 'path'        );
 var express    = require( 'express'     );
-var underscore = require( 'lodash'      );
+var lodash     = require( 'lodash'      );
 var winston    = require( 'winston'     );
 var Q          = require( 'q'           );
 var bodyParser = require( 'body-parser' );
@@ -18,9 +18,17 @@ winston.remove( winston.transports.Console );
 winston.add( winston.transports.Console, { level: 'verbose', colorize:true } );
 
 // Setup global variables
-var _ = underscore._;
+var _ = lodash._;
 exports._ = _;
+
 exports.express = express;
+
+// Mixin the underscore.string lib
+// Import Underscore.string to separate object, because there are conflict functions (include, reverse, contains)
+_.str = require( 'underscore.string' );
+
+// Mix in non-conflict functions to Underscore namespace if you want
+_.mixin( _.str.exports() );
 
 var config = require( './src/config' );
 
@@ -82,6 +90,7 @@ app.use( bodyParser.json() );
 app.use( function ( req, res, next ) {
     app.log.silly( {
         RequestBody: req.body,
+        BridgeHeader: req.get( 'bridge' ),
         Method: req.method,
         Resource: req.path
     } );
@@ -94,18 +103,13 @@ app.use( bridgeWare.attachCORSHeaders() );
 // Handle CORS Request
 app.use( bridgeWare.handleOptionsRequest() );
 
-// Add the express error handler for default errors
-//app.use( errorHandler() );
+//
+app.use( bridgeWare.parseBridgeHeader() );
 
-// create the Bridge Objects on the request and response
-app.use( '/api/', bridgeWare.prepareBridgeObjects() );
-
-// read the query string from a request and parse it as JSON
-app.use( '/api/', bridgeWare.parseGetQueryString() );
-
+//
 app.use( '/api/1.0/', bridgeWare.verifyRequestStructure() );
 
-// Setup bridge default routes
+// Setup bridge default router
 routes.setup();
 
 setTimeout( function () {
@@ -181,7 +185,7 @@ function exitHandler(options, err) {
         app.log.debug( 'Bridge application closing. Good Bye!' );
     }
     if (err) {
-        app.log.info(err.stack);
+        app.log.error(err.stack);
     }
     if (options.exit) {
         process.exit();

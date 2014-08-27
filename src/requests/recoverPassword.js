@@ -9,37 +9,6 @@ var util   = require( '../utilities' );
 
 var _ = require('lodash')._;
 
-module.exports = function ( req, res, next ) {
-
-    // Check that the basic request structure is verified
-    util.checkRequestStructureVerified( req )
-
-    // The request must be anonymous. (Not logged in)
-    .then( function () {
-        return util.mustBeAnonymous( req );
-    } )
-
-    // Validate the request structure related to Recover Password requests
-    .then( function () {
-        return validateRecoverPasswordRequest( req );
-    } )
-
-    // Send the success response
-    .then( function () {
-        return sendReponse( res );
-    } )
-
-    // Move onto the next middle ware
-    .then( function () {
-        next();
-    } )
-
-    // Catch any errors that occurred in the above promises
-    .fail( function ( err ) {
-        next( err );
-    } );
-};
-
 var schema = {
     type: 'object',
     required: true,
@@ -123,7 +92,7 @@ var schema = {
 function validateRecoverPasswordRequest( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        var validation = revalidator.validate( req.body, schema );
+        var validation = revalidator.validate( req.headers.bridge, schema );
 
         if ( validation.valid === false ) {
             var firstError = validation.errors[ 0 ];
@@ -131,12 +100,24 @@ function validateRecoverPasswordRequest( req ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'content.hash':    errorCode = 'Invalid user has format';            break;
-                case 'content.message': errorCode = 'Invalid password format';            break;
-                case 'email':           errorCode = 'Invalid email format';               break;
-                case 'hmac':            errorCode = 'Invalid HMAC format';                break;
-                case 'time':            errorCode = 'Invalid time format';                break;
-                default:                errorCode = 'Malformed recover password request'; break;
+                case 'content.hash':
+                    errorCode = 'Invalid user has format';
+                    break;
+                case 'content.message':
+                    errorCode = 'Invalid password format';
+                    break;
+                case 'email':
+                    errorCode = 'Invalid email format';
+                    break;
+                case 'hmac':
+                    errorCode = 'Invalid HMAC format';
+                    break;
+                case 'time':
+                    errorCode = 'Invalid time format';
+                    break;
+                default:
+                    errorCode = 'Malformed recover password request';
+                    break;
             }
             var err = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
 
@@ -163,3 +144,34 @@ function sendReponse( res ) {
         resolve();
     } );
 }
+
+module.exports = function ( req, res, next ) {
+
+    // Check that the basic request structure is verified
+    util.checkRequestStructureVerified( req )
+
+    // The request must be anonymous. (Not logged in)
+    .then( function () {
+        return util.mustBeAnonymous( req );
+    } )
+
+    // Validate the request structure related to Recover Password requests
+    .then( function () {
+        return validateRecoverPasswordRequest( req );
+    } )
+
+    // Send the success response
+    .then( function () {
+        return sendReponse( res );
+    } )
+
+    // Move onto the next middle ware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any errors that occurred in the above promises
+    .fail( function ( err ) {
+        next( err );
+    } );
+};

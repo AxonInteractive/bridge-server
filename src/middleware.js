@@ -26,21 +26,6 @@ exports.attachCORSHeaders = function () {
 };
 
 /**
- * Creates objects on the request object and on the response object
- *  necessary for bridge to pass messages around
- * @param  {Object}   req  The express request object.
- * @param  {Object}   res  The express response object.
- * @param  {Function} next The function to call when this function is complete.
- */
-exports.prepareBridgeObjects = function () {
-    app.log.debug( "Bridge object preparation middleware setup" );
-    return function ( req, res, next ) {
-        req.bridge = {};
-        next();
-    };
-};
-
-/**
  * Handle CORS request. this is due to the proxy setup for the case of PEIR.
  * @param  {Object}    req The express request object.
  * @param  {Object}    res The express response object.
@@ -67,49 +52,36 @@ exports.handleOptionsRequest = function () {
     };
 };
 
-/**
- * Read the query string from a get request and parse it to an object
- * @param  {Object}    req   The express request object.
- * @param  {Object}    res   The express response object.
- * @param  {Function}  next  The function to call when the middleware is complete.
- * @return {Undefined}
- */
-exports.parseGetQueryString = function () {
-    app.log.debug( "Query string parser setup" );
-    return function ( req, res, next ) {
-        if ( req.method !== 'GET' ) {
-            next();
-            return;
-        }
+exports.parseBridgeHeader = function() {
+    app.log.debug( "Bridge header parser setup" );
+    return function( req, res, next ) {
 
-        if ( req.query.payload == null ) {
-            next();
-            return;
-        }
-
-        var strObj = decodeURIComponent( req.query.payload );
-
-        if ( strObj == null || strObj === '' ) {
-            next();
-            return;
-        }
+        var bridgeRequestObject;
 
         try {
-            req.body = JSON.parse( strObj );
-        } catch ( err ) {
-            var ErrQueryString = error.createError( 400, 'Request JSON failed to parse', "BAD JSON in the query string payload object" );
-
-            app.log.verbose( {
-                Error: ErrQueryString,
-                JSONString: strObj
-            } );
-
-            next( ErrQueryString );
+            bridgeRequestObject = JSON.parse( req.headers.bridge );
+        }
+        catch (err) {
+            next( err );
             return;
         }
+
+        req.headers.bridge = bridgeRequestObject;
+
+        req.bridge = {};
+
         next();
     };
 };
+
+function checkHmacSignature( req, hmacSalt ) {
+
+    var concat = JSON.stringify( req.headers.bridge.content ) + req.headers.bridge.email + req.headers.bridge.time;
+
+    var hmac = crypto.createHmac( 'sha256', hmacSalt ).update( concat ).digest( 'hex' );
+
+    return ( req.headers.bridge.hmac === hmac );
+}
 
 /**
  * The bridge request object schema. The definition of a bridge request
@@ -168,7 +140,7 @@ exports.verifyRequestStructure = function () {
     app.log.debug( "Bridge request structure middleware setup" );
     return function ( req, res, next ) {
 
-        var validation = revalidator.validate( req.body, bridgeRequestSchema );
+        var validation = revalidator.validate( req.headers.bridge, bridgeRequestSchema );
         var vrsError;
 
         if ( validation.valid === false ) {
@@ -176,11 +148,11 @@ exports.verifyRequestStructure = function () {
 
             var errorCode = 'Basic request structure malformed';
 
-            if ( firstError.property == 'email' ) {
+            if ( firstError.property === 'email' ) {
                 errorCode = 'Invalid email format';
-            } else if ( firstError.property == 'time' ) {
+            } else if ( firstError.property === 'time' ) {
                 errorCode = 'Invalid time format';
-            } else if ( firstError.property == 'HMAC' ) {
+            } else if ( firstError.property === 'HMAC' ) {
                 errorCode = 'Invalid HMAC format';
             }
 
@@ -190,7 +162,7 @@ exports.verifyRequestStructure = function () {
             return;
         }
 
-        req.bridge.isAnon = ( req.body.email === "" );
+        req.bridge.isAnon = ( req.headers.bridge.email === "" );
 
         var hmacSalt;
 
@@ -231,15 +203,6 @@ exports.verifyRequestStructure = function () {
     };
 };
 
-function checkHmacSignature( req, hmacSalt ) {
-
-    var concat = JSON.stringify( req.body.content ) + req.body.email + req.body.time;
-
-    var hmac = crypto.createHmac( 'sha256', hmacSalt ).update( concat ).digest( 'hex' );
-
-    return true;//( req.body.hmac === hmac );
-}
-
 exports.bridgeErrorHandler = function () {
 
     app.log.debug( 'Bridge error handler setup' );
@@ -248,10 +211,12 @@ exports.bridgeErrorHandler = function () {
 
         var err;
 
-        if ( _.isArray( errContext ) )
+        if ( _.isArray( errContext ) ) {
             err = errContext[ 0 ];
-        else
+        }
+        else {
             err = errContext;
+        }
 
         var validation = error.validateError( err );
 
@@ -270,7 +235,7 @@ exports.bridgeErrorHandler = function () {
 
         app.log.verbose( 'Sending Error', err );
 
-        if ( config.server.environment == 'development' ) {
+        if ( config.server.environment === 'development' ) {
             res.json( {
                 content: err
             } );

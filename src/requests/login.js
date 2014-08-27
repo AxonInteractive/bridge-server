@@ -8,43 +8,6 @@ var regex       = require( '../regex'     );
 var error       = require( '../error'     );
 var util        = require( '../utilities' );
 
-
-module.exports = function ( req, res, next ) {
-
-    // Check that the basic structure is verified
-    util.checkRequestStructureVerified( req )
-
-    // Must be logged in
-    .then( function () {
-        return util.mustBeLoggedIn( req );
-    } )
-
-    // Validate the request
-    .then( function () {
-        return validateLoginRequest( req );
-    } )
-
-    // Parse the application data from the database
-    .then( function () {
-        return parseAppData( req );
-    } )
-
-    // Send the success response
-    .then( function ( appData ) {
-        return sendReponse( req, res, appData );
-    } )
-
-    // Move onto the next middleware
-    .then( function () {
-        next();
-    } )
-
-    // Catch any errors from the above promises
-    .fail( function ( err ) {
-        next( err );
-    } );
-};
-
 var schema = {
     properties: {
         content: {
@@ -88,7 +51,7 @@ function validateLoginRequest( req ) {
 
         var loginError;
 
-        var validation = revalidator.validate( req.body, schema );
+        var validation = revalidator.validate( req.headers.bridge, schema );
 
         if ( validation.valid === false ) {
 
@@ -97,10 +60,18 @@ function validateLoginRequest( req ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'email': errorCode = 'Invalid email format';    break;
-                case 'hmac':  errorCode = 'Invalid HMAC format';     break;
-                case 'time':  errorCode = 'Invalid time format';     break;
-                default:      errorCode = 'Malformed login request'; break;
+                case 'email':
+                    errorCode = 'Invalid email format';
+                    break;
+                case 'hmac':
+                    errorCode = 'Invalid HMAC format';
+                    break;
+                case 'time':
+                    errorCode = 'Invalid time format';
+                    break;
+                default:
+                    errorCode = 'Malformed login request';
+                    break;
             }
 
             loginError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
@@ -161,3 +132,38 @@ function sendReponse( req, res, appData ) {
     } );
 }
 
+module.exports = function ( req, res, next ) {
+
+    // Check that the basic structure is verified
+    util.checkRequestStructureVerified( req )
+
+    // Must be logged in
+    .then( function () {
+        return util.mustBeLoggedIn( req );
+    } )
+
+    // Validate the request
+    .then( function () {
+        return validateLoginRequest( req );
+    } )
+
+    // Parse the application data from the database
+    .then( function () {
+        return parseAppData( req );
+    } )
+
+    // Send the success response
+    .then( function ( appData ) {
+        return sendReponse( req, res, appData );
+    } )
+
+    // Move onto the next middleware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any errors from the above promises
+    .fail( function ( err ) {
+        next( err );
+    } );
+};

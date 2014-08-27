@@ -45,59 +45,55 @@ if ( !fs.existsSync( config.mailer.templateDirectory ) ) {
 
 app.log.debug( "Template Path: " + path.resolve( dir ) );
 
-
 /**
  * Send an email over the setup transport
  * @param  {Object}  mail The email object to send.
  * @return {Boolean} True if mail passed standard checks, False if not.
  */
-function sendMail ( mail, view, options, done ) {
+function sendMail ( mail, view, options ) {
+    return Q.Promise( function( resolve, reject ) {
+        app.log.silly('send mail request recieved. Mail:', mail);
 
-    app.log.silly('send mail request recieved. Mail:', mail);
+        var baseErrorString  = "Could not end e-mail. ";
+        var existErrorString = "Mail has no '%s' property";
+        var typeErrorString  = "Mail property '%s' is not a %s";
 
-    var baseErrorString  = "Could not end e-mail. ";
-    var existErrorString = "Mail has no '%s' property";
-    var typeErrorString  = "Mail property '%s' is not a %s";
-
-    if ( !_.has( mail, "to" ) ) {
-        app.log.verbose( baseErrorString + existErrorString, "to", mail );
-        return false;
-    }
-
-    if ( !_.has( mail, "subject" ) ) {
-        app.log.verbose( baseErrorString + existErrorString, "subject", mail );
-        return false;
-    }
-
-    if ( !_.isString( mail.to ) ) {
-        app.log.verbose( baseErrorString + typeErrorString, "to", "string", mail );
-        return false;
-    }
-
-    if ( !_.isString( mail.subject ) ) {
-        app.log.verbose( baseErrorString + typeErrorString, "subject", "string", mail );
-        return false;
-    }
-
-    if ( !_.isString( view ) ) {
-        app.log.verbose( baseErrorString + typeErrorString, "view", "string", view, mail );
-        return false;
-    }
-
-    app.log.silly( "Mail passed structure test. Attempting to send mail.");
-
-    app.mailer.send(view, mail, function(err){
-        if (err) {
-            app.log.verbose("An error occurred sending an e-mail. Error: " + err);
-            return;
+        if ( !_.has( mail, "to" ) ) {
+            app.log.verbose( baseErrorString + existErrorString, "to", mail );
+            return false;
         }
 
-        if (_.isFunction(done)) {
-            done();
+        if ( !_.has( mail, "subject" ) ) {
+            app.log.verbose( baseErrorString + existErrorString, "subject", mail );
+            return false;
         }
-    });
 
-    return true;
+        if ( !_.isString( mail.to ) ) {
+            app.log.verbose( baseErrorString + typeErrorString, "to", "string", mail );
+            return false;
+        }
+
+        if ( !_.isString( mail.subject ) ) {
+            app.log.verbose( baseErrorString + typeErrorString, "subject", "string", mail );
+            return false;
+        }
+
+        if ( !_.isString( view ) ) {
+            app.log.verbose( baseErrorString + typeErrorString, "view", "string", view, mail );
+            return false;
+        }
+
+        app.log.silly( "Mail passed structure test. Attempting to send mail.");
+
+        app.mailer.send(view, mail, function(err){
+            if (err) {
+                app.log.verbose("An error occurred sending an e-mail. Error: " + err);
+                return;
+            }
+
+            resolve();
+        });
+    } );
 }
 
 /**
@@ -107,7 +103,7 @@ function sendMail ( mail, view, options, done ) {
  * @return {Undefined}
  */
 exports.sendVerificationEmail = function( req ){
-    return Q.Promise(function(reject, resolve){
+    return Q.Promise( function( resolve, reject ) {
 
         var user = req.bridge.user;
 
@@ -126,7 +122,7 @@ exports.sendVerificationEmail = function( req ){
             subject           : config.mailer.verificationEmailSubject,
             verificationURL   : url,
             email             : user.email,
-            name              : user.firstName + " " + user.lastName,
+            name              : _.capitalize( user.firstName + " " + user.lastName ),
             unsubscribeURL    : "",
             footerImageURL    : URLmodule.parse( url + "email/peir-footer.png"    ).href,
             headerImageURL    : URLmodule.parse( url + "email/peir-header.png"    ).href,

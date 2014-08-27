@@ -10,43 +10,6 @@ var mailer   = require( '../mailer' );
 var database = require( '../database' );
 var util     = require( '../../server').util;
 
-module.exports = function( req, res, next ) {
-
-    // Check that the request has passed the structure test
-    util.checkRequestStructureVerified( req )
-
-    // Check that the request is in the valid format
-    .then( function () {
-        return validateForgotPasswordRequest( req );
-    } )
-
-    // Check that the request user exists in the database
-
-    .then( function() {
-        return checkUserExists( req );
-    } )
-
-    // Send the email related to recovering the password
-    .then( function () {
-        return sendForgotPasswordEMail( req );
-    } )
-
-    // Send the success response
-    .then( function () {
-        return sendResponse( res );
-    } )
-
-    // Move onto the next middle ware
-    .then( function () {
-        next();
-    } )
-
-    // Catch any errors that occurred in the above promises
-    .fail( function ( err ) {
-        next( err );
-    } );
-};
-
 var schema = {
     properties: {
         content: {
@@ -103,7 +66,7 @@ function validateForgotPasswordRequest( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
         var valError;
-        var validation = revalidator.validate( req.body, schema );
+        var validation = revalidator.validate( req.headers.bridge, schema );
 
         if ( validation.valid === false ) {
 
@@ -112,11 +75,21 @@ function validateForgotPasswordRequest( req ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'content.message': errorCode = 'Invalid email format'             ; break;
-                case 'email'          : errorCode = 'Invalid email format'             ; break;
-                case 'hmac'           : errorCode = 'Invalid HMAC format'              ; break;
-                case 'time'           : errorCode = 'Invalid time format'              ; break;
-                default               : errorCode = 'Malformed forgot password request'; break;
+                case 'content.message':
+                    errorCode = 'Invalid email format';
+                    break;
+                case 'email':
+                    errorCode = 'Invalid email format';
+                    break;
+                case 'hmac':
+                    errorCode = 'Invalid HMAC format';
+                    break;
+                case 'time':
+                    errorCode = 'Invalid time format';
+                    break;
+                default:
+                    errorCode = 'Malformed forgot password request';
+                    break;
             }
 
             valError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
@@ -133,7 +106,7 @@ function checkUserExists( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
         var query = "SELECT EMAIL FROM users WHERE EMAIL = ?";
-        var values = [ req.body.content.message ];
+        var values = [ req.headers.bridge.content.message ];
 
         database.query( query, values )
             .then( function ( rows ) {
@@ -158,7 +131,7 @@ function sendForgotPasswordEMail( req ) {
 
         // Prep the user object for the forgot password email
         req.bridge.user = {
-            email: req.body.content.email
+            email: req.headers.bridge.content.email
         };
 
         mailer.sendForgotPasswordEMail( req );
@@ -183,3 +156,40 @@ function sendResponse( res ) {
 
     } );
 }
+
+module.exports = function( req, res, next ) {
+
+    // Check that the request has passed the structure test
+    util.checkRequestStructureVerified( req )
+
+    // Check that the request is in the valid format
+    .then( function () {
+        return validateForgotPasswordRequest( req );
+    } )
+
+    // Check that the request user exists in the database
+
+    .then( function() {
+        return checkUserExists( req );
+    } )
+
+    // Send the email related to recovering the password
+    .then( function () {
+        return sendForgotPasswordEMail( req );
+    } )
+
+    // Send the success response
+    .then( function () {
+        return sendResponse( res );
+    } )
+
+    // Move onto the next middle ware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any errors that occurred in the above promises
+    .fail( function ( err ) {
+        next( err );
+    } );
+};

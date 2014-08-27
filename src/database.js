@@ -11,10 +11,7 @@ var mailer      = require( './mailer' );
 
 var connection  = null;
 
-
 connection = mysql.createConnection( server.config.database );
-
-
 
 connection.connect( function(err) {
     if (err) {
@@ -42,7 +39,9 @@ exports.authenticateRequest = function ( req ) {
             return;
         }
 
-        connection.query( 'SELECT * FROM users WHERE lower(EMAIL) = lower(?)', [ req.body.email ], function ( err, rows ) {
+        var request = req.headers.bridge;
+
+        connection.query( 'SELECT * FROM users WHERE lower(EMAIL) = lower(?)', [ request.email ], function ( err, rows ) {
 
             if ( err ) {
                 var databaseError = bridgeError.createError( 403, 'Database query error', "Database query error. see log files for more information" );
@@ -59,16 +58,16 @@ exports.authenticateRequest = function ( req ) {
             var user = rows[ 0 ];
 
             var hmac = crypto.createHmac( 'sha256', user.PASSWORD );
-            var concat = JSON.stringify( req.body.content ) + ( req.body.email ) + req.body.time;
+            var concat = JSON.stringify( request.content ) + ( request.email ) + request.time;
             hmac.update( concat );
             var valHmac = hmac.digest( 'hex' );
 
 
-            // if ( valHmac !== req.body.hmac ) {
-            //     var hmacError = bridgeError.createError( 403, 'HMAC failed', "Failed hmac check" );
-            //     reject( hmacError );
-            //     return;
-            // }
+            if ( valHmac !== request.hmac ) {
+                var hmacError = bridgeError.createError( 403, 'HMAC failed', "Failed hmac check" );
+                reject( hmacError );
+                return;
+            }
 
             if ( user.STATUS !== 'NORMAL' ) {
                 var incorrectStatusError = bridgeError.createError( 403, 'Incorrect user state', "User is in the '" + ( user.STATUS.toLowerCase() ) + "' state" );
@@ -99,7 +98,13 @@ exports.registerUser = function ( user ) {
         // [Email, Password, First Name, Last Name, App Data, State, UserHash]
         var userInsertionQuery = "INSERT INTO users VALUES (0, ?, ?, ?, ?, NOW(), ?, ?, \"user\", 0, ?, NOW())";
 
-        var values = [ user.email, user.password, user.firstName, user.lastName, JSON.stringify( user.appData ), state, hash ];
+        var values = [  user.email.toLowerCase(),
+                        user.password,
+                        _.capitalize( user.firstName ),
+                        _.capitalize( user.lastName ),
+                        JSON.stringify( user.appData ),
+                        state,
+                        hash ];
 
         connection.query( userInsertionQuery, values, function ( err, retObj ) {
             if ( err ) {
@@ -171,7 +176,7 @@ exports.updateUser = function( req ) {
         }
 
 
-        var content = req.body.content;
+        var content = req.headers.bridge.content;
 
         var updateFields = {};
 
@@ -189,21 +194,21 @@ exports.updateUser = function( req ) {
         // Email Check
         if ( _.has( content, 'email' ) ) {
             if ( !_.isEmpty( content.email ) ) {
-                updateFields.EMAIL = content.email;
+                updateFields.EMAIL = content.email.toLowerCase();
             }
         }
 
         // First Name Check
         if ( _.has( content, 'firstName' ) ) {
             if ( !_.isEmpty( content.firstName ) ) {
-                updateFields.FIRST_NAME = content.firstName;
+                updateFields.FIRST_NAME = _.capitalize( content.firstName );
             }
         }
 
         // Last Name Check
         if ( _.has( content, 'lastName' ) ) {
             if ( !_.isEmpty( content.lastName ) ) {
-                updateFields.LAST_NAME = content.lastName;
+                updateFields.LAST_NAME = _.capitalize( content.lastName );
             }
         }
 
@@ -245,7 +250,7 @@ exports.updateUser = function( req ) {
 
         query = query.concat( " WHERE EMAIL = ?" );
 
-        values.push( req.bridge.user.EMAIL );
+        values.push( req.bridge.user.EMAIL.toLowerCase() );
 
         connection.query( query, values, function ( err, retObj ) {
 
@@ -277,7 +282,7 @@ exports.verifyEmail = function ( req ) {
         var verifyEmailError;
 
         var query = "SELECT * FROM users WHERE USER_HASH = ?";
-        var values = [ req.body.content.hash ];
+        var values = [ req.headers.bridge.content.hash ];
 
         connection.query( query, values, function ( err, rows ) {
             if ( err ) {
@@ -322,7 +327,7 @@ exports.recoverPassword = function ( req ) {
         var recoverPasswordError;
 
         var query = "SELECT * FROM users WHERE USER_HASH = ?";
-        var values = [ req.body.content.hash ];
+        var values = [ req.headers.bridge.content.hash ];
 
         connection.query( query, values, function ( err, rows ) {
             if (err) {
@@ -340,7 +345,7 @@ exports.recoverPassword = function ( req ) {
             }
 
             var query2 = "UPDATE users SET PASSWORD = ? WHERE id = ?";
-            var values2 = [ req.body.content.message, rows[ 0 ].ID ];
+            var values2 = [ req.headers.bridge.content.message, rows[ 0 ].ID ];
 
             connection.query( query, values, function ( err2, rows ) {
                 if ( err2 ) {

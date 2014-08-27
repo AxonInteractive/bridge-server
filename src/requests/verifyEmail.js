@@ -9,38 +9,6 @@ var error    = require( '../error' );
 var database = require( '../database' );
 var util     = require( '../utilities');
 
-
-module.exports = function ( req, res, next ) {
-
-    // Check that the basic request structure is verified.
-    util.checkRequestStructureVerified( req )
-
-    // Validate the request to conform with the Verify Email request
-    .then( function () {
-        return validateVerifyEmailRequest( req );
-    } )
-
-    // Verify the email in the datebase
-    .then( function () {
-        return database.verifyEmail( req );
-    } )
-
-    // Send the successful response message
-    .then( function () {
-        return sendResponse( res );
-    } )
-
-    // Move onto the next middle ware
-    .then( function () {
-        next();
-    } )
-
-    // Catch any error that occurred on the on the above promises
-    .fail( function ( err ) {
-        next( err );
-    } );
-};
-
 var schema = {
     properties: {
         content: {
@@ -96,7 +64,7 @@ function validateVerifyEmailRequest( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
 
-        var validation = revalidator.validate( req.body, schema );
+        var validation = revalidator.validate( req.headers.bridge, schema );
 
         if ( validation.valid === false ) {
 
@@ -105,11 +73,21 @@ function validateVerifyEmailRequest( req ) {
             var errorCode;
 
             switch( firstError.property ) {
-                case 'content.hash': errorCode = 'Invalid user hash format';       break;
-                case 'email':        errorCode = 'Invalid email format';           break;
-                case 'hmac':         errorCode = 'Invalid HMAC format';            break;
-                case 'time':         errorCode = 'Invalid time format';            break;
-                default:             errorCode = 'Malformed verify email request'; break;
+                case 'content.hash':
+                    errorCode = 'Invalid user hash format';
+                    break;
+                case 'email':
+                    errorCode = 'Invalid email format';
+                    break;
+                case 'hmac':
+                    errorCode = 'Invalid HMAC format';
+                    break;
+                case 'time':
+                    errorCode = 'Invalid time format';
+                    break;
+                default:
+                    errorCode = 'Malformed verify email request';
+                    break;
             }
 
             var verifyError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
@@ -138,3 +116,33 @@ function sendResponse( res ) {
     } );
 }
 
+module.exports = function ( req, res, next ) {
+
+    // Check that the basic request structure is verified.
+    util.checkRequestStructureVerified( req )
+
+    // Validate the request to conform with the Verify Email request
+    .then( function () {
+        return validateVerifyEmailRequest( req );
+    } )
+
+    // Verify the email in the datebase
+    .then( function () {
+        return database.verifyEmail( req );
+    } )
+
+    // Send the successful response message
+    .then( function () {
+        return sendResponse( res );
+    } )
+
+    // Move onto the next middle ware
+    .then( function () {
+        next();
+    } )
+
+    // Catch any error that occurred on the on the above promises
+    .fail( function ( err ) {
+        next( err );
+    } );
+};
