@@ -141,7 +141,7 @@ exports.registerUser = function ( req, user ) {
                 }
             }
 
-            req.bridge.user = retObj;
+            req.bridge.user = user;
 
             app.log.silly( "Database registration return: ", retObj );
 

@@ -160,17 +160,17 @@ function sendVerificationEmail( req ) {
     } );
 }
 
-function sendReponse( req ) {
+function sendReponse( res ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        req.res.send( {
+        res.send( {
             content: {
                 message: "User registered successfully!",
                 time: new Date().toISOString()
             }
         } );
 
-        req.res.status( 200 );
+        res.status( 200 );
 
         resolve();
     } );
