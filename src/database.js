@@ -71,7 +71,7 @@ exports.authenticateRequest = function ( req ) {
             }
 
             if ( user.STATUS !== 'normal' ) {
-                var incorrectStatusError = bridgeError.createError( 403, 'Incorrect user state', "User is in the '" + ( user.STATUS.toLowerCase() ) + "' state" );
+                var incorrectStatusError = bridgeError.createError( 403, 'Incorrect user state', "User is in the '" + ( user.STATUS ) + "' state" );
                 reject( incorrectStatusError );
                 return;
             }
@@ -352,7 +352,7 @@ exports.recoverPassword = function ( req ) {
             var query2 = "UPDATE users SET PASSWORD = ? WHERE id = ?";
             var values2 = [ req.headers.bridge.content.message, rows[ 0 ].ID ];
 
-            connection.query( query, values, function ( err2, rows ) {
+            connection.query( query2, values2, function ( err2, rows ) {
                 if ( err2 ) {
                     recoverPasswordError = bridgeError.createError( 500, 'Database query error', "Database error, See log for more details" );
 

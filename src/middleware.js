@@ -221,7 +221,8 @@ exports.bridgeErrorHandler = function () {
         var validation = error.validateError( err );
 
         if ( validation.valid === false ) {
-            app.log.verbose( 'Error malformed. Errors: ', validation.errors, errContext );
+            app.log.verbose( 'Error malformed. Errors: ', validation.errors );
+            app.log.verbose( "Error: ", errContext );
             next( errContext );
             return;
         }

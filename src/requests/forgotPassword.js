@@ -131,7 +131,7 @@ function sendForgotPasswordEMail( req ) {
 
         // Prep the user object for the forgot password email
         req.bridge.user = {
-            email: req.headers.bridge.content.email
+            email: req.headers.bridge.content.message
         };
 
         mailer.sendForgotPasswordEMail( req );
@@ -168,7 +168,6 @@ module.exports = function( req, res, next ) {
     } )
 
     // Check that the request user exists in the database
-
     .then( function() {
         return checkUserExists( req );
     } )
