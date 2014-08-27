@@ -146,6 +146,11 @@ exports.sendForgotPasswordEMail = function( req ) {
 
         app.log.debug( "Sending forgot password email for user:" + user );
 
+        if (_.isUndefined( user.email ) || _.isEmpty( user.email ) ) {
+
+            reject( );
+        }
+
         var mail = {
             to: user.email,
             subject: config.mailer.recoveryEmailSubject

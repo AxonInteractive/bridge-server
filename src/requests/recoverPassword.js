@@ -6,6 +6,7 @@ var Q           = require( 'q' );
 var regex = require( '../regex' );
 var error = require( '../error' );
 var util   = require( '../utilities' );
+var database = require( '../database' );
 
 var _ = require('lodash')._;
 
@@ -101,7 +102,7 @@ function validateRecoverPasswordRequest( req ) {
 
             switch ( firstError.property ) {
                 case 'content.hash':
-                    errorCode = 'Invalid user has format';
+                    errorCode = 'Invalid user hash format';
                     break;
                 case 'content.message':
                     errorCode = 'Invalid password format';
@@ -158,6 +159,10 @@ module.exports = function ( req, res, next ) {
     // Validate the request structure related to Recover Password requests
     .then( function () {
         return validateRecoverPasswordRequest( req );
+    } )
+
+    .then( function() {
+        return database.recoverPassword( req );
     } )
 
     // Send the success response
