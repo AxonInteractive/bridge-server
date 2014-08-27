@@ -43,7 +43,7 @@ exports.handleOptionsRequest = function () {
         res.status( 204 );
 
         res.setHeader( 'access-control-allow-methods', 'GET, PUT, OPTIONS, POST, DELETE' );
-        res.setHeader( 'access-control-allow-headers', "content-type, accept" );
+        res.setHeader( 'access-control-allow-headers', "content-type, accept, bridge" );
 
         res.setHeader( 'access-control-max-age', 10 );
         res.setHeader( 'content-length', 0 );

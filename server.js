@@ -88,12 +88,17 @@ app.use( express.static( path.resolve( config.server.wwwRoot ) ) );
 app.use( bodyParser.json() );
 
 app.use( function ( req, res, next ) {
-    app.log.silly( {
+    app.log.silly( "Received non static Request: ", {
         RequestBody: req.body,
         BridgeHeader: req.get( 'bridge' ),
         Method: req.method,
         Resource: req.path
     } );
+
+    res.on( 'end', function() {
+        app.log.silly( "Response to non static request: ", res.body );
+    } )
+
     next();
 } );
 
