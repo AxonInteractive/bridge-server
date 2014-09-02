@@ -23,7 +23,7 @@ function columnNumberToColumnName( columnNumber ) {
 
     // Check for the limit against excel
     if ( columnNumber > 16383 ) {
-        throw "number is too large";
+        throw new Error("number is too large");
     }
 
     columnNumber += 1;

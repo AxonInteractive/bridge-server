@@ -28,7 +28,8 @@
     "wkhtmltopdf": "^0.1.5",
     "mkdirp": "^0.5.0",
     "q-io": "^1.11.4",
-    "underscore.string": "^2.3.3"
+    "underscore.string": "^2.3.3",
+    "moment": "^2.8.2"
   },
   "devDependencies": {}
 }

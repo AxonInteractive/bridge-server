@@ -7,14 +7,13 @@ var path      = require( 'path' );
 var mailer    = require( 'express-mailer' );
 var server    = require( '../server' );
 var mkdirp    = require( 'mkdirp' );
+var _         = require( 'lodash' )._;
 
 var app    = server.app;
 var error  = server.error;
 var config = server.config;
 
 var options = config.mailer.options;
-
-var _ = require( 'lodash' )._;
 
 var mailerOptionsObject = {
     from: config.mailer.fromAddress

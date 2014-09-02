@@ -162,7 +162,7 @@ module.exports = function ( req, res, next ) {
     } )
 
     .then( function() {
-        return database.recoverPassword( req );
+        return database.recoverPassword( req.headers.bridge.content.hash, req.headers.bridge.content.message );
     } )
 
     // Send the success response

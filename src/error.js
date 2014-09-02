@@ -3,8 +3,6 @@
 var revalidator = require( 'revalidator' );
 var app = require('../server').app;
 
-var app = require('../server').app;
-
 var schema = {
     properties: {
         status: {
@@ -46,61 +44,26 @@ var schema = {
             //         'User appData could not parse to JSON',
             //         'User not found'
             //     ]
-        },
-
-        message: {
-            type: ['string', 'object'],
-            allowEmpty: true,
-            required: false
         }
     }
 };
 
 exports.createError = function ( httpCode, errorCode, debugMessage ) {
 
-    var completeMessage = "[ERROR - " + httpCode + "] ";
-
-    switch ( httpCode ) {
-    case 400:
-        completeMessage = completeMessage.concat( "BAD REQUEST " );
-        break;
-    case 401:
-        completeMessage = completeMessage.concat( "UNAUTHORIZED " );
-        break;
-    case 403:
-        completeMessage = completeMessage.concat( "FORBIDDEN " );
-        break;
-    case 409:
-        completeMessage = completeMessage.concat( "CONFLICT " );
-        break;
-    case 500:
-        completeMessage = completeMessage.concat( "INTERNAL SERVER ERROR " );
-        break;
-    default:
-        break;
-    }
-
-    completeMessage = completeMessage.concat( "-> " + debugMessage );
-
     var error = {
         status: httpCode,
-        errorCode: errorCode,
-        message: debugMessage
+        errorCode: errorCode
     };
+
+    if ( debugMessage ) {
+        error.message = debugMessage;
+    }
 
     var validate = revalidator.validate( error, schema );
 
     if ( validate.valid === false ) {
-        app.log.verbose( "Could not validate bridge error. Errors: ", validate.errors );
-
-        return {
-            status: httpCode,
-            message: debugMessage,
-            errorCode: errorCode
-        };
+        app.log.warn( "Could not validate bridge error. Errors: ", validate.errors );
     }
-
-
 
     return error;
 };

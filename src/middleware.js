@@ -3,6 +3,7 @@
 var revalidator = require( 'revalidator' );
 var crypto      = require( 'crypto' );
 var _           = require( 'lodash' )._;
+var moment      = require( 'moment' );
 
 var server = require( '../server' );
 var regex  = require( './regex' );
@@ -214,7 +215,13 @@ exports.bridgeErrorHandler = function () {
         if ( _.isArray( errContext ) ) {
             err = errContext[ 0 ];
         }
-        else {
+        else if( errContext instanceof( Error ) ) {
+            res.json({
+                status: 500,
+                errorCode: 'fatal error',
+                time: moment.utc().toISOString()
+            });
+        } else {
             err = errContext;
         }
 
@@ -230,7 +237,7 @@ exports.bridgeErrorHandler = function () {
         app.log.silly( 'Bridge Error verified' );
         var config = require( '../server' ).config;
 
-        err.time = new Date().toISOString();
+        err.time = moment.utc().toISOString();
 
         res.status( err.status );
 

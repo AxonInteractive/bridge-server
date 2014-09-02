@@ -4,9 +4,9 @@ var fs      = require( 'fs' );
 var path    = require( 'path' );
 var mkdirp  = require( 'mkdirp' );
 
-var config  = require( '../server' ).config.logger;
-var app     = require( '../server' ).app;
-var _  = require( 'lodash')._;
+var config = require( '../server' ).config.logger;
+var app    = require( '../server' ).app;
+var _      = require( 'lodash')._;
 
 config.server.filename = path.normalize( config.server.filename );
 

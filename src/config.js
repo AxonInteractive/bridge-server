@@ -13,7 +13,7 @@ var defaults = {
         environment            : "production",
         port                   : 3000,
         emailVerification      : false,
-        wwwRoot                : "/client/",
+        wwwRoot                : "client/",
         indexPath              : "index.html",
         secure: {
             keyfilepath: "key.pem",

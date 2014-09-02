@@ -19,7 +19,6 @@ winston.add( winston.transports.Console, { level: 'verbose', colorize:true } );
 
 // Setup global variables
 var _ = lodash._;
-exports._ = _;
 
 exports.express = express;
 

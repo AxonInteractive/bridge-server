@@ -1,15 +1,16 @@
+/** @module database */
 "use strict";
 var mysql       = require( 'mysql' );
 var crypto      = require( 'crypto' );
 var Q           = require( 'q' );
 var _           = require( 'lodash' )._;
-
+var revalidator = require( 'revalidator' );
 var server      = require( '../server' );
+var mailer      = require( './mailer' );
+
 var app         = server.app;
 var bridgeError = server.error;
-var mailer      = require( './mailer' );
 var config      = server.config;
-
 var connection  = null;
 
 connection = mysql.createConnection( server.config.database );
@@ -23,7 +24,6 @@ connection.connect( function(err) {
 
     app.log.info( "Connected to database successfully as id " + connection.threadId );
 } );
-
 
 /**
  * A filter used to authenticate a user from the bridge database.
@@ -82,7 +82,6 @@ exports.authenticateRequest = function ( req ) {
         } );
     } );
 };
-
 
 /**
  * AAdded the request user to the database.
@@ -327,12 +326,17 @@ exports.verifyEmail = function ( req ) {
     } );
 };
 
-exports.recoverPassword = function ( req ) {
+/**
+ * Recover password database function
+ * @method recoverPassword
+ * @param  {[type]}        req [description]
+ */
+exports.recoverPassword = function ( userHash, newPasswordHash ) {
     return Q.Promise( function ( resolve, reject ) {
         var recoverPasswordError;
 
         var query = "SELECT * FROM users WHERE USER_HASH = ?";
-        var values = [ req.headers.bridge.content.hash ];
+        var values = [ userHash ];
 
         connection.query( query, values, function ( err, rows ) {
             if (err) {
@@ -350,7 +354,7 @@ exports.recoverPassword = function ( req ) {
             }
 
             var query2 = "UPDATE users SET PASSWORD = ? WHERE id = ?";
-            var values2 = [ req.headers.bridge.content.message, rows[ 0 ].ID ];
+            var values2 = [ newPasswordHash, rows[ 0 ].ID ];
 
             connection.query( query2, values2, function ( err2, rows ) {
                 if ( err2 ) {
@@ -403,3 +407,255 @@ exports.close = function() {
     connection.end();
 };
 
+exports.insertIntoTable = function( table, values ) {
+    return Q.Promise( function( resolve, reject ){
+
+        // Make sure the table name is a string
+        if ( !_.isString( table ) ) {
+            reject( bridgeError.createError( 500, 'Table name must be a string' ) );
+            return;
+        }
+
+        // Check that the string is not empty
+        if ( _.isEmpty( table ) ) {
+            reject( bridgeError.createError( 500, 'Table name must not be empty' ) );
+            return;
+        }
+
+        // Make sure the
+        if ( !_.isArray( values ) ) {
+            reject( bridgeError.createError( 500, "values must be an array" ) );
+            return;
+        }
+
+        var query = "INSERT INTO " + table + " VALUES ( 0";
+
+        // Complete the query by adding the nessesary '?' templates
+        _.forEach( values, function( element ) {
+            query = query.concat( ", ?" );
+        } );
+
+        query = query.concat( " )" );
+
+        connection.query( query, values, function( err, result ) {
+
+            if ( err ) {
+                reject( bridgeError.createError( 500, err.code, err ) );
+                return;
+            }
+
+            app.log.info( result );
+
+            resolve( result );
+
+        } );
+    } );
+};
+
+/**
+ * A JSON Schema object that defines a selectQueryObject
+ * @type {Schema}
+ */
+var selectQueryObjectSchema = {
+    properties: {
+        table: {
+            type: 'string',
+            required: true,
+            allowEmpty: false
+        },
+        fields: {
+            type: 'array',
+            required: true,
+            items: {
+                type: 'string',
+                allowEmpty: false
+            }
+        },
+        filters: {
+            required: false,
+            type: 'array',
+            items: {
+                type: 'object',
+                required: true,
+                properties: {
+                    field: {
+                        type: 'string',
+                        required: true,
+                        allowEmpty: false
+                    },
+                    operand: {
+                        type: 'string',
+                        required: true,
+                        allowEmpty: false
+                    },
+                    value: {
+                        required: true
+                    }
+                }
+            }
+        },
+        sorts: {
+            required: true,
+            type: 'array',
+            items: {
+                type: 'object',
+                required: true,
+                properties: {
+                    predicate: {
+                        type: 'string',
+                        required: true,
+                        allowEmpty: false
+                    },
+                    order: {
+                        type: 'string',
+                        required: true,
+                        enum: [ 'ASC', 'DESC' ]
+                    }
+                }
+            }
+        },
+        limits: {
+            type: 'object',
+            required: false,
+            properties: {
+                maxResults: {
+                    type: 'integer',
+                    required: true,
+                    minimum: 1
+                },
+                offset: {
+                    type: 'integer',
+                    required: false,
+                    minimum: 0
+                }
+            }
+        },
+        join: {
+            properties: {
+                table: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+                on: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                }
+            }
+        }
+    }
+};
+
+/**
+ * Runs a MySQL statement based on the query object provided. Uses the
+ * selectQueryObjectSchema schema above
+ * @method selectWithQueryObject
+ * @param  {SelectQueryObject} selectQueryObj A object defining the results
+ *                                            of the database query
+ *
+ * @return {Promise}                          A Q style promise object
+ */
+exports.selectWithQueryObject = function(  selectQueryObj ) {
+    return Q.Promise( function( resolve, reject ) {
+
+        if ( !selectQueryObj ) {
+            reject( bridgeError.createError( 500, 'Query object must be defined to get data from database' ) );
+            return;
+        }
+
+        var table   = selectQueryObj.table;
+        var fields  = selectQueryObj.fields;
+        var filters = selectQueryObj.filters;
+        var sorts   = selectQueryObj.sorts;
+        var limits  = selectQueryObj.limits;
+        var join    = selectQueryObj.join;
+
+        var validationObj = revalidator.validate( selectQueryObj, selectQueryObjectSchema );
+
+        if ( !validationObj.valid ) {
+            reject( bridgeError.createError( 500, 'could not validate select query object', validationObj.errors ) );
+            return;
+        }
+
+        var query = "SELECT ";
+        var values = [];
+
+        _.forEach( fields, function( element, index ) {
+
+            if ( index !== 0 ) {
+                query = query.concat( ', ' );
+            }
+
+            query = query.concat( element );
+            //values.push( element );
+        } );
+
+        query = query.concat( " FROM ", table );
+        //values.push( table );
+
+        if ( join ) {
+
+            query = query.concat( " INNER JOIN ", join.table, " ON ", join.on );
+            //values.push( join.table, join.on );
+
+        }
+
+        if ( filters && filters.length > 0 ) {
+
+            query = query.concat( ' WHERE ' );
+
+            _.forEach( filters, function( filter, index ) {
+                if ( index !== 0 ) {
+                    query = query.concat( " AND " );
+                }
+
+                query = query.concat( filter.field, " ", filter.operand, " ?" );
+                //values.push( filter.field, filter.operand, filter.value );
+                values.push( filter.value );
+            } );
+        }
+
+        if ( sorts && sorts.length > 0 ) {
+
+            query = query.concat( ' ORDER BY ' );
+
+            _.forEach( sorts, function( sort, index ) {
+                if ( index !== 0 ) {
+                    query = query.concat( ', ' );
+                }
+
+                query = query.concat( sort.predicate, " ", sort.order );
+                //values.push( sort.predicate, sort.order );
+            } );
+        }
+
+        if ( limits ) {
+
+            query = query.concat( " LIMIT ");
+
+            if ( limits.offset ) {
+                query = query.concat( "?, ");
+                values.push( limits.offset );
+            }
+
+            query = query.concat( "?" );
+            values.push( limits.maxResults );
+
+        }
+
+        app.log.info( mysql.format( query, values ) );
+
+        connection.query( query, values, function( err, rows ) {
+
+            if ( err ) {
+                reject( bridgeError.createError( 500, err.code, err ) );
+                return;
+            }
+
+            resolve( rows );
+
+        } );
+
+    } );
+};
