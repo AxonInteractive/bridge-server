@@ -1,4 +1,4 @@
-"use strict";
+    "use strict";
 //server.js
 
 // Bring in external libraries
@@ -69,10 +69,11 @@ var server = null;
 
 // Setting standard dictionary objects
 // database reference
-app.set( 'views', config.mailer.viewPath );
+app.set( 'views', config.mailer.templateDirectory );
 app.set( 'view engine', 'ejs' );
 
 app.engine( 'html', require( 'ejs' ).renderFile );
+app.engine( 'ejs',  require( 'ejs' ).renderFile );
 
 // Tell express that it is behind a proxy
 app.enable( 'trust proxy' );
@@ -105,7 +106,7 @@ app.use( bridgeWare.attachCORSHeaders() );
 app.use( bridgeWare.handleOptionsRequest() );
 
 //
-app.use( bridgeWare.parseBridgeHeader() );
+app.use( '/api/1.0/', bridgeWare.parseBridgeHeader() );
 
 //
 app.use( '/api/1.0/', bridgeWare.verifyRequestStructure() );

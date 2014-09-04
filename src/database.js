@@ -5,13 +5,17 @@ var crypto      = require( 'crypto' );
 var Q           = require( 'q' );
 var _           = require( 'lodash' )._;
 var revalidator = require( 'revalidator' );
-var server      = require( '../server' );
-var mailer      = require( './mailer' );
+var moment      = require( 'moment' );
+
+var server = require( '../server' );
+var mailer = require( './mailer' );
 
 var app         = server.app;
 var bridgeError = server.error;
 var config      = server.config;
 var connection  = null;
+
+var recoveryStateUserMap = {};
 
 connection = mysql.createConnection( server.config.database );
 
@@ -42,7 +46,7 @@ exports.authenticateRequest = function ( req ) {
 
         var request = req.headers.bridge;
 
-        connection.query( 'SELECT * FROM users WHERE lower(EMAIL) = lower(?)', [ request.email ], function ( err, rows ) {
+        connection.query( 'SELECT * FROM users WHERE EMAIL = lower(?) AND DELETED = ?', [ request.email, 0 ], function ( err, rows ) {
 
             if ( err ) {
                 var databaseError = bridgeError.createError( 403, 'Database query error', "Database query error. see log files for more information" );
@@ -70,7 +74,7 @@ exports.authenticateRequest = function ( req ) {
                 return;
             }
 
-            if ( user.STATUS !== 'normal' ) {
+            if ( user.STATUS !== 'normal' && user.STATUS !== 'recovery' ) {
                 var incorrectStatusError = bridgeError.createError( 403, 'Incorrect user state', "User is in the '" + ( user.STATUS ) + "' state" );
                 reject( incorrectStatusError );
                 return;
@@ -93,10 +97,10 @@ exports.registerUser = function ( req, user ) {
 
         var state = config.server.emailVerification ? 'created' : 'normal';
 
-        var hash = crypto.createHash( 'sha256' ).update( user.email + new Date() ).digest( 'hex' );
-
         // [Email, Password, First Name, Last Name, App Data, State, UserHash]
-        var userInsertionQuery = "INSERT INTO users VALUES (0, ?, ?, ?, ?, NOW(), ?, ?, \"user\", 0, ?, NOW())";
+        var userInsertionQuery = "INSERT INTO users VALUES (0, ?, ?, ?, ?, \"" +
+                moment.utc().format( 'YYYY-MM-DD HH:mm:ss' ) + "\", ?, ?, \"user\", 0, ?, \"" +
+                moment.utc().format( 'YYYY-MM-DD HH:mm:ss' ) + "\" )";
 
         var values = [  user.email.toLowerCase(),
                         user.password,
@@ -104,7 +108,7 @@ exports.registerUser = function ( req, user ) {
                         _.capitalize( user.lastName ),
                         JSON.stringify( user.appData ),
                         state,
-                        hash ];
+                        "" ];
 
         connection.query( userInsertionQuery, values, function ( err, retObj ) {
             if ( err ) {
@@ -233,7 +237,9 @@ exports.updateUser = function( req ) {
             return;
         }
 
-        updateFields.USER_HASH = crypto.createHash( 'sha256' ).update( req.bridge.user.EMAIL + new Date().toISOString() ).digest( 'hex' );
+        updateFields.LAST_UPDATED =  moment.utc().format( 'YYYY-MM-DD HH:mm:ss' );
+
+        updateFields.DELETED = 0;
 
         var query = "UPDATE users SET ";
         var values = [];
@@ -285,7 +291,7 @@ exports.verifyEmail = function ( req ) {
     return Q.Promise( function ( resolve, reject ) {
         var verifyEmailError;
 
-        var query = "SELECT * FROM users WHERE USER_HASH = ?";
+        var query = "SELECT * FROM users WHERE USER_HASH = ? AND DELETED = 0";
         var values = [ req.headers.bridge.content.hash ];
 
         connection.query( query, values, function ( err, rows ) {
@@ -335,8 +341,8 @@ exports.recoverPassword = function ( userHash, newPasswordHash ) {
     return Q.Promise( function ( resolve, reject ) {
         var recoverPasswordError;
 
-        var query = "SELECT * FROM users WHERE USER_HASH = ?";
-        var values = [ userHash ];
+        var query = "SELECT * FROM users WHERE USER_HASH = ? AND STATUS = ? AND DELETED = ?";
+        var values = [ userHash, 'recovery', 0 ];
 
         connection.query( query, values, function ( err, rows ) {
             if (err) {
@@ -353,8 +359,8 @@ exports.recoverPassword = function ( userHash, newPasswordHash ) {
                 return;
             }
 
-            var query2 = "UPDATE users SET PASSWORD = ? WHERE id = ?";
-            var values2 = [ newPasswordHash, rows[ 0 ].ID ];
+            var query2 = "UPDATE users SET PASSWORD = ?, STATUS = ?, USER_HASH = ? WHERE id = ?";
+            var values2 = [ newPasswordHash, 'normal', '', rows[ 0 ].ID ];
 
             connection.query( query2, values2, function ( err2, rows ) {
                 if ( err2 ) {
@@ -363,6 +369,10 @@ exports.recoverPassword = function ( userHash, newPasswordHash ) {
                     reject( recoverPasswordError );
                     return;
                 }
+
+                clearTimeout( recoveryStateUserMap[ rows[ 0 ].ID ] );
+                recoveryStateUserMap[ rows[ 0 ].ID ] = undefined;
+
                 resolve();
             } );
 
@@ -370,6 +380,67 @@ exports.recoverPassword = function ( userHash, newPasswordHash ) {
     } ); // end of promise
 };
 
+function clearUserHash( userID ) {
+
+    if ( _.isUndefined( recoveryStateUserMap[ userID ] ) ) {
+        return;
+    }
+
+    var query = "UPDATE users SET STATUS = ?, USER_HASH = ? WHERE ID = ?";
+    var values = [ 'normal', '', userID ];
+
+    connection.query( query, values, function( err, rows ) {
+        if ( err ) {
+            app.log.error( "Cannot clear user hash from user", userID, "Database Error: ", err );
+
+            return;
+        }
+
+        recoveryStateUserMap[ userID ] = undefined;
+
+    } );
+}
+
+/**
+ * The database responsibility that relate to a user making a forgot password request.
+ * @param  {String} email The email related to the user who is making the forgot password request.
+ * @return {Promise}      A Q style promise object.
+ */
+exports.forgotPassword = function( user ) {
+    return Q.Promise( function( resolve, reject ) {
+        var query = "UPDATE users SET STATUS = ?, USER_HASH = ? WHERE EMAIL = ? AND DELETED = ?";
+
+        var userHash = crypto.createHash( 'sha256' ).update( user.EMAIL + moment.utc().toISOString() ).digest( 'hex' );
+
+        var values = [ 'recovery', userHash, user.EMAIL, 0 ];
+
+        connection.query( query, values, function( err, rows ) {
+
+            if ( err ) {
+                reject( bridgeError.createError( 500, 'Database query error', "Database error, See log for more details" ) );
+                return;
+            }
+
+            recoveryStateUserMap[ user.ID ] = setTimeout( clearUserHash, config.accounts.recoveryStateDuration );
+
+            resolve();
+
+        } );
+    } );
+};
+
+/**
+ * Query the database for an arbitrary SQL statement with an arbitrary values to place into the
+ * database.
+ *
+ * @param  {String} query  The SQL statement to send to the database. (Can use a '?' character to
+ *                         be a placeholder for the values array.)
+ *
+ * @param  {Array}  values The array of values to replace the '?'s in the SQL statement. If a
+ *                         value is a string then it gets wrapped in quotes.
+ *
+ * @return {Promise}       A Q style promise object
+ */
 exports.query = function ( query, values ) {
     return Q.Promise( function ( resolve, reject ) {
 
@@ -407,6 +478,12 @@ exports.close = function() {
     connection.end();
 };
 
+/**
+ * Inserts data into the specified table using the values specified in the values array
+ * @param  {String} table  The name of the table in the database.
+ * @param  {Array}  values An array of values to insert into the database.
+ * @return {Promise}       A Q style promise object.
+ */
 exports.insertIntoTable = function( table, values ) {
     return Q.Promise( function( resolve, reject ){
 
@@ -422,7 +499,7 @@ exports.insertIntoTable = function( table, values ) {
             return;
         }
 
-        // Make sure the
+        // Make sure the values array is an array
         if ( !_.isArray( values ) ) {
             reject( bridgeError.createError( 500, "values must be an array" ) );
             return;
@@ -556,7 +633,7 @@ var selectQueryObjectSchema = {
  *
  * @return {Promise}                          A Q style promise object
  */
-exports.selectWithQueryObject = function(  selectQueryObj ) {
+exports.selectWithQueryObject = function( selectQueryObj ) {
     return Q.Promise( function( resolve, reject ) {
 
         if ( !selectQueryObj ) {

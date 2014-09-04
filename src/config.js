@@ -6,6 +6,7 @@ var winston     = require( 'winston' );
 var _           = require( 'lodash' )._;
 var revalidator = require( 'revalidator');
 var path        = require( 'path' );
+var moment      = require( 'moment' );
 
 var defaults = {
     server: {
@@ -41,12 +42,25 @@ var defaults = {
         }
     },
 
+    accounts: {
+        recoveryStateDuration: { days: 1 }
+    },
+
     mailer: {
         templateDirectory: "templates/email",
+
         verificationEmailSubject: "Bridge Example Email Verification",
-        verifyEmailViewName: "registrationTemplate.ejs",
-        recoveryEmailSubject: "Bridge Example Account Recovery",
-        recoverPasswordViewName: "recoverPasswordTemplate.ejs",
+        verificationViewName: "registrationTemplate.ejs",
+
+        recoverAccountEmailSubject: "Bridge Example Account Recovery",
+        recoverAccountViewName: "recoverPasswordTemplate.ejs",
+
+        updatedUserEmailSubject: "Bridge user account updated",
+        updatedUserViewName: "updatedUserTemplate.ejs",
+
+        welcomeEmailSubject: "Welcome to the site",
+        welcomeViewName: "welcomeTemplate.ejs",
+
         options: {
             from: "BridgeSMTPTest@gmail.com",
             host: "smtp.gmail.com",
@@ -229,6 +243,14 @@ var schema = {
             }
         },
 
+        accounts: {
+            recoveryStateDuration: {
+                type: 'object',
+                required: true,
+                allowEmpty: false
+            }
+        },
+
         mailer: {
             type: 'object',
             required: true,
@@ -246,19 +268,43 @@ var schema = {
                     allowEmpty: false
                 },
 
-                verifyEmailViewName: {
+                verificationViewName: {
                     type: 'string',
                     required: true,
                     allowEmpty: false
                 },
 
-                recoveryEmailSubject: {
+                recoverAccountEmailSubject: {
                     type: 'string',
                     required: true,
                     allowEmpty: false
                 },
 
-                recoverPasswordViewName: {
+                recoverAccountViewName: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                updatedUserEmailSubject: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                updatedUserViewName: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                welcomeEmailSubject: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                welcomeViewName: {
                     type: 'string',
                     required: true,
                     allowEmpty: false
@@ -289,6 +335,18 @@ var schema = {
                 type: 'number',
                 required: true,
                 allowEmpty: false
+            }
+        },
+
+        excelGenerator: {
+            type: 'object',
+            required: false,
+            properties: {
+                cachePath: {
+                    type: 'string',
+                    required: false,
+                    allowEmpty: false
+                }
             }
         }
 
@@ -336,6 +394,9 @@ var validation = revalidator.validate( config, schema );
 if ( validation.valid === false ) {
     winston.error( 'Configuration file is not valid and could not be loaded. Errors: ', JSON.stringify( validation.errors ) );
 } else {
+
+    config.accounts.recoveryStateDuration = moment.duration( config.accounts.recoveryStateDuration ).asMilliseconds();
+
     winston.info( 'Configuration file loaded successfully' );
 }
 

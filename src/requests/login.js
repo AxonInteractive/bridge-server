@@ -119,7 +119,8 @@ function sendReponse( req, res, appData ) {
                     lastName: user.LAST_NAME,
                     status: user.STATUS,
                     role: user.ROLE,
-                    appData: appData
+                    appData: appData,
+                    lognData: {}
                 },
 
                 time: new Date().toISOString()

@@ -30,7 +30,7 @@ exports.attachCORSHeaders = function () {
  * Handle CORS request. this is due to the proxy setup for the case of PEIR.
  * @param  {Object}    req The express request object.
  * @param  {Object}    res The express response object.
- * @return {Undefined}
+ * @return {Function}
  */
 exports.handleOptionsRequest = function () {
     app.log.debug( "Options request handler setup" );

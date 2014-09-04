@@ -105,7 +105,7 @@ function validateForgotPasswordRequest( req ) {
 function checkUserExists( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        var query = "SELECT EMAIL FROM users WHERE EMAIL = ?";
+        var query  = "SELECT EMAIL FROM users WHERE EMAIL = ?";
         var values = [ req.headers.bridge.content.message ];
 
         database.query( query, values )
@@ -116,7 +116,7 @@ function checkUserExists( req ) {
                     return;
                 }
 
-                resolve();
+                resolve( rows[ 0 ] );
             } )
             .fail( function ( err ) {
 
@@ -170,6 +170,10 @@ module.exports = function( req, res, next ) {
     // Check that the request user exists in the database
     .then( function() {
         return checkUserExists( req );
+    } )
+
+    .then( function( user ) {
+        return database.forgotPassword( user );
     } )
 
     // Send the email related to recovering the password
