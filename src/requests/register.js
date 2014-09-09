@@ -1,8 +1,10 @@
+/**@module request/register */
 "use strict";
 
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
 var _           = require( 'lodash' )._;
+var URLModule   = require( 'url' );
 
 var regex    = require( '../regex' );
 var error    = require( '../error' );
@@ -147,16 +149,59 @@ function getUserObject( req ) {
     } );
 }
 
-function sendVerificationEmail( req ) {
+/**
+ * Sends a email to verify a registration request.
+ * *NOTE* ONLY used when email verification is turned on.
+ *
+ * @param  {User} user A user object in the form of the DB Table relating to the user where each
+ *                     column is a variable my the column name.
+ *
+ * @return {Promise}   A Q style promise object
+ */
+function sendVerificationEmail( user ) {
     return Q.Promise( function ( resolve, reject ) {
+
         if ( config.server.emailVerification === true ) {
-            mailer.sendVerificationEmail( req )
-                .then( function () {
-                    resolve();
+
+            var viewName = config.mailer.verificationViewName;
+
+            var url = URLModule.format( {
+                protocol: config.server.mode,
+                host: config.server.hostname
+            } );
+
+            var variables = {
+                verificationURL    : url,
+                email              : user.email,
+                name               : _.capitalize( user.firstName + " " + user.lastName ),
+                unsubsribeURL      : "",
+                footerImageURL     : URLModule.parse( url + "resources/email/peir-footer.png"    ).href,
+                headerImageURL     : URLModule.parse( url + "resources/email/peir-header.png"    ).href,
+                backgroundImageURL : URLModule.parse( url + "resources/email/right-gradient.png" ).href
+            };
+
+            var mail = {
+                to      : user.email,
+                subject : config.mailer.verificationEmailSubject
+            };
+
+            mailer.sendMail( viewName, variables, mail )
+            .then( function() {
+                resolve();
+            } )
+            .fail( function( err ) {
+                database.query( "DELETE FROM users WHERE EMAIL = ?", [ user.email ] )
+                .then( function() {
+                    reject( err );
+                } )
+                .fail( function( dbErr ) {
+                    reject( 500, 'could not delete new user upon email failing to send', dbErr );
                 } );
+            } );
         } else {
             resolve();
         }
+
     } );
 }
 
@@ -201,9 +246,9 @@ module.exports = function ( req, res, next ) {
         return database.registerUser( req, user );
     } )
 
-    // Send the verification email
+    // Send the verification email using the user object
     .then( function () {
-        return sendVerificationEmail( req );
+        return sendVerificationEmail( req.bridge.user );
     } )
 
     // Send the successful response message

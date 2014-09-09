@@ -52,28 +52,28 @@ app.log.debug( "Template Path: " + path.resolve( dir ) );
  * Sends an email using a view and variables object to make an HTML document which is sent using
  * the mail objects properties.
  *
- * @param  {String} view      A string that is the file name of the view inside the template
+ * @param  {String} viewName  A string that is the file name of the view inside the template
  *                            directory specified in the configuration file.
+ *
+ * @param  {Object} variables An object that contains the variables to use when templating the view
  *
  * @param  {Object} mail      An object containing a to field and a subject field at its minimum.
  *                            can contain cc amoung others. They can be found at
  *                            "http://www.nodemailer.com/#e-mail-message-fields"
  *
- * @param  {Object} variables An object that contains the variables to use when templating the view
- *
  * @return {Promise}          A Q style promise object.
  */
-function sendMail ( view, mail, variables ) {
+exports.sendMail = function( viewName, variables, mail ) {
     return Q.Promise( function( resolve, reject ) {
 
         app.log.silly('send mail request recieved. Mail:', mail);
 
-        if ( !_.isString( view ) ) {
-            reject( error.createError( 500, 'view string is not a string', "View must be a string" ) );
+        if ( !_.isString( viewName ) ) {
+            reject( error.createError( 500, 'viewName string is not a string', "viewName must be a string" ) );
             return;
         }
 
-        app.render( view, variables, function( err, html ) {
+        app.render( viewName, variables, function( err, html ) {
 
             if ( err ) {
                 app.log.error( "Error occured rendering Email HTML. Error: ", err );
@@ -98,144 +98,5 @@ function sendMail ( view, mail, variables ) {
             } );
 
         } );
-    } );
-}
-
-/**
- * Sends a email to verify a registration request.
- * *NOTE* ONLY used when email verification is turned on.
- *
- * @param  {ExpressRequest} req  Express request object that is made when a request is made to the
- *                               server.
- *
- * @return {Promise}             A Q style promise object
- */
-exports.sendVerificationEmail = function( req ){
-    return Q.Promise( function( resolve, reject ) {
-
-        var user = req.bridge.user;
-
-        app.log.debug( "Sending verification email with User: ", user );
-
-        if ( _.isUndefined( user.email ) || _.isEmpty( user.email ) ) {
-            reject( error.createError(
-                500,
-                'Could not read user object',
-                "Email property could not be found on the user object"
-            ) );
-            return;
-        }
-
-        if ( config.server.emailVerification === false ) {
-            app.log.verbose( "sending a verification email while the server is not in verification mode" );
-        }
-
-        var url = config.server.mode + "://" + config.server.hostname;
-
-        url = URLmodule.parse(url).href;
-
-        var mail = {
-            to                : user.email,
-            subject           : config.mailer.verificationEmailSubject
-        };
-
-        var variables = {
-            verificationURL : url,
-            email             : user.email,
-            name              : _.capitalize( user.firstName + " " + user.lastName ),
-            unsubscribeURL    : "",
-            footerImageURL    : URLmodule.parse( url + "resources/email/peir-footer.png"    ).href,
-            headerImageURL    : URLmodule.parse( url + "resources/email/peir-header.png"    ).href,
-            backgroundImageURL: URLmodule.parse( url + "resources/email/right-gradient.png" ).href
-        };
-
-        var view = config.mailer.verificationViewName;
-
-        app.log.debug( "Sending Verification Email" );
-
-        sendMail( view, mail, variables )
-        .then( function() {
-            resolve();
-        })
-        .fail( function( err ) {
-            database.query( "DELETE FROM users WHERE EMAIL = ?", [ user.email ] )
-            .then( function() {
-                reject( err );
-            } )
-            .fail ( function( dbErr ) {
-                reject( 500, 'could not delete new user upon email failing to send', dbErr );
-            } );
-        } );
-    } );
-};
-
-exports.sendRecoveryEmail = function( req ) {
-    return Q.Promise( function( resolve, reject ) {
-
-        var user = req.bridge.user;
-
-        app.log.debug( "Sending forgot password email for user:" + user );
-
-        if (_.isUndefined( user.email ) || _.isEmpty( user.email ) ) {
-            reject( error.createError(
-                500,
-                'Could not read user object',
-                "Email property could not be found on the user object"
-            ) );
-            return;
-        }
-
-        if ( config.server.emailVerification === false ) {
-            app.log.verbose( "sending a verification email while the server is not in verification mode" );
-        }
-
-        var url = config.server.mode + "://" + config.server.hostname;
-
-        url = URLmodule.parse(url).href;
-
-        var mail = {
-            to: user.email,
-            subject: config.mailer.recoverAccountEmailSubject
-        };
-
-        var variables = {
-            email             : user.email,
-            name              : _.capitalize( user.firstName + " " + user.lastName ),
-            footerImageURL    : URLmodule.parse( url + "resources/email/peir-footer.png"    ).href,
-            headerImageURL    : URLmodule.parse( url + "resources/email/peir-header.png"    ).href,
-            backgroundImageURL: URLmodule.parse( url + "resources/email/right-gradient.png" ).href
-        };
-
-        var view = config.mailer.recoverAccountViewName;
-
-        app.log.debug( "Send forgot password recovery email" );
-
-        sendMail( view, mail, variables )
-        .then( function() {
-            resolve();
-        } )
-        .fail( function( err ) {
-            reject( err );
-        } );
-
-        resolve();
-    } );
-};
-
-exports.sendUpdatedAccountEmail = function( req ) {
-    return Q.Promise( function ( resolve, reject ) {
-
-        var user = req.bridge.user;
-
-        resolve();
-    } );
-};
-
-exports.sendWelcomeEmail = function( req ) {
-    return Q.Promise( function ( resolve, reject ) {
-
-        var user = req.bridge.user;
-
-        resolve();
     } );
 };

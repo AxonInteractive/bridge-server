@@ -131,6 +131,35 @@ var schema = {
                     allowEmpty: false
                 },
 
+                protectedResources: {
+                    type: 'array',
+                    required: false,
+                    items: {
+                        type: 'object',
+                        required: true,
+                        properties: {
+
+                            path: {
+                                type: 'string',
+                                required: true,
+                                allowEmpty: false
+                            },
+
+                            roles: {
+                                type: ['array'],
+                                required: true,
+                                allowEmpty: false,
+                                items: {
+                                    type: 'string',
+                                    required: true,
+                                    enum: [ 'user', 'admin' ]
+                                }
+                            }
+
+                        }
+                    }
+                },
+
                 indexPath: {
                     type: 'string',
                     required: true,
@@ -380,6 +409,14 @@ if ( fs.existsSync( 'BridgeConfig.json' ) ) {
     // Use the complete user configuration object to make a complete configuration object
     config = _.merge( defaults, userConfig );
 
+    if ( config.server.protectedResources ) {
+        _( config.server.protectedResources ).forEach( function ( element ) {
+            if ( _.isString( element.roles ) ) {
+                element.roles = [ element.roles ];
+            }
+        } );
+    }
+
 }
 // If no user config can be loaded make a default one
 else {
@@ -396,6 +433,13 @@ if ( validation.valid === false ) {
 } else {
 
     config.accounts.recoveryStateDuration = moment.duration( config.accounts.recoveryStateDuration ).asMilliseconds();
+
+    // If protected folders exists then iterate the set and normalize each path.
+    if ( _.has( config.server, 'protectedResources' ) ) {
+        _( config.server.protectedResources ).forEach( function( element, index ) {
+            config.server.protectedResources[ index ].path = element.path.replace( '\\', '/' );
+        } );
+    }
 
     winston.info( 'Configuration file loaded successfully' );
 }

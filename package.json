@@ -30,7 +30,8 @@
     "underscore.string": "^2.3.3",
     "moment": "^2.8.2",
     "nodemailer": "^1.2.1",
-    "nodemailer-smtp-transport": "^0.1.12"
+    "nodemailer-smtp-transport": "^0.1.12",
+    "on-headers": "^1.0.0"
   },
   "devDependencies": {}
 }

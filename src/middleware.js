@@ -1,9 +1,12 @@
 "use strict";
-
 var revalidator = require( 'revalidator' );
 var crypto      = require( 'crypto' );
 var _           = require( 'lodash' )._;
 var moment      = require( 'moment' );
+var path        = require( 'path' );
+var express     = require( 'express' );
+var fs          = require( 'q-io/fs' );
+var Q           = require( 'q' );
 
 var server = require( '../server' );
 var regex  = require( './regex' );
@@ -11,6 +14,7 @@ var regex  = require( './regex' );
 var error    = server.error;
 var database = server.database;
 var app      = server.app;
+var config   = server.config;
 
 /**
  * Add the nessesary CORS headers to the response object.
@@ -53,27 +57,38 @@ exports.handleOptionsRequest = function () {
     };
 };
 
+function parseBridgeHeader( req, res, next ) {
+    var bridgeRequestObject;
+
+    if ( _.isUndefined( req.headers.bridge ) ) {
+        next( error.createError(
+            400,
+            'Request missing bridge header',
+            "No header exists on request for bridge"
+         ) );
+
+        return;
+    }
+
+    try {
+        bridgeRequestObject = JSON.parse( req.headers.bridge );
+    } catch ( err ) {
+        next( error.createError( 400, 'Could not parse bridge header as JSON', err ) );
+        return;
+    }
+
+    req.headers.bridge = bridgeRequestObject;
+
+    req.bridge = {};
+
+    next();
+}
+
 exports.parseBridgeHeader = function() {
     app.log.debug( "Bridge header parser setup" );
-    return function( req, res, next ) {
-
-        var bridgeRequestObject;
-
-        try {
-            bridgeRequestObject = JSON.parse( req.headers.bridge );
-        }
-        catch (err) {
-            next( err );
-            return;
-        }
-
-        req.headers.bridge = bridgeRequestObject;
-
-        req.bridge = {};
-
-        next();
-    };
+    return parseBridgeHeader;
 };
+
 
 function checkHmacSignature( req, hmacSalt ) {
 
@@ -137,41 +152,59 @@ var bridgeRequestSchema = {
  * @param  {Object}   res  The express response object.
  * @param  {Function} next The function to call when this function is complete
  */
-exports.verifyRequestStructure = function () {
-    app.log.debug( "Bridge request structure middleware setup" );
-    return function ( req, res, next ) {
+function verifyRequestStructure( req, res, next ) {
 
-        var validation = revalidator.validate( req.headers.bridge, bridgeRequestSchema );
-        var vrsError;
+    if ( !_.isObject( req.headers.bridge ) ) {
+        next( error.createError( 500, 'request header bridge is not an object' ) );
+    }
 
-        if ( validation.valid === false ) {
-            var firstError = validation.errors[ 0 ];
+    var validation = revalidator.validate( req.headers.bridge, bridgeRequestSchema );
+    var vrsError;
 
-            var errorCode = 'Basic request structure malformed';
+    if ( !validation.valid ) {
+        var firstError = validation.errors[ 0 ];
 
-            if ( firstError.property === 'email' ) {
-                errorCode = 'Invalid email format';
-            } else if ( firstError.property === 'time' ) {
-                errorCode = 'Invalid time format';
-            } else if ( firstError.property === 'HMAC' ) {
-                errorCode = 'Invalid HMAC format';
-            }
+        var errorCode = 'Basic request structure malformed';
 
-            vrsError = error.createError( 400, errorCode, "Property " + firstError.property + " - " + firstError.message + "\n" + "Error Obj: " + JSON.stringify(validation.errors) );
+        if ( firstError.property === 'email' ) {
+            errorCode = 'Invalid email format';
+        } else if ( firstError.property === 'time' ) {
+            errorCode = 'Invalid time format';
+        } else if ( firstError.property === 'HMAC' ) {
+            errorCode = 'Invalid HMAC format';
+        }
+
+        vrsError = error.createError( 400, errorCode, "Property " + firstError.property + " - " + firstError.message + "\n" + "Error Obj: " + JSON.stringify( validation.errors ) );
+
+        next( vrsError );
+        return;
+    }
+
+    req.bridge.isAnon = ( req.headers.bridge.email === "" );
+
+    var hmacSalt;
+
+    if ( req.bridge.isAnon ) {
+        hmacSalt = "";
+
+        if ( !checkHmacSignature( req, hmacSalt ) ) {
+            vrsError = error.createError( 400, 'HMAC failed', 'HMAC check failed for anonymous request. *Caught in middleware*' );
 
             next( vrsError );
             return;
         }
 
-        req.bridge.isAnon = ( req.headers.bridge.email === "" );
+        req.bridge.structureVerified = true;
+        next();
+        return;
+    } else {
 
-        var hmacSalt;
-
-        if ( req.bridge.isAnon === true ) {
-            hmacSalt = "";
+        database.authenticateRequest( req )
+        .then( function () {
+            hmacSalt = req.bridge.user.PASSWORD;
 
             if ( !checkHmacSignature( req, hmacSalt ) ) {
-                vrsError = error.createError( 400, 'HMAC failed', 'HMAC check failed for anonymous request. *Caught in middleware*' );
+                vrsError = error.createError( 400, 'HMAC failed', 'HMAC check failed for authenticated request. *Caught in middleware*' );
 
                 next( vrsError );
                 return;
@@ -179,28 +212,111 @@ exports.verifyRequestStructure = function () {
 
             req.bridge.structureVerified = true;
             next();
-            return;
-        } else {
+        } )
+        .fail( function ( err ) {
+            next( err );
 
-            database.authenticateRequest( req )
-                .then( function () {
-                    hmacSalt = req.bridge.user.PASSWORD;
+        } );
+    }
+}
 
-                    if ( !checkHmacSignature( req, hmacSalt ) ) {
-                        vrsError = error.createError( 400, 'HMAC failed', 'HMAC check failed for authenticated request. *Caught in middleware*' );
+exports.verifyRequestStructure = function () {
+    app.log.debug( "Bridge request structure middleware setup" );
+    return verifyRequestStructure;
+};
 
-                        next( vrsError );
-                        return;
-                    }
+/**
+ * Statically hosts file based on the configuration file settings.
+ * @return {Function} Express middleware style function.
+ */
+exports.staticHostFiles = function () {
+    app.log.debug( "Static file hosting setup!" );
+    var staticHost = express.static( path.resolve( config.server.wwwRoot ) );
 
-                    req.bridge.structureVerified = true;
-                    next();
-                } )
-                .fail( function ( err ) {
-                    next( err );
+    return function ( req, res, next ) {
 
+        var protectedObject;
+
+        //  Determine if the request is a protected. if so get the protected object related to it
+        Q.fcall( function() {
+
+            // if there is no protected Resources array just act like normal
+            if ( !_.has( config.server, 'protectedResources' ) ) {
+                staticHost( req, res, next );
+                return;
+            }
+
+            // Find if the req is asking for a path that is protected
+            _( config.server.protectedResources ).forEach( function ( element, index ) {
+                if ( req.path.indexOf( element.path ) > -1 ) {
+                    protectedObject = element;
+                    return false;
+                }
+            } );
+
+            // if the path was not found under the list of protected routes statically host like normal
+            if ( !protectedObject ) {
+                staticHost( req, res, next );
+                return;
+            }
+
+            Q.fcall( function() {
+                return Q.Promise( function( resolve, reject ) {
+                    parseBridgeHeader( req, res, function ( err ) {
+                        if ( err ) {
+                            reject( err );
+                            return;
+                        }
+
+                        resolve();
+                    } );
                 } );
-        }
+            } )
+            .then( function() {
+                return Q.Promise( function( resolve, reject ) {
+                    verifyRequestStructure( req, res, function( err ) {
+                        if ( err ) {
+                            reject( err );
+                            return;
+                        }
+
+                        resolve();
+                    } );
+                } );
+            } )
+            .then( function() {
+                // If the request was anonymous then they cannot access content
+                if ( req.bridge.isAnon ) {
+                    throw error.createError( 403, 'cannot access content', "Cannot access protected content" );
+                }
+
+                // Check to see if the user role is in the protectedObjects list of acceptable roles
+                var found = _.find( protectedObject.roles, function ( element ) {
+                    if ( element === req.bridge.user.ROLE ) {
+                        return element;
+                    }
+                } );
+
+                // If the role was not found send a 401 Unauthorized error
+                if ( !found ) {
+                    throw error.createError(
+                        401,
+                        'insufficient privileges to access content',
+                        "User role is not on the list of acceptable roles for this resource"
+                    );
+                }
+
+                // If the user checks ouw as privileged to receive this content send the content.
+                staticHost( req, res, next );
+                return;
+            } )
+            .fail( function( err ) {
+                next( err );
+            } );
+        } )
+        .fail( function( err ) {
+            next( err );
+        } );
     };
 };
 
@@ -256,6 +372,7 @@ exports.bridgeErrorHandler = function () {
                 }
             } );
         }
-        next( errContext );
+
+        //next( errContext );
     };
 };

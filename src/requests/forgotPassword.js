@@ -3,12 +3,14 @@
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
 var _           = require( 'lodash' )._;
+var URLModule   = require( 'url' );
 
-var regex    = require( '../regex' );
-var error    = require( '../error' );
-var mailer   = require( '../mailer' );
-var database = require( '../database' );
-var util     = require( '../../server').util;
+var regex    = require( '../regex'     );
+var error    = require( '../error'     );
+var mailer   = require( '../mailer'    );
+var database = require( '../database'  );
+var util     = require( '../../server' ).util;
+var config   = require( '../../server' ).config;
 
 var schema = {
     properties: {
@@ -116,6 +118,8 @@ function checkUserExists( req ) {
                     return;
                 }
 
+                req.bridge.user = rows[ 0 ];
+
                 resolve( rows[ 0 ] );
             } )
             .fail( function ( err ) {
@@ -126,17 +130,50 @@ function checkUserExists( req ) {
     } );
 }
 
-function sendForgotPasswordEMail( req ) {
+/**
+ * Sends a forgot password email to the users registered email.
+ *
+ * @param  {User} user A user object in the form of the DB Table relating to the user where each
+ *                     column is a variable my the column name.
+ *
+ * @return {Promise}   A Q style promise object
+ */
+function sendForgotPasswordEMail( user ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        // Prep the user object for the forgot password email
-        req.bridge.user = {
-            email: req.headers.bridge.content.message
+        var viewName = config.mailer.recoverAccountViewName;
+
+        var url = URLModule.format( {
+            protocol: config.server.mode,
+            host: config.server.hostname,
+        } );
+
+        var footerURL = URLModule.resolve( url, 'resources/email/peir-footer.png' );
+        var headerURL = URLModule.resolve( url, 'resources/email/peir-header.png' );
+        var backgroundURL = URLModule.resolve( url, 'resources/email/right-gradient.png' );
+
+        var variables = {
+            email: user.EMAIL,
+            name : _.capitalize( user.FIRST_NAME + " " + user.LAST_NAME ),
+            footerImageURL: footerURL,
+            headerImageURL: headerURL,
+            backgroundImageURL: backgroundURL,
+            recoveryURL: ""
         };
 
-        mailer.sendForgotPasswordEMail( req );
+        var mail = {
+            to: user.EMAIL,
+            subject: config.mailer.recoverAccountEmailSubject
+        };
 
-        resolve();
+        mailer.sendMail( viewName, variables, mail )
+        .then( function() {
+            resolve();
+        } )
+        .fail( function( err ) {
+            reject( err );
+        } );
+
     } );
 }
 
@@ -178,7 +215,7 @@ module.exports = function( req, res, next ) {
 
     // Send the email related to recovering the password
     .then( function () {
-        return sendForgotPasswordEMail( req );
+        return sendForgotPasswordEMail( req.bridge.user );
     } )
 
     // Send the success response

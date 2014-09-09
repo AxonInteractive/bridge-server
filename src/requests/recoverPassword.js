@@ -1,12 +1,16 @@
+/** @module request/recoverPassword */
 "use strict";
 
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
+var URLModule   = require( 'url' );
 
-var regex = require( '../regex' );
-var error = require( '../error' );
-var util   = require( '../utilities' );
-var database = require( '../database' );
+var regex    = require( '../regex'     );
+var error    = require( '../error'     );
+var util     = require( '../utilities' );
+var database = require( '../database'  );
+var config   = require( '../config'    );
+var mailer   = require( '../mailer'    );
 
 var _ = require('lodash')._;
 
@@ -130,6 +134,52 @@ function validateRecoverPasswordRequest( req ) {
     } );
 }
 
+/**
+ * Sends a password updated email to the related user using the user object and the configuration
+ * file to make the email
+ *
+ * @param  {User} user A user object in the form of the DB Table relating to the user where each
+ *                     column is a variable my the column name.
+ * @return {Promise}   A Q style promise object
+ */
+function sendPasswordUpdateEmail( user ) {
+    return Q.Promise( function( resolve, reject ) {
+
+        var url = URLModule.format( {
+            protocol: config.server.mode,
+            host: config.server.hostname
+        } );
+
+        var viewName = config.mailer.recoverAccountViewName;
+
+        var mail = {
+            to: user.EMAIL,
+            subject: config.mailer.recoverAccountEmailSubject
+        };
+
+        var footerImageURL     = URLModule.resolve( url, 'resources/email/peir-footer.png' );
+        var headerImageURL     = URLModule.resolve( url, 'resources/email/peir-header.png' );
+        var backgroundImageURL = URLModule.resolve( url, 'resources/email/right-gradient.png' );
+
+        var variables = {
+            email: user.EMAIL,
+            name: _.capitalize( user.FIRST_NAME + " " + user.LAST_NAME ),
+            footerImageURL: footerImageURL,
+            headerImageURL: headerImageURL,
+            backgroundImageURL: backgroundImageURL
+        };
+
+        mailer.sendMail( viewName, variables, mail )
+        .then( function() {
+            resolve();
+        } )
+        .fail( function( err ) {
+            reject( err );
+        } );
+
+    } );
+}
+
 function sendReponse( res ) {
     return Q.Promise( function( resolve, reject ) {
 
@@ -161,8 +211,16 @@ module.exports = function ( req, res, next ) {
         return validateRecoverPasswordRequest( req );
     } )
 
+    // Attempt to set the password to the new password after verifying the user hash.
     .then( function() {
-        return database.recoverPassword( req.headers.bridge.content.hash, req.headers.bridge.content.message );
+        var userHash = req.headers.bridge.content.hash;
+        var newPassword = require.headers.bridge.content.message;
+        return database.recoverPassword( userHash, newPassword, req );
+    } )
+
+    // Send the updated password email
+    .then( function() {
+        return sendPasswordUpdateEmail( req.bridge.user );
     } )
 
     // Send the success response

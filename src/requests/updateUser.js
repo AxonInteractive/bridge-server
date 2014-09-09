@@ -1,13 +1,17 @@
+/** @module request/updateUser */
 "use strict";
 
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
 var _           = require( 'lodash' )._;
+var URLModule   = require( 'url' );
 
 var regex    = require( '../regex' );
 var error    = require( '../error' );
 var database = require( '../database' );
 var util     = require( '../utilities');
+var mailer   = require( '../mailer' );
+var config   = require( '../config' );
 
 var schema = {
     properties: {
@@ -132,6 +136,52 @@ function validateUpdateUserRequest( req ) {
     } );
 }
 
+/**
+ * Send a email notifiying the owner of the account that their user information has been updated.
+ *
+ * @param  {User} user A user object in the form of the DB Table relating to the user where each
+ *                     column is a variable my the column name.
+ *
+ * @return {Promise}   A Q style promise object
+ */
+function sendUpdatedUserEmail( user ) {
+    return Q.Promise( function( resolve, reject ) {
+
+        var url = URLModule.format( {
+            protocol: config.server.mode,
+            name: config.server.hostname
+        } );
+
+        var mail = {
+            to: user.EMAIL,
+            subject: config.mailer.recoverAccountEmailSubject
+        };
+
+        var viewName = config.mailer.recoverAccountViewName;
+
+        var footerImageURL     = URLModule.resolve( url, 'resources/email/peir-footer.png'    );
+        var headerImageURL     = URLModule.resolve( url, 'resources/email/peir-header.png'    );
+        var backgroundImageURL = URLModule.resolve( url, 'resources/email/right-gradient.png' );
+
+        var variables = {
+            email: user.EMAIL,
+            name: _.capitalize( user.FIRST_NAME + ' ' + user.LAST_NAME ),
+            footerImageURL: footerImageURL,
+            headerImageURL: headerImageURL,
+            backgroundImageURL: backgroundImageURL
+        };
+
+        mailer.sendMail( viewName, variables, mail )
+        .then( function() {
+            resolve();
+        } )
+        .fail( function( err ){
+            reject( err );
+        } );
+
+    } );
+}
+
 function sendResponse( res ) {
     return Q.Promise( function( resolve, reject ) {
 
@@ -166,6 +216,10 @@ module.exports = function ( req, res, next ) {
     // Update the user object inside of the database.
     .then( function () {
         return database.updateUser( req );
+    } )
+
+    .then( function() {
+        return sendUpdatedUserEmail( req.bridge.user );
     } )
 
     // Send the successful response message

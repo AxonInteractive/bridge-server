@@ -316,6 +316,8 @@ exports.verifyEmail = function ( req ) {
                 return;
             }
 
+            req.bridge.user = rows[ 0 ];
+
             var query2 = "UPDATE users SET STATUS = 'normal' WHERE id = ?";
             var values2 = [ rows[ 0 ].ID ];
 
@@ -333,11 +335,21 @@ exports.verifyEmail = function ( req ) {
 };
 
 /**
- * Recover password database function
- * @method recoverPassword
- * @param  {[type]}        req [description]
+ * Recovers a password. this is the follow up of a forgot password request. This will check the
+ * user hash of the request with the user hash on the account. if the hashs are the same then this
+ * request is authenticated and authorized to set the password of the related email.
+ *
+ * @param  {String}         userHash        The user hash to check agianist in the database.
+ *
+ * @param  {String}         newPasswordHash New password hash to replace the old password in the
+ *                                          database
+ *
+ * @param  {ExpressRequest} req             The express request object that is made when a request
+ *                                          is made to the server.
+ *
+ * @return {Promise}                        A Q style promise object
  */
-exports.recoverPassword = function ( userHash, newPasswordHash ) {
+exports.recoverPassword = function ( userHash, newPasswordHash, req ) {
     return Q.Promise( function ( resolve, reject ) {
         var recoverPasswordError;
 
@@ -358,6 +370,8 @@ exports.recoverPassword = function ( userHash, newPasswordHash ) {
                 reject( recoverPasswordError );
                 return;
             }
+
+            req.bridge.user = rows[ 0 ];
 
             var query2 = "UPDATE users SET PASSWORD = ?, STATUS = ?, USER_HASH = ? WHERE id = ?";
             var values2 = [ newPasswordHash, 'normal', '', rows[ 0 ].ID ];

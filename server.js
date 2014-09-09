@@ -11,6 +11,7 @@ var lodash     = require( 'lodash'      );
 var winston    = require( 'winston'     );
 var Q          = require( 'q'           );
 var bodyParser = require( 'body-parser' );
+var onHeaders  = require( 'on-headers'  );
 
 Q.longStackSupport = true;
 
@@ -82,22 +83,35 @@ app.enable( 'trust proxy' );
 ///////    STARTING SETUP OF MIDDLEWARE    //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
-app.use( express.static( path.resolve( config.server.wwwRoot ) ) );
 
-// Automatically parse the body to JSON
-app.use( bodyParser.json() );
+
+app.use( function( req, res, next ) {
+    onHeaders( res, function() {
+        app.log.silly( 'Response headers: ', res._headers );
+    } );
+    next();
+} );
 
 app.use( function ( req, res, next ) {
 
-    app.log.silly( "Received non static Request: ", {
+    app.log.silly( "Received Request: ", {
         RequestBody: req.body,
         BridgeHeader: req.get( 'bridge' ),
         Method: req.method,
-        Resource: req.path
+        Resource: req.path,
+        Secure: req.secure,
+        XHR: req.xhr,
+        Protocol: req.protocol
     } );
 
     next();
 } );
+
+// Static hosting Middleware
+app.use( bridgeWare.staticHostFiles() );
+
+// Automatically parse the body to JSON
+app.use( bodyParser.json() );
 
 // Add the CORS headers to the response
 app.use( bridgeWare.attachCORSHeaders() );
@@ -116,11 +130,12 @@ routes.setup();
 
 setTimeout( function () {
 
-    app.use( '/api/1.0/', bridgeWare.bridgeErrorHandler() );
+    app.use( bridgeWare.bridgeErrorHandler() );
 
     app.all( '*', function ( req, res, next ) {
 
         if ( _.has( res, 'finished' ) && res.finished === true ) {
+
             next();
             return;
         }
@@ -143,6 +158,8 @@ setTimeout( function () {
 
         return;
     } );
+
+    app.log.info( "Server is now running!" );
 
 }, 1000 );
 

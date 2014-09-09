@@ -1,13 +1,17 @@
+/**@module request/verifyEmail */
 "use strict";
 
 var revalidator = require( "revalidator" );
 var Q           = require( 'q' );
 var _           = require( 'lodash' )._;
+var URLModule   = require( 'url' );
 
-var regex    = require( '../regex' );
-var error    = require( '../error' );
+var regex    = require( '../regex'    );
+var error    = require( '../error'    );
 var database = require( '../database' );
 var util     = require( '../utilities');
+var config   = require( '../config'   );
+var mailer   = require( '../mailer'   );
 
 var schema = {
     properties: {
@@ -100,6 +104,44 @@ function validateVerifyEmailRequest( req ) {
     } );
 }
 
+function sendWelcomeEmail( user ) {
+    return Q.Promise( function( resolve, reject ) {
+
+        var url = URLModule.format( {
+            protocol: config.server.mode,
+            host: config.server.hostname
+        } );
+
+        var viewName = config.mailer.welcomeViewName;
+
+        var mail = {
+            to: user.EMAIL,
+            subject: config.mailer.welcomeEmailSubject
+        };
+
+        var footerImageURL     = URLModule.resolve( url, 'resources/email/peir-footer.png'    );
+        var headerImageURL     = URLModule.resolve( url, 'resources/emali/peir-header.png'    );
+        var backgroundImageURL = URLModule.resolve( url, 'resources/email/right-gradient.png' );
+
+        var variables = {
+            email: user.EMAIL,
+            name: _.capitalize( user.FIRST_NAME + ' ' + user.LAST_NAME ),
+            footerImageURL: footerImageURL,
+            headerImageURL: headerImageURL,
+            backgroundImageURL: backgroundImageURL
+        };
+
+        mailer.sendMail( viewName, variables, mail )
+        .then( function() {
+            resolve();
+        } )
+        .fail( function( err ) {
+            reject( err );
+        } );
+
+    } );
+}
+
 function sendResponse( res ) {
     return Q.Promise( function ( resolve, reject ) {
 
@@ -129,6 +171,10 @@ module.exports = function ( req, res, next ) {
     // Verify the email in the datebase
     .then( function () {
         return database.verifyEmail( req );
+    } )
+
+    .then( function() {
+        return sendWelcomeEmail( req.bridge.user );
     } )
 
     // Send the successful response message

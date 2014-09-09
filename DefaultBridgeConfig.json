@@ -18,6 +18,11 @@
          // The path to the root foler to be hosted by the server
         "wwwRoot": "client/",
 
+        // The list of folders that require you to be logged into to access
+        // "protectedFolders": [
+        //     //{ "path": "resources/audio", "roles": [ 'user', 'admin' ] }
+        // ],
+
         // The path to the index.html file to host from wwwRoot
         "indexPath": "index.html",
 
