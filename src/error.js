@@ -16,48 +16,70 @@ var schema = {
             type: 'string',
             allowEmpty: false,
             required: true
-            // enum: [
-            //         'Basic request structure malformed',
-            //         'Could not determine filters for GET request',
-            //         'Database query error',
-            //         'Email already used',
-            //         'Email not found',
-            //         'Failed to authenticate anonymous request',
-            //         'Filter is not a string',
-            //         'HMAC failed',
-            //         'Incorrect user state',
-            //         'Invalid email format',
-            //         'Invalid first name format',
-            //         'Invalid HMAC format',
-            //         'Invalid last name format',
-            //         'Invalid password format',
-            //         'Invalid time format',
-            //         'Invalid user hash format',
-            //         'Malformed forgot password request',
-            //         'Malformed login request',
-            //         'Malformed recover password request',
-            //         'Malformed update user request',
-            //         'Malformed verify email request',
-            //         'Need authentication',
-            //         'Request JSON failed to parse',
-            //         'Request structure unverified',
-            //         'User appData could not parse to JSON',
-            //         'User not found'
-            //     ]
+        },
+
+        debugMessage: {
+            required: true
         }
     }
 };
 
-exports.createError = function ( httpCode, errorCode, debugMessage ) {
+/**
+ * An object that has keys that match a error code which is an integer.
+ * @type {Object}
+ */
+exports.errorCodeMap = {
+    "malformedBridgeHeader"   : 1,
+    "databaseError"           : 2,
+    "emailInUse"              : 3,
+    "authFailedAnon"          : 4,
+    "hmacMismatch"            : 5,
+    "incorrectUserState"      : 6,
+    "emailInvalid"            : 7,
+    "firstNameInvalid"        : 8,
+    "hashInvalid"             : 9,
+    "lastNameInvalid"         : 10,
+    "passwordInvalid"         : 11,
+    "timeInvalid"             : 12,
+    "userHashInvalid"         : 13,
+    "mustBeLoggedIn"          : 14,
+    "structureMustBeVerified" : 15,
+    "appDataIsNotJSON"        : 16,
+    "userNotFound"            : 17,
+    "internalServerError"     : 18,
+    "missingBridgeHeader"     : 19,
+    "bridgeHeaderIsNotJSON"   : 20,
+    "protectedAuthFailed"     : 21,
+    "protectedMustBeLoggedIn" : 22,
+    "malformedRequest"        : 23,
+    "museBeAnonymous"         : 24
+};
+
+/**
+ * Created a error object based on the inputs of the function. you can extend the errorCodes by
+ * editing this modules errorCodeMap object.
+ *
+ * @param  {Integer}     httpCode     The http status code that is to be sent with the response
+ *
+ * @param  {String}      errorString  The error code string that is a key to the errorCodeMap
+ *
+ * @param  {Anything}    debugMessage An extra variable to be sent along with the response
+ *
+ * @return {ErrorObject}              The error object to be used with expresses error handler.
+ */
+exports.createError = function ( httpCode, errorString, debugMessage ) {
+
+    var errorCode = exports.errorCodeMap[ errorString ];
+
+    if ( !errorCode ) {
+        app.log.warn( "error '" + errorString + "' was not found in the errorMap" );
+    }
 
     var error = {
         status: httpCode,
-        errorCode: errorCode
+        errorCode: errorCode || errorCode.internalServerError,
+        debugMessage: debugMessage || ""
     };
-
-    if ( debugMessage ) {
-        error.message = debugMessage;
-    }
 
     var validate = revalidator.validate( error, schema );
 

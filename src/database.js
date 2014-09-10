@@ -38,7 +38,7 @@ exports.authenticateRequest = function ( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
         if ( req.bridge.isAnon === true ) {
-            var authenticationError = bridgeError.createError( 500, 'Failed to authenticate anonymous request', "Cannot authenticate" );
+            var authenticationError = bridgeError.createError( 500, 'authFailedAnon', "Cannot authenticate an anonymous request" );
 
             reject( authenticationError );
             return;
@@ -49,13 +49,14 @@ exports.authenticateRequest = function ( req ) {
         connection.query( 'SELECT * FROM users WHERE EMAIL = lower(?) AND DELETED = ?', [ request.email, 0 ], function ( err, rows ) {
 
             if ( err ) {
-                var databaseError = bridgeError.createError( 403, 'Database query error', "Database query error. see log files for more information" );
+                var databaseError = bridgeError.createError( 403, 'databaseError', "Database query error. see log files for more information" );
+                app.log.error( 'Database query error: ', err );
                 reject( databaseError );
                 return;
             }
 
             if ( rows.length === 0 ) {
-                var resultError = bridgeError.createError( 403, 'Email not found', "User not found for that email" );
+                var resultError = bridgeError.createError( 403, 'userNotFound', "User not found for that email" );
                 reject( resultError );
                 return;
             }
@@ -69,13 +70,13 @@ exports.authenticateRequest = function ( req ) {
 
 
             if ( valHmac !== request.hmac ) {
-                var hmacError = bridgeError.createError( 403, 'HMAC failed', "Failed hmac check" );
+                var hmacError = bridgeError.createError( 403, 'hmacMismatch', "Failed hmac check" );
                 reject( hmacError );
                 return;
             }
 
             if ( user.STATUS !== 'normal' && user.STATUS !== 'recovery' ) {
-                var incorrectStatusError = bridgeError.createError( 403, 'Incorrect user state', "User is in the '" + ( user.STATUS ) + "' state" );
+                var incorrectStatusError = bridgeError.createError( 403, 'incorrectUserState', "User is in the '" + ( _.capitalize( user.STATUS ) ) + "' state" );
                 reject( incorrectStatusError );
                 return;
             }
@@ -114,31 +115,13 @@ exports.registerUser = function ( req, user ) {
             if ( err ) {
 
                 if ( err.code === "ER_DUP_ENTRY" ) {
-                    var dupEntryError = bridgeError.createError( 409, 'Email already used', "The email that was enter has already been taken by another user" );
-
-                    app.log.debug( {
-                        Error: JSON.stringify( dupEntryError ),
-                        Reason: "Email that was to be registered was not unique",
-                        Query: userInsertionQuery,
-                        Values: values,
-                        DBError: JSON.stringify( err )
-                    } );
-
+                    var dupEntryError = bridgeError.createError( 409, 'emailInUse', "The email that was enter has already been taken by another user" );
                     reject( dupEntryError );
                     return;
                 } else {
                     // Create the Error
-                    var queryFailedError = bridgeError.createError( 500, 'Database query error', "Query failed to register user" );
-
-                    // Log the error and relevant information
-                    app.log.debug( {
-                        Error: JSON.stringify( queryFailedError ),
-                        Reason: "Database rejected query",
-                        Query: userInsertionQuery,
-                        Values: values,
-                        DBError: JSON.stringify( err )
-                    } );
-
+                    var queryFailedError = bridgeError.createError( 500, 'databaseError', "Query failed to register user" );
+                    app.log.error( 'Database query error: ', err );
                     reject( queryFailedError );
                     return;
                 }
@@ -169,7 +152,7 @@ exports.updateUser = function( req ) {
         var updateUserError;
 
         if ( !_.has( req.bridge, "structureVerified" ) ) {
-            var malformedMessageError = bridgeError.createError( 400, 'Request structure unverified', "Request has not been verified using the verify request middleware property" );
+            var malformedMessageError = bridgeError.createError( 400, 'structureMustBeVerified', "Request has not been verified using the verify request middleware property" );
 
 
             reject( malformedMessageError );
@@ -177,7 +160,7 @@ exports.updateUser = function( req ) {
         }
 
         if ( !_.has( req.bridge, "user" ) ) {
-            var unAuthenticateError = bridgeError.createError( 403, 'Need authentication', "Cannot change password without authentication" );
+            var unAuthenticateError = bridgeError.createError( 500, 'internalServerError', "Cannot change password without authentication" );
 
             reject( unAuthenticateError );
             return;
@@ -266,8 +249,8 @@ exports.updateUser = function( req ) {
 
             if ( err ) {
                 // Create the Error
-                var queryFailedError = bridgeError.createError( 500, 'Database query error', "Query failed to update user" );
-
+                var queryFailedError = bridgeError.createError( 500, 'databaseError', "Query failed to update user" );
+                app.log.error( 'Database query error: ', err );
                 reject( queryFailedError );
                 return;
             }
@@ -296,21 +279,21 @@ exports.verifyEmail = function ( req ) {
 
         connection.query( query, values, function ( err, rows ) {
             if ( err ) {
-                verifyEmailError = bridgeError.createError( 500, 'Database query error', "Database error, See log for more details" );
-                app.log.debug( "Database Error: " + err );
+                verifyEmailError = bridgeError.createError( 500, 'databaseError', "Database query failed. See log for more details" );
+                app.log.error( "Database Error: " + err );
                 reject( verifyEmailError );
                 return;
             }
 
             if ( rows.length === 0 ) {
-                verifyEmailError = bridgeError.createError( 400, 'User not found', "No user with that user hash" );
+                verifyEmailError = bridgeError.createError( 400, 'userNotFound', "No user with that user hash" );
 
                 reject( verifyEmailError );
                 return;
             }
 
             if ( rows[ 0 ].STATUS !== 'created' ) {
-                verifyEmailError = bridgeError.createError( 400, 'Incorrect user state', "Tried to verify email that is not in the created state" );
+                verifyEmailError = bridgeError.createError( 400, 'incorrectUserState', "Tried to verify email that is not in the created state" );
 
                 reject( verifyEmailError );
                 return;
@@ -323,8 +306,8 @@ exports.verifyEmail = function ( req ) {
 
             connection.query( query2, values2, function ( err2, rows2 ) {
                 if ( err2 ) {
-                    verifyEmailError( 500, 'Database query error', "Database error, See log for more details" );
-
+                    verifyEmailError( 500, 3, "Database query failed, See log for more details" );
+                    app.log.error( 'Database query error: ', err2 );
                     reject( verifyEmailError );
                     return;
                 }
@@ -358,14 +341,14 @@ exports.recoverPassword = function ( userHash, newPasswordHash, req ) {
 
         connection.query( query, values, function ( err, rows ) {
             if (err) {
-                recoverPasswordError = bridgeError.createError( 500, 'Database query error', "Database error, See log for more details" );
-                app.log.debug( "Database Error: " + err );
+                recoverPasswordError = bridgeError.createError( 500, 'databaseError', "Database error, See log for more details" );
+                app.log.error( "Database Error: " + err );
                 reject( recoverPasswordError );
                 return;
             }
 
             if ( rows.length === 0 ) {
-                recoverPasswordError = bridgeError.createError( 400, 'User not found', "No user with that user hash" );
+                recoverPasswordError = bridgeError.createError( 400, 'userNotFound', "No user with that user hash" );
 
                 reject( recoverPasswordError );
                 return;
@@ -378,8 +361,8 @@ exports.recoverPassword = function ( userHash, newPasswordHash, req ) {
 
             connection.query( query2, values2, function ( err2, rows ) {
                 if ( err2 ) {
-                    recoverPasswordError = bridgeError.createError( 500, 'Database query error', "Database error, See log for more details" );
-
+                    recoverPasswordError = bridgeError.createError( 500, 'databaseError', "Database query error, See log for more details" );
+                    app.log.error( "Database Error: " + err2 );
                     reject( recoverPasswordError );
                     return;
                 }
@@ -406,7 +389,6 @@ function clearUserHash( userID ) {
     connection.query( query, values, function( err, rows ) {
         if ( err ) {
             app.log.error( "Cannot clear user hash from user", userID, "Database Error: ", err );
-
             return;
         }
 
@@ -431,7 +413,8 @@ exports.forgotPassword = function( user ) {
         connection.query( query, values, function( err, rows ) {
 
             if ( err ) {
-                reject( bridgeError.createError( 500, 'Database query error', "Database error, See log for more details" ) );
+                reject( bridgeError.createError( 500, 'databaseError', "Database error, See log for more details" ) );
+                app.log.error( "Database query error: ", err );
                 return;
             }
 
@@ -461,13 +444,13 @@ exports.query = function ( query, values ) {
         var error;
 
         if ( !_.isString( query ) ) {
-            error = bridgeError.createError( 500, 'Database query error', "Query is not a string" );
+            error = bridgeError.createError( 500, 'internalServerError', "Query is not a string" );
             reject();
             return;
         }
 
         if ( !_.isArray( values ) && !_.isUndefined( values ) ) {
-            error = bridgeError.createError( 500, 'Database query error', "Query values is not an Array" );
+            error = bridgeError.createError( 500, 'internalServerError', "Query values is not an Array" );
             reject();
             return;
         }
@@ -503,19 +486,19 @@ exports.insertIntoTable = function( table, values ) {
 
         // Make sure the table name is a string
         if ( !_.isString( table ) ) {
-            reject( bridgeError.createError( 500, 'Table name must be a string' ) );
+            reject( bridgeError.createError( 500, 'internalServerError', "Table name must be a string" ) );
             return;
         }
 
         // Check that the string is not empty
         if ( _.isEmpty( table ) ) {
-            reject( bridgeError.createError( 500, 'Table name must not be empty' ) );
+            reject( bridgeError.createError( 500, 'internalServerError', 'Table name must not be empty' ) );
             return;
         }
 
         // Make sure the values array is an array
         if ( !_.isArray( values ) ) {
-            reject( bridgeError.createError( 500, "values must be an array" ) );
+            reject( bridgeError.createError( 500, 'internalServerError', "Values must be an array" ) );
             return;
         }
 
@@ -531,7 +514,8 @@ exports.insertIntoTable = function( table, values ) {
         connection.query( query, values, function( err, result ) {
 
             if ( err ) {
-                reject( bridgeError.createError( 500, err.code, err ) );
+                reject( bridgeError.createError( 500, 'databaseError', "Database Error, See error log for more details." ) );
+                app.log.error( "Database query Error: ", err );
                 return;
             }
 
@@ -651,7 +635,7 @@ exports.selectWithQueryObject = function( selectQueryObj ) {
     return Q.Promise( function( resolve, reject ) {
 
         if ( !selectQueryObj ) {
-            reject( bridgeError.createError( 500, 'Query object must be defined to get data from database' ) );
+            reject( bridgeError.createError( 500, 'internalServerError', 'Query object must be defined to get data from database' ) );
             return;
         }
 
@@ -665,7 +649,7 @@ exports.selectWithQueryObject = function( selectQueryObj ) {
         var validationObj = revalidator.validate( selectQueryObj, selectQueryObjectSchema );
 
         if ( !validationObj.valid ) {
-            reject( bridgeError.createError( 500, 'could not validate select query object', validationObj.errors ) );
+            reject( bridgeError.createError( 500, 'internalServerError', validationObj.errors[ 0 ] ) );
             return;
         }
 
@@ -740,7 +724,8 @@ exports.selectWithQueryObject = function( selectQueryObj ) {
         connection.query( query, values, function( err, rows ) {
 
             if ( err ) {
-                reject( bridgeError.createError( 500, err.code, err ) );
+                reject( bridgeError.createError( 500, 'databaseError', 'Database query error, see the error log for more information.' ) );
+                app.log.error( 'Database query error: ', err );
                 return;
             }
 

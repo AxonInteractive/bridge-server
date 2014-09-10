@@ -69,7 +69,7 @@ exports.sendMail = function( viewName, variables, mail ) {
         app.log.silly('send mail request recieved. Mail:', mail);
 
         if ( !_.isString( viewName ) ) {
-            reject( error.createError( 500, 'viewName string is not a string', "viewName must be a string" ) );
+            reject( error.createError( 500, 'internalServerError', "viewName must be a string" ) );
             return;
         }
 
@@ -77,7 +77,7 @@ exports.sendMail = function( viewName, variables, mail ) {
 
             if ( err ) {
                 app.log.error( "Error occured rendering Email HTML. Error: ", err );
-                reject( error.createError( 500, 'Could not render Email template', err ) );
+                reject( error.createError( 500, 'internalServerError', err ) );
                 return;
             }
 
@@ -87,7 +87,7 @@ exports.sendMail = function( viewName, variables, mail ) {
 
                 if ( err ) {
                     app.log.error( "Mail failed to send. Error: ", err );
-                    reject( error.createError( 500, "Could not send mail", err ) );
+                    reject( error.createError( 500, 'internalServerError', err ) );
                     return;
                 }
 

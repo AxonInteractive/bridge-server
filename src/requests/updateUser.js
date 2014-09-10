@@ -101,28 +101,28 @@ function validateUpdateUserRequest( req ) {
 
             switch ( firstError.property ) {
                 case 'content.email':
-                    errorCode = 'Invalid email format';
+                    errorCode = 'emailInvalid';
                     break;
                 case 'content.password':
-                    errorCode = 'Invalid HMAC format';
+                    errorCode = 'passwordInvalid';
                     break;
                 case 'content.firstName':
-                    errorCode = 'Invalid first name format';
+                    errorCode = 'firstNameInvalid';
                     break;
                 case 'content.lastName':
-                    errorCode = 'Invalid last name format';
+                    errorCode = 'lastNameInvalid';
                     break;
                 case 'email':
-                    errorCode = 'Invalid email format';
+                    errorCode = 'emailInvalid';
                     break;
                 case 'hmac':
-                    errorCode = 'Invalid HMAC format';
+                    errorCode = 'hmacInvalid';
                     break;
                 case 'time':
-                    errorCode = 'Invalid time format';
+                    errorCode = 'timeInvalid';
                     break;
                 default:
-                    errorCode = 'Malformed update user request';
+                    errorCode = 'malformedRequest';
                     break;
             }
 

@@ -61,16 +61,16 @@ function validateLoginRequest( req ) {
 
             switch ( firstError.property ) {
                 case 'email':
-                    errorCode = 'Invalid email format';
+                    errorCode = 'emailInvalid';
                     break;
                 case 'hmac':
-                    errorCode = 'Invalid HMAC format';
+                    errorCode = 'hmacInvalid';
                     break;
                 case 'time':
-                    errorCode = 'Invalid time format';
+                    errorCode = 'timeInvalid';
                     break;
                 default:
-                    errorCode = 'Malformed login request';
+                    errorCode = 'malformedRequest';
                     break;
             }
 
@@ -95,7 +95,7 @@ function parseAppData( req ) {
         } catch ( err ) {
 
             // Create the error
-            var userParseError = error.createError( 500, 'User appData could not parse to JSON', "Could not parse application data to an object" );
+            var userParseError = error.createError( 500, 23, "Could not parse application data to an object" );
 
 
             reject( userParseError );
