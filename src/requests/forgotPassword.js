@@ -78,19 +78,19 @@ function validateForgotPasswordRequest( req ) {
 
             switch ( firstError.property ) {
                 case 'content.message':
-                    errorCode = 'Invalid email format';
+                    errorCode = 'emailInvalid';
                     break;
                 case 'email':
-                    errorCode = 'Invalid email format';
+                    errorCode = 'emailInvalid';
                     break;
                 case 'hmac':
-                    errorCode = 'Invalid HMAC format';
+                    errorCode = 'hmacInvalid';
                     break;
                 case 'time':
-                    errorCode = 'Invalid time format';
+                    errorCode = 'timeInvalid';
                     break;
                 default:
-                    errorCode = 'Malformed forgot password request';
+                    errorCode = 'malformedRequest';
                     break;
             }
 
@@ -114,7 +114,7 @@ function checkUserExists( req ) {
             .then( function ( rows ) {
 
                 if ( rows.length !== 1 ) {
-                    reject( error.createError( 400, 'Email not found', "No user found with that email" ) );
+                    reject( error.createError( 400, 'userNotFound', "No user found with that email" ) );
                     return;
                 }
 
@@ -124,7 +124,7 @@ function checkUserExists( req ) {
             } )
             .fail( function ( err ) {
 
-                reject( error.createError( 500, 'Database query error', err ) );
+                reject( error.createError( 500, 'databaseError', err ) );
 
             } );
     } );

@@ -106,22 +106,22 @@ function validateRecoverPasswordRequest( req ) {
 
             switch ( firstError.property ) {
                 case 'content.hash':
-                    errorCode = 'Invalid user hash format';
+                    errorCode = 'userHashInvalid';
                     break;
                 case 'content.message':
-                    errorCode = 'Invalid password format';
+                    errorCode = 'passwordInvalid';
                     break;
                 case 'email':
-                    errorCode = 'Invalid email format';
+                    errorCode = 'emailInvalid';
                     break;
                 case 'hmac':
-                    errorCode = 'Invalid HMAC format';
+                    errorCode = 'hmacInvalid';
                     break;
                 case 'time':
-                    errorCode = 'Invalid time format';
+                    errorCode = 'timeInvalid';
                     break;
                 default:
-                    errorCode = 'Malformed recover password request';
+                    errorCode = 'malformedRequest';
                     break;
             }
             var err = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );

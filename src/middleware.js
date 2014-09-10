@@ -61,19 +61,14 @@ function parseBridgeHeader( req, res, next ) {
     var bridgeRequestObject;
 
     if ( _.isUndefined( req.headers.bridge ) ) {
-        next( error.createError(
-            400,
-            'Request missing bridge header',
-            "No header exists on request for bridge"
-         ) );
-
+        next( error.createError( 400, 'missingBridgeHeader', 'Request missing bridge header' ) );
         return;
     }
 
     try {
         bridgeRequestObject = JSON.parse( req.headers.bridge );
     } catch ( err ) {
-        next( error.createError( 400, 'Could not parse bridge header as JSON', err ) );
+        next( error.createError( 400, 'appDataIsNotJSON', err ) );
         return;
     }
 
@@ -88,8 +83,6 @@ exports.parseBridgeHeader = function() {
     app.log.debug( "Bridge header parser setup" );
     return parseBridgeHeader;
 };
-
-
 function checkHmacSignature( req, hmacSalt ) {
 
     var concat = JSON.stringify( req.headers.bridge.content ) + req.headers.bridge.email + req.headers.bridge.time;
@@ -155,7 +148,8 @@ var bridgeRequestSchema = {
 function verifyRequestStructure( req, res, next ) {
 
     if ( !_.isObject( req.headers.bridge ) ) {
-        next( error.createError( 500, 'request header bridge is not an object' ) );
+        next( error.createError( 500, 'internalServerError', 'request header bridge is not an object' ) );
+        return;
     }
 
     var validation = revalidator.validate( req.headers.bridge, bridgeRequestSchema );
@@ -164,14 +158,16 @@ function verifyRequestStructure( req, res, next ) {
     if ( !validation.valid ) {
         var firstError = validation.errors[ 0 ];
 
-        var errorCode = 'Basic request structure malformed';
+        var errorCode;
 
         if ( firstError.property === 'email' ) {
-            errorCode = 'Invalid email format';
+            errorCode = 'emailInvalid';
         } else if ( firstError.property === 'time' ) {
-            errorCode = 'Invalid time format';
+            errorCode = 'timeInvalid';
         } else if ( firstError.property === 'HMAC' ) {
-            errorCode = 'Invalid HMAC format';
+            errorCode = 'hmacInvalid';
+        } else {
+            errorCode = 'malformedBridgeHeader';
         }
 
         vrsError = error.createError( 400, errorCode, "Property " + firstError.property + " - " + firstError.message + "\n" + "Error Obj: " + JSON.stringify( validation.errors ) );
@@ -188,8 +184,7 @@ function verifyRequestStructure( req, res, next ) {
         hmacSalt = "";
 
         if ( !checkHmacSignature( req, hmacSalt ) ) {
-            vrsError = error.createError( 400, 'HMAC failed', 'HMAC check failed for anonymous request. *Caught in middleware*' );
-
+            vrsError = error.createError( 400, 'hmacMismatch', 'HMAC check failed for anonymous request.' );
             next( vrsError );
             return;
         }
@@ -204,8 +199,7 @@ function verifyRequestStructure( req, res, next ) {
             hmacSalt = req.bridge.user.PASSWORD;
 
             if ( !checkHmacSignature( req, hmacSalt ) ) {
-                vrsError = error.createError( 400, 'HMAC failed', 'HMAC check failed for authenticated request. *Caught in middleware*' );
-
+                vrsError = error.createError( 400, 'hmacMismatch', 'HMAC check failed for authenticated request.' );
                 next( vrsError );
                 return;
             }
@@ -287,7 +281,7 @@ exports.staticHostFiles = function () {
             .then( function() {
                 // If the request was anonymous then they cannot access content
                 if ( req.bridge.isAnon ) {
-                    throw error.createError( 403, 'cannot access content', "Cannot access protected content" );
+                    throw error.createError( 403, 'protectedMustBeLoggedIn', "Cannot access protected content" );
                 }
 
                 // Check to see if the user role is in the protectedObjects list of acceptable roles
@@ -299,11 +293,7 @@ exports.staticHostFiles = function () {
 
                 // If the role was not found send a 401 Unauthorized error
                 if ( !found ) {
-                    throw error.createError(
-                        401,
-                        'insufficient privileges to access content',
-                        "User role is not on the list of acceptable roles for this resource"
-                    );
+                    throw error.createError( 401, 'protectedAuthFailed', "User role is not on the list of acceptable roles for this resource" );
                 }
 
                 // If the user checks ouw as privileged to receive this content send the content.
@@ -359,19 +349,19 @@ exports.bridgeErrorHandler = function () {
 
         app.log.verbose( 'Sending Error', err );
 
-        if ( config.server.environment === 'development' ) {
-            res.json( {
-                content: err
-            } );
-        } else {
-            res.json( {
-                content: {
-                    status: err.status,
-                    errorCode: err.errorCode,
-                    time: err.time
-                }
-            } );
-        }
+        // if ( config.server.environment === 'development' ) {
+        res.json( {
+            content: err
+        } );
+        // } else {
+        //     res.json( {
+        //         content: {
+        //             status: err.status,
+        //             errorCode: err.errorCode,
+        //             time: err.time
+        //         }
+        //     } );
+        // }
 
         //next( errContext );
     };

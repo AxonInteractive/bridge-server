@@ -12,7 +12,7 @@ exports.checkRequestStructureVerified = function ( req ) {
 
         if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
 
-            loginError = error.createError( 500, 'Request structure unverified', "Request structure must be verified" );
+            loginError = error.createError( 500, 'structureMustBeVerified', "Request structure must be verified" );
 
             reject( loginError );
             return;
@@ -28,7 +28,7 @@ exports.mustBeLoggedIn = function ( req ) {
         var loginError;
 
         if ( req.bridge.isAnon === true ) {
-            loginError = error.createError( 403, 'Failed to authenticate anonymous request', "Cannot authenticate a request that is anonymous" );
+            loginError = error.createError( 403, 'mustBeLoggedIn', "Cannot authenticate a request that is anonymous" );
 
             reject( loginError );
             return;
@@ -43,7 +43,7 @@ exports.mustBeAnonymous = function ( req ) {
 
         // Must be anonymous
         if ( req.bridge.isAnon !== true ) {
-            var regError = error.createError( 403, 'Need authentication', "Cannot register without authentication" );
+            var regError = error.createError( 403, 'mustBeAnonymous', "Cannot register without authentication" );
 
             reject( regError );
             return;
