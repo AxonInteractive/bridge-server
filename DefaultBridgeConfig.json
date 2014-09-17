@@ -23,12 +23,29 @@
         //     //{ "path": "resources/audio", "roles": [ 'user', 'admin' ] }
         // ],
 
+        // The route to the private API
+        "privateAPIRoute": "/api/private",
+
+        // The route to the Public API
+        "publicAPIRoute": "/api",
+
         // The path to the index.html file to host from wwwRoot
         "indexPath": "index.html",
 
+    },
+
+    // Settings related to the security of the bridge application.
+    "security": {
+        // The secret string used for token signing and encoding and decoding of JWT's.
+        // This is not shared with any application and should be kept a secret from any application.
+        "tokenSecret": "!$Th3_X<OSgS0T^{RA4BVRZV$E&aA5NAugzO1)tV<8*LP}sAaHxd9#1eIeg69k>!lUVIf*UB6Ne8SGXzgCFdK%]pSIvfF*xSW0jaIix<45-Hr)$l}beFskzm",
+
+        // The amount of time that a token is valid for.
+        "tokenExpiryDuration": { "days": 7 },
+
         // Settings used if the server is in https mode
-        "secure": {
-            "keyfilepath"        : "privatekey.pem", // The path to the private key file for the ssl connection.
+        "sshKeys": {
+            "privateKeyfilepath" : "privatekey.pem", // The path to the private key file for the ssl connection.
             "certificatefilepath": "certificate.pem" // The path to the certificate file for the ssl connection.
         }
     },
@@ -108,16 +125,12 @@
 
 
         // The options for the mailer to use
-        // See express-mailer documentation for examples
-        // https://www.npmjs.org/package/express-mailer
+        // See node mailer SMTP transport documentation for examples
+        // https://github.com/andris9/nodemailer-smtp-transport#usage
         "options": {
-            "from": "someone@gmail.com", // the email address to use if not authenticated
-            "host":"smtp.gmail.com",            // the location of the SMTP server
-            "secureConnection": true,           // use SSL
-            "port": 465,                        // port for secure SMTP
-            "transportMethod": "SMTP",          // default is SMTP. Accepts anything that nodemailer accepts
-            "auth": {                           // The authentication to use for the GMail Service
-                "user": "someone@gmail.com",
+            "service": "gmail",
+            "auth": {             // The authentication to use for the GMail Service
+                "user": "BridgeSMTPTest@gmail.com",
                 "pass": "passwordGoesHere"
             }
         }

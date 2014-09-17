@@ -1,8 +1,8 @@
-    "use strict";
+"use strict";
 //server.js
 
 // Bring in external libraries
-var fs         = require( 'fs'          );
+var fs         = require( 'q-io/fs'     );
 var https      = require( 'https'       );
 var http       = require( 'http'        );
 var path       = require( 'path'        );
@@ -37,6 +37,11 @@ exports.config = config;
 
 // Start the express app
 var app = exports.app = express();
+
+// Create the routers that will be used by the bridge app.
+var routerOptions = { caseSensitive: true };
+app.set( 'privateRouter' , express.Router( routerOptions ) );
+app.set( 'publicRouter'  , express.Router( routerOptions ) );
 
 // Determine the port to listen on
 var port = config.server.port;
@@ -83,8 +88,6 @@ app.enable( 'trust proxy' );
 ///////    STARTING SETUP OF MIDDLEWARE    //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
-
-
 app.use( function( req, res, next ) {
     onHeaders( res, function() {
         app.log.silly( 'Response headers: ', res._headers );
@@ -110,6 +113,12 @@ app.use( function ( req, res, next ) {
 // Static hosting Middleware
 app.use( bridgeWare.staticHostFiles() );
 
+// Serve the index if it is a GET request for '/'
+app.get( '/', routes.serveIndex );
+
+// Handle an authentication request
+app.post( '/authenticate', require( './src/requests/authenticate' ) );
+
 // Automatically parse the body to JSON
 app.use( bodyParser.json() );
 
@@ -119,49 +128,37 @@ app.use( bridgeWare.attachCORSHeaders() );
 // Handle CORS Request
 app.use( bridgeWare.handleOptionsRequest() );
 
+// Use the public router to send
+app.use( config.server.publicAPIRoute,  app.get( "publicRouter" ) );
+
+// Use the private router to try to interpret the route
+app.use( config.server.privateAPIRoute, app.get( "privateRouter" ) );
+
 //
 app.use( '/api/1.0/', bridgeWare.parseBridgeHeader() );
 
 //
 app.use( '/api/1.0/', bridgeWare.verifyRequestStructure() );
 
+// Error Handler
+app.use( bridgeWare.bridgeErrorHandler() );
+
+// 404 Handler
+app.log.debug( "404 handler setup" );
+app.all( '*', function ( req, res, next ) {
+
+    if ( _.has( res, 'finished' ) && res.finished === true ) {
+
+        next();
+        return;
+    }
+
+    routes.send404( req, res );
+    return;
+} );
+
 // Setup bridge default router
 routes.setup();
-
-setTimeout( function () {
-
-    app.use( bridgeWare.bridgeErrorHandler() );
-
-    app.all( '*', function ( req, res, next ) {
-
-        if ( _.has( res, 'finished' ) && res.finished === true ) {
-
-            next();
-            return;
-        }
-
-        res.status( 404 );
-
-        var NotFoundPath = path.join( config.server.wwwRoot, "404.html" );
-
-        fs.exists( NotFoundPath, function ( exists ) {
-
-            if ( !exists ) {
-                res.send( "404 - Not found" );
-                next();
-                return;
-            }
-
-            res.sendFile( path.resolve( NotFoundPath ) );
-
-        } );
-
-        return;
-    } );
-
-    app.log.info( "Server is now running!" );
-
-}, 1000 );
 
 /////////////////////////////////////////////////////////////////////////////////////////
 ///////     MIDDLEWARE SETUP COMPLETE      //////////////////////////////////////////////
@@ -170,25 +167,67 @@ setTimeout( function () {
 // Setup the server for https mode
 if ( config.server.mode === "https" ) {
 
-    var credentials = {
-        key: fs.readFileSync( config.server.secure.keyfilepath, 'utf8' ),
-        cert: fs.readFileSync( config.server.secure.certificatefilepath, 'utf8' )
+    var keyFound = false,
+        keyContent,
+        certFound = false,
+        certContent;
+
+    var checkIfKeyAndCertAreLoaded = function () {
+        if ( !keyFound || !certFound ) {
+            return;
+        }
+
+        var credentials = {
+            key: keyContent,
+            cert: certContent
+        };
+
+        server = https.createServer( credentials, app );
+
+        // Listen on the port defined at the beginning of the script
+        server.listen( port );
+
+        // Log the start of the server
+        app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
     };
 
-    server = https.createServer( credentials, app );
+    fs.read( config.security.sshKeys.privateKeyfilepath )
+        .then( function( content ) {
+            keyFound = true;
+            keyContent = content;
 
+            checkIfKeyAndCertAreLoaded();
+        } )
+        .fail( function( err ) {
+            app.log.error( 'Failed to load private key file. Check your private key file path. Error: ',
+                 err );
+        } );
+
+    fs.read( config.security.sshKeys.certificatefilepath )
+        .then( function( content ) {
+            certFound = true;
+            certContent = content;
+
+            checkIfKeyAndCertAreLoaded();
+        } )
+        .fail( function( err ) {
+            app.log.error( 'Failed to load certificate file. Check your certificate file path. Error: ',
+                err );
+        } );
 }
 
 // Else setup the server for http mode
 else if ( config.server.mode === "http" ) {
     server = http.createServer( app );
+
+    // Listen on the port defined at the beginning of the script
+    server.listen( port );
+
+    // Log the start of the server
+    app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
+
 }
 
-// Listen on the port defined at the beginning of the script
-server.listen( port );
-
-// Log the start of the server
-app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
 
 // Setup the kill state handler
 function cleanUp() {

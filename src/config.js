@@ -15,9 +15,16 @@ var defaults = {
         port                   : 3000,
         emailVerification      : false,
         wwwRoot                : "client/",
+        privateAPIRoute        : "/api/private",
+        publicAPIRoute         : "/api",
         indexPath              : "index.html",
-        secure: {
-            keyfilepath: "key.pem",
+    },
+
+    security: {
+        tokenSecret: "!$Th3_X<OSgS0T^{RA4BVRZV$E&aA5NAugzO1)tV<8*LP}sAaHxd9#1eIeg69k>!lUVIf*UB6Ne8SGXzgCFdK%]pSIvfF*xSW0jaIix<45-Hr)$l}beFskzm",
+        tokenExpiryDuration: { "days": 7 },
+        sshKeys: {
+            privateKeyfilepath: "key.pem",
             certificatefilepath: "cert.pem"
         }
     },
@@ -49,34 +56,33 @@ var defaults = {
     mailer: {
         templateDirectory: "templates/email",
 
-        verificationEmailSubject: "Bridge Example Email Verification",
-        verificationViewName: "registrationTemplate.ejs",
+        verificationEmailSubject  : "Bridge Example Email Verification",
+        verificationViewName      : "registrationTemplate.ejs",
 
         recoverAccountEmailSubject: "Bridge Example Account Recovery",
-        recoverAccountViewName: "recoverPasswordTemplate.ejs",
+        recoverAccountViewName    : "recoverPasswordTemplate.ejs",
 
-        updatedUserEmailSubject: "Bridge user account updated",
-        updatedUserViewName: "updatedUserTemplate.ejs",
+        updatedUserEmailSubject   : "Bridge user account updated",
+        updatedUserViewName       : "updatedUserTemplate.ejs",
 
-        welcomeEmailSubject: "Welcome to the site",
-        welcomeViewName: "welcomeTemplate.ejs",
+        welcomeEmailSubject       : "Welcome to the site",
+        welcomeViewName           : "welcomeTemplate.ejs",
 
+        // The options for the mailer to use
+        // See node mailer SMTP transport documentation for examples
+        // https://github.com/andris9/nodemailer-smtp-transport#usage
         options: {
-            from: "BridgeSMTPTest@gmail.com",
-            host: "smtp.gmail.com",
-            secureConnection: true,
-            port:465,
-            transportMethod: "SMTP",
-            auth: {
+            service: "gmail",
+            auth: {             // The authentication to use for the GMail Service
                 user: "BridgeSMTPTest@gmail.com",
-                pass: "mS2JY78Ao5bI8df3teFUxUCXyKK1ASYV4GFBLR5P"
+                pass: "passwordGoesHere"
             }
         }
     },
 
     pdfGenerator: {
         templatePath: "templates/pdfs",
-        cachePath: "pdfs/",
+        cachePath:    "pdfs/",
         cacheLifetimeMinutes: 10
     },
 
@@ -160,17 +166,47 @@ var schema = {
                     }
                 },
 
-                indexPath: {
+                privateAPIRoute: {
                     type: 'string',
                     required: true,
                     allowEmpty: false
                 },
 
-                secure: {
+                publicAPIRoute: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                indexPath: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+            }
+        },
+
+        security: {
+            type: 'object',
+            required: true,
+            properties: {
+
+                tokenSecret: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                tokenExpiryDuration: {
+                    type: 'object',
+                    required: true
+                },
+
+                sshKeys: {
                     type: 'object',
                     required: true,
                     properties: {
-                        keyfilepath: {
+                        privateKeyfilepath: {
                             type:'string',
                             required: true,
                             allowEmpty: false
@@ -182,7 +218,7 @@ var schema = {
                             allowEmpty: false
                         }
                     }
-                }
+                },
             }
         },
 
