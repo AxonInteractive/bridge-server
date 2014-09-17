@@ -95,7 +95,7 @@ function parseAppData( req ) {
         } catch ( err ) {
 
             // Create the error
-            var userParseError = error.createError( 500, 23, "Could not parse application data to an object" );
+            var userParseError = error.createError( 500, 'appDataIsNotJSON', "Could not parse application data to an object" );
 
 
             reject( userParseError );

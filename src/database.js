@@ -306,7 +306,7 @@ exports.verifyEmail = function ( req ) {
 
             connection.query( query2, values2, function ( err2, rows2 ) {
                 if ( err2 ) {
-                    verifyEmailError( 500, 3, "Database query failed, See log for more details" );
+                    verifyEmailError( 500, 'databaseError', "Database query failed, See log for more details" );
                     app.log.error( 'Database query error: ', err2 );
                     reject( verifyEmailError );
                     return;

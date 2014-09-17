@@ -328,8 +328,20 @@ exports.bridgeErrorHandler = function () {
                 errorCode: 'fatal error',
                 time: moment.utc().toISOString()
             });
+            app.log.error( errContext );
+            next();
         } else {
             err = errContext;
+        }
+
+        if ( !_.isObject( errContext ) && !_.isArray( errContext ) ) {
+            next( errContext );
+            return;
+        }
+
+        if (_.isArray( errContext ) ) {
+            res.json( errContext );
+            return;
         }
 
         var validation = error.validateError( err );
