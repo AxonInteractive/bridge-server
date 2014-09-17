@@ -1,3 +1,4 @@
+/** @module middleware */
 "use strict";
 var revalidator = require( 'revalidator' );
 var crypto      = require( 'crypto' );
@@ -336,7 +337,7 @@ exports.bridgeErrorHandler = function () {
         if ( validation.valid === false ) {
             app.log.verbose( 'Error malformed. Errors: ', validation.errors );
             app.log.verbose( "Error: ", errContext );
-            next( errContext );
+            res.json( errContext );
             return;
         }
 

@@ -43,18 +43,18 @@ var schema = {
                     messages: {
                         pattern: "not a valid hash"
                     }
-                }
+                },
 
-                // time: {
-                //     type: 'string',
-                //     description: "The time the request was sent",
-                //     required: true,
-                //     allowEmpty: false,
-                //     pattern: regex.ISOTime,
-                //     messages: {
-                //         pattern: "not a valid time"
-                //     }
-                // }
+                time: {
+                    type: 'string',
+                    description: "The time the request was sent",
+                    required: true,
+                    allowEmpty: false,
+                    pattern: regex.ISOTime,
+                    messages: {
+                        pattern: "not a valid time"
+                    }
+                }
             }
         },
 

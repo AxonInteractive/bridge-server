@@ -13,7 +13,7 @@ var schema = {
         },
 
         errorCode: {
-            type: 'string',
+            type: 'integer',
             allowEmpty: false,
             required: true
         },
