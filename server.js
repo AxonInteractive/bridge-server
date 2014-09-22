@@ -88,6 +88,7 @@ app.enable( 'trust proxy' );
 ///////    STARTING SETUP OF MIDDLEWARE    //////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
+// Setup the response logger event handler.
 app.use( function( req, res, next ) {
     onHeaders( res, function() {
         app.log.silly( 'Response headers: ', res._headers );
@@ -95,6 +96,10 @@ app.use( function( req, res, next ) {
     next();
 } );
 
+// // Setup the cookie parser
+// app.use( bridgeWare.getCookies() );
+
+// Setup the request logger
 app.use( function ( req, res, next ) {
 
     app.log.silly( "Received Request: ", {
@@ -104,7 +109,8 @@ app.use( function ( req, res, next ) {
         Resource: req.path,
         Secure: req.secure,
         XHR: req.xhr,
-        Protocol: req.protocol
+        Protocol: req.protocol,
+        BridgeCookie: req.bridge.cookies.get( 'bridge-auth' )
     } );
 
     next();
@@ -189,6 +195,7 @@ if ( config.server.mode === "https" ) {
 
         // Log the start of the server
         app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
+        app.log.info( "Server is now running!" );
     };
 
     fs.read( config.security.sshKeys.privateKeyfilepath )
@@ -225,7 +232,7 @@ else if ( config.server.mode === "http" ) {
 
     // Log the start of the server
     app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
-
+    app.log.info( "Server is now running!" );
 }
 
 

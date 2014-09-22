@@ -1,26 +1,29 @@
-| ErrorCode |                     StringType                    |             Description              |       serverString      |
-|===========|===================================================|======================================|=========================|
-|         1 | Basic request structure malformed                 |                                      | malformedBridgeHeader   |
-|         2 | Database Query Error                              |                                      | databaseError           |
-|         3 | Email already used                                |                                      | emailInUse              |
-|         4 | Failed to authenticate anonymous request          |                                      | authFailedAnon          |
-|         5 | HMAC Failed                                       | Password was incorrect               | hmacMismatch            |
-|         6 | Incorrect user state                              |                                      | incorrectUserState      |
-|         7 | Invalid email format                              |                                      | emailInvalid            |
-|         8 | Invalid first name format                         |                                      | firstNameInvalid        |
-|         9 | Invalid HMAC format                               |                                      | hashInvalid             |
-|        10 | Invalid last name format                          |                                      | lastNameInvalid         |
-|        11 | Invalid password format                           |                                      | passwordInvalid         |
-|        12 | Invalid time format                               |                                      | timeInvalid             |
-|        13 | Invalid user hash format                          |                                      | userHashInvalid         |
-|        14 | Need authentication                               |                                      | mustBeLoggedIn          |
-|        15 | Request structure unverified                      |                                      | structureMustBeVerified |
-|        16 | User appData could not be parsed to JSON          |                                      | appDataIsNotJSON        |
-|        17 | User not found                                    |                                      | userNotFound            |
-|        18 | Internal server error                             | Internal error occured in the server | internalServerError     |
-|        19 | Request missing bridge header                     |                                      | missingBridgeHeader     |
-|        20 | Request bridge header is not JSON                 |                                      | bridgeHeaderIsNotJSON   |
-|        21 | Insufficient privileges to access content         |                                      | protectedAuthFailed     |
-|        22 | Anonymous request cannot access protected content |                                      | protectedMustBeLoggedIn |
-|        23 | Malformed request                                 |                                      | malformedRequest        |
-|        24 | Request must be anonymous                         |                                      | mustBeAnonymous         |
+| ErrorCode |                      StringType                      |             Description              |       serverString      |
+|===========|======================================================|======================================|=========================|
+|         1 | Basic request structure malformed                    |                                      | malformedBridgeHeader   |
+|         2 | Database Query Error                                 |                                      | databaseError           |
+|         3 | Email already used                                   |                                      | emailInUse              |
+|         4 | Failed to authenticate anonymous request             |                                      | authFailedAnon          |
+|         5 | HMAC Failed                                          | Password was incorrect               | hmacMismatch            |
+|         6 | Incorrect user state                                 |                                      | incorrectUserState      |
+|         7 | Invalid email format                                 |                                      | emailInvalid            |
+|         8 | Invalid first name format                            |                                      | firstNameInvalid        |
+|         9 | Invalid HMAC format                                  |                                      | hashInvalid             |
+|        10 | Invalid last name format                             |                                      | lastNameInvalid         |
+|        11 | Invalid password format                              |                                      | passwordInvalid         |
+|        12 | Invalid time format                                  |                                      | timeInvalid             |
+|        13 | Invalid user hash format                             |                                      | userHashInvalid         |
+|        14 | Need authentication                                  |                                      | mustBeLoggedIn          |
+|        15 | Request structure unverified                         |                                      | structureMustBeVerified |
+|        16 | User appData could not be parsed to JSON             |                                      | appDataIsNotJSON        |
+|        17 | User not found                                       |                                      | userNotFound            |
+|        18 | Internal server error                                | Internal error occured in the server | internalServerError     |
+|        19 | Request missing bridge header                        |                                      | missingBridgeHeader     |
+|        20 | Request bridge header is not JSON                    |                                      | bridgeHeaderIsNotJSON   |
+|        21 | Insufficient privileges to access content            |                                      | protectedAuthFailed     |
+|        22 | Anonymous request cannot access protected content    |                                      | protectedMustBeLoggedIn |
+|        23 | Malformed request                                    |                                      | malformedRequest        |
+|        24 | Request must be anonymous                            |                                      | mustBeAnonymous         |
+|        25 | The token was invalid.                               |                                      | invalidToken            |
+|        26 | The cookie was missing from the request or was empty |                                      | missingCookie                        |
+

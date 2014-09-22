@@ -18,78 +18,28 @@ var schema = {
     type: 'object',
     required: true,
     properties: {
-        content: {
-            type: 'object',
-            required: true,
-            properties: {
-
-                hash: {
-                    type:'string',
-                    description: "The user has to find the account",
-                    required: true,
-                    allowEmpty: false,
-                    pattern: regex.sha256,
-                    messages: {
-                        pattern: "not a valid hash"
-                    }
-                },
-
-                message: {
-                    type: 'string',
-                    description: "The new password to put into the database",
-                    required: true,
-                    allowEmpty: false,
-                    pattern: regex.sha256,
-                    messages: {
-                        pattern: "not a valid hash"
-                    }
-                },
-
-                time: {
-                    type: 'string',
-                    description: "The time the request was sent",
-                    required: true,
-                    allowEmpty: false,
-                    pattern: regex.ISOTime,
-                    messages: {
-                        pattern: "not a valid time"
-                    }
-                }
-            }
-        },
-
-        email: {
+        hash: {
             type: 'string',
-            description: "The email of the request, used for identification",
+            description: "The user has to find the account",
             required: true,
-            allowEmpty: true,
-            pattern: regex.optionalEmail,
-            messages: {
-                pattern: "not a valid email"
-            }
-        },
-
-        time: {
-            description: "The time the request was made",
-            type: 'string',
-            pattern: regex.ISOTime,
             allowEmpty: false,
-            required: true,
-            messages: {
-                pattern: "not a valid ISO date"
-            }
-        },
-
-        hmac: {
-            description: "The HMAC of the request to be signed by the bridge client, in hex format",
-            type: 'string',
             pattern: regex.sha256,
-            allowEmpty: false,
+            messages: {
+                pattern: "not a valid hash"
+            }
+        },
+
+        password: {
+            type: 'string',
+            description: "The new password to put into the database",
             required: true,
+            allowEmpty: false,
+            pattern: regex.sha256,
             messages: {
                 pattern: "not a valid hash"
             }
         }
+
     }
 };
 
@@ -105,20 +55,11 @@ function validateRecoverPasswordRequest( req ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'content.hash':
+                case 'hash':
                     errorCode = 'userHashInvalid';
                     break;
-                case 'content.message':
+                case 'password':
                     errorCode = 'passwordInvalid';
-                    break;
-                case 'email':
-                    errorCode = 'emailInvalid';
-                    break;
-                case 'hmac':
-                    errorCode = 'hmacInvalid';
-                    break;
-                case 'time':
-                    errorCode = 'timeInvalid';
                     break;
                 default:
                     errorCode = 'malformedRequest';
@@ -198,13 +139,7 @@ function sendReponse( res ) {
 
 module.exports = function ( req, res, next ) {
 
-    // Check that the basic request structure is verified
-    util.checkRequestStructureVerified( req )
-
-    // The request must be anonymous. (Not logged in)
-    .then( function () {
-        return util.mustBeAnonymous( req );
-    } )
+    util.mustBeAnonymous( req )
 
     // Validate the request structure related to Recover Password requests
     .then( function () {
@@ -213,8 +148,8 @@ module.exports = function ( req, res, next ) {
 
     // Attempt to set the password to the new password after verifying the user hash.
     .then( function() {
-        var userHash = req.headers.bridge.content.hash;
-        var newPassword = require.headers.bridge.content.message;
+        var userHash = req.headers.bridge.hash;
+        var newPassword = req.headers.bridge.password;
         return database.recoverPassword( userHash, newPassword, req );
     } )
 

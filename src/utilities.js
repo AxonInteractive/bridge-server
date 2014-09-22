@@ -6,22 +6,6 @@ var _ = require( 'lodash' )._;
 
 var error = require( './error' );
 
-exports.checkRequestStructureVerified = function ( req ) {
-    return Q.Promise( function ( resolve, reject ) {
-        var loginError;
-
-        if ( !_.isBoolean( req.bridge.structureVerified ) || req.bridge.structureVerified === false ) {
-
-            loginError = error.createError( 500, 'structureMustBeVerified', "Request structure must be verified" );
-
-            reject( loginError );
-            return;
-        }
-
-        resolve();
-    } );
-};
-
 exports.mustBeLoggedIn = function ( req ) {
     return Q.Promise( function ( resolve, reject ) {
 

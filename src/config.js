@@ -22,7 +22,8 @@ var defaults = {
 
     security: {
         tokenSecret: "!$Th3_X<OSgS0T^{RA4BVRZV$E&aA5NAugzO1)tV<8*LP}sAaHxd9#1eIeg69k>!lUVIf*UB6Ne8SGXzgCFdK%]pSIvfF*xSW0jaIix<45-Hr)$l}beFskzm",
-        tokenExpiryDuration: { "days": 7 },
+        tokenExpiryDuration: { "hours": 6 },
+        tokenExpiryDurationRememberMe: { "weeks": 2 },
         sshKeys: {
             privateKeyfilepath: "key.pem",
             certificatefilepath: "cert.pem"
@@ -198,6 +199,11 @@ var schema = {
                 },
 
                 tokenExpiryDuration: {
+                    type: 'object',
+                    required: true
+                },
+
+                tokenExpiryDurationRememberMe: {
                     type: 'object',
                     required: true
                 },

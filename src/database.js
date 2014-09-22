@@ -31,22 +31,25 @@ connection.connect( function(err) {
 
 /**
  * A filter used to authenticate a user from the bridge database.
- * @param  {Object}   req   The express request object.
+ *
+ * @param {String} email     The email of the user that is being authenticated in the database.
+ *
+ * @param {String} password  The password hash of the user that is being authenticated to check if
+ *                           it correct
+ *
  * @return {Promise}        A Q promise object
  */
-exports.authenticateRequest = function ( req ) {
+exports.authenticateUser = function ( email, password ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        if ( req.bridge.isAnon === true ) {
-            var authenticationError = bridgeError.createError( 500, 'authFailedAnon', "Cannot authenticate an anonymous request" );
+        // if ( req.bridge.isAnon === true ) {
+        //     var authenticationError = bridgeError.createError( 500, 'authFailedAnon', "Cannot authenticate an anonymous request" );
 
-            reject( authenticationError );
-            return;
-        }
+        //     reject( authenticationError );
+        //     return;
+        // }
 
-        var request = req.headers.bridge;
-
-        connection.query( 'SELECT * FROM users WHERE EMAIL = lower(?) AND DELETED = ?', [ request.email, 0 ], function ( err, rows ) {
+        connection.query( 'SELECT * FROM users WHERE EMAIL = lower(?) AND DELETED = ?', [ email, 0 ], function ( err, rows ) {
 
             if ( err ) {
                 var databaseError = bridgeError.createError( 403, 'databaseError', "Database query error. see log files for more information" );
@@ -63,33 +66,26 @@ exports.authenticateRequest = function ( req ) {
 
             var user = rows[ 0 ];
 
-            var hmac = crypto.createHmac( 'sha256', user.PASSWORD );
-            var concat = JSON.stringify( request.content ) + ( request.email ) + request.time;
-            hmac.update( concat );
-            var valHmac = hmac.digest( 'hex' );
-
-
-            if ( valHmac !== request.hmac ) {
-                var hmacError = bridgeError.createError( 403, 'hmacMismatch', "Failed hmac check" );
-                reject( hmacError );
+            // Check that the password is valid
+            if ( user.PASSWORD !== password ) {
+                reject( bridgeError.createError( 403, 'invalidPassword', "The suppiled password was incorrect" ) );
                 return;
             }
 
+            // Check the status
             if ( user.STATUS !== 'normal' && user.STATUS !== 'recovery' ) {
                 var incorrectStatusError = bridgeError.createError( 403, 'incorrectUserState', "User is in the '" + ( _.capitalize( user.STATUS ) ) + "' state" );
                 reject( incorrectStatusError );
                 return;
             }
 
-            req.bridge.user = user;
-
-            resolve();
+            resolve( user );
         } );
     } );
 };
 
 /**
- * AAdded the request user to the database.
+ * Added the request user to the database.
  * @param  {Object}   user   The user object
  * @return {Promise}            A Q Promise
  */
@@ -179,13 +175,6 @@ exports.updateUser = function( req ) {
         if ( _.has( content, 'appData' ) ) {
             if ( !_.isEmpty( content.appData ) ) {
                 updateFields.APP_DATA = content.appData;
-            }
-        }
-
-        // Email Check
-        if ( _.has( content, 'email' ) ) {
-            if ( !_.isEmpty( content.email ) ) {
-                updateFields.EMAIL = content.email.toLowerCase();
             }
         }
 

@@ -15,83 +15,40 @@ var config   = require( '../../server' ).config;
 
 var schema = {
     properties: {
-        content: {
-            type: 'object',
-            required: true,
-            description: "The content of the registration request",
-            properties: {
-                email: {
-                    type: 'string',
-                    format: 'email',
-                    required: true
-                },
-
-                firstName: {
-                    type: 'string',
-                    allowEmpty: false,
-                    required: true
-                },
-
-                lastName: {
-                    type: 'string',
-                    allowEmpty: false,
-                    required: true
-                },
-
-                password: {
-                    type: 'string',
-                    pattern: regex.sha256,
-                    required: true,
-                    messages: {
-                        pattern: "not a valid hash"
-                    }
-                },
-
-                appData: {
-                    type: 'object',
-                    required: false,
-                    description: "The user added data to go into the database along with the user"
-                },
-
-                regcode: {
-                    type: 'string',
-                    required: false
-                }
-            },
-        },
 
         email: {
             type: 'string',
-            description: "The email of the request, used for identification",
-            required: true,
-            allowEmpty: true,
-            pattern: regex.optionalEmail,
-            messages: {
-                pattern: "not a valid email"
-            }
+            format: 'email',
+            required: true
         },
 
-        time: {
-            description: "The time the request was made",
+        firstName: {
             type: 'string',
-            pattern: regex.ISOTime,
             allowEmpty: false,
-            required: true,
-            messages: {
-                pattern: "not a valid ISO date"
-            }
+            required: true
         },
 
-        hmac: {
-            description: "The HMAC of the request to be signed by the bridge client, in hex format",
+        lastName: {
+            type: 'string',
+            allowEmpty: false,
+            required: true
+        },
+
+        password: {
             type: 'string',
             pattern: regex.sha256,
-            allowEmpty: false,
             required: true,
             messages: {
                 pattern: "not a valid hash"
             }
+        },
+
+        appData: {
+            type: 'object',
+            required: false,
+            description: "The user added data to go into the database along with the user"
         }
+
     }
 };
 
@@ -106,26 +63,17 @@ function validateRegisterRequest( req ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'content.email':
-                    errorCode = 'emailInvalid';
-                    break;
-                case 'content.password':
-                    errorCode = 'passwordInvalid';
-                    break;
-                case 'content.firstName':
-                    errorCode = 'firstNameInvalid';
-                    break;
-                case 'content.lastName':
-                    errorCode = 'lastNameInvalid';
-                    break;
                 case 'email':
                     errorCode = 'emailInvalid';
                     break;
-                case 'hmac':
-                    errorCode = 'hmacInvalid';
+                case 'password':
+                    errorCode = 'passwordInvalid';
                     break;
-                case 'time':
-                    errorCode = 'timeInvalid';
+                case 'firstName':
+                    errorCode = 'firstNameInvalid';
+                    break;
+                case 'lastName':
+                    errorCode = 'lastNameInvalid';
                     break;
                 default:
                     errorCode = 'malformedRequest';
@@ -145,7 +93,7 @@ function validateRegisterRequest( req ) {
 
 function getUserObject( req ) {
     return Q.Promise( function ( resolve, reject ) {
-        resolve( req.headers.bridge.content );
+        resolve( req.headers.bridge );
     } );
 }
 
@@ -223,18 +171,9 @@ function sendReponse( res ) {
 
 module.exports = function ( req, res, next ) {
 
-    // Check that the basic request structure is verified.
-    util.checkRequestStructureVerified( req )
-
-    // Check that the request is Anonymous (Not Logged in)
-    .then( function () {
-        return util.mustBeAnonymous( req );
-    } )
 
     // Validate the structure of the request against the registration schema
-    .then( function () {
-        return validateRegisterRequest( req );
-    } )
+    validateRegisterRequest( req )
 
     // Get the user object out of the request
     .then( function () {

@@ -8,6 +8,7 @@ var path        = require( 'path' );
 var express     = require( 'express' );
 var fs          = require( 'q-io/fs' );
 var Q           = require( 'q' );
+var jwt         = require( 'jwt-simple' );
 
 var server = require( '../server' );
 var regex  = require( './regex' );
@@ -16,6 +17,8 @@ var error    = server.error;
 var database = server.database;
 var app      = server.app;
 var config   = server.config;
+
+exports.functions = {};
 
 /**
  * Add the nessesary CORS headers to the response object.
@@ -58,7 +61,24 @@ exports.handleOptionsRequest = function () {
     };
 };
 
-function parseBridgeHeader( req, res, next ) {
+
+/**
+ * Parses the bridge header object from a string to a JSON object. This return a function to
+ * perform the preceding operation.
+ *
+ * @param  {ExpressRequest}   req  The express request object that is made when a request is made
+ *                                 to the server
+ *
+ * @param  {ExpressResponse}  res  The express response object that is made when a request is made
+ *                                 to the server
+ *
+ * @param  {Function}         next The callback function to call when the middleware is completed.
+ *                                 If called with a parameter the variable will be an error object
+ *                                 to signify that an error occurred with this middleware.
+ *
+ * @return {Undefined}
+ */
+exports.functions.parseBridgeHeader = function( req, res, next ) {
     var bridgeRequestObject;
 
     if ( _.isUndefined( req.headers.bridge ) ) {
@@ -69,152 +89,53 @@ function parseBridgeHeader( req, res, next ) {
     try {
         bridgeRequestObject = JSON.parse( req.headers.bridge );
     } catch ( err ) {
-        next( error.createError( 400, 'appDataIsNotJSON', err ) );
+        next( error.createError( 400, 'bridgeHeaderIsNotJSON', err ) );
         return;
     }
 
     req.headers.bridge = bridgeRequestObject;
 
-    req.bridge = {};
+    req.bridge = req.bridge || {};
 
     next();
-}
 
+};
+
+/**
+ * Express middleware for parsing the bridge header object as a JSON object. if the header is empty
+ * for whatever reason it will be an empty json object.
+ *
+ * @return {Function}  An express middleware style function.
+ */
 exports.parseBridgeHeader = function() {
     app.log.debug( "Bridge header parser setup" );
-    return parseBridgeHeader;
-};
-function checkHmacSignature( req, hmacSalt ) {
-
-    var concat = JSON.stringify( req.headers.bridge.content ) + req.headers.bridge.email + req.headers.bridge.time;
-
-    var hmac = crypto.createHmac( 'sha256', hmacSalt ).update( concat ).digest( 'hex' );
-
-    return ( req.headers.bridge.hmac === hmac );
-}
-
-/**
- * The bridge request object schema. The definition of a bridge request
- * @type {Object}
- */
-var bridgeRequestSchema = {
-    properties: {
-        content: {
-            description: "The content of the bridge request",
-            type: 'object',
-            required: false
-        },
-
-        email: {
-            description: "The email that the request was sent from. can be empty",
-            type: 'string',
-            pattern: regex.optionalEmail,
-            required: true,
-            allowEmpty: true,
-            messages: {
-                pattern: "not a valid email"
-            }
-        },
-
-        time: {
-            description: "The time the request was sent from",
-            type: 'string',
-            required: true,
-            allowEmpty: false,
-            pattern: regex.ISOTime,
-            messages: {
-                pattern: "does not conform to the ISO format"
-            }
-        },
-
-        hmac: {
-            description: "the hmac signature of a bridge request",
-            type: 'string',
-            required: true,
-            allowEmpty: false,
-            pattern: regex.sha256,
-            messages: {
-                pattern: "not a valid hash"
-            }
-        }
-    }
+    return exports.functions.parseBridgeHeader;
 };
 
 /**
- * Verify that the request has the necessary structure and content to be handled by the bridge
- * @param  {Object}   req  The express request object.
- * @param  {Object}   res  The express response object.
- * @param  {Function} next The function to call when this function is complete
+ * Verifies that the correct objects are made and defaults them to an empty object if they are not
+ * defined
+ *
+ * @param  {Object}    req   The express request object.
+ *
+ * @param  {Object}    res   The express response object.
+ *
+ * @param  {Function}  next  The function to call when this function is complete
+ *
+ * @returns {Undefined}
  */
 function verifyRequestStructure( req, res, next ) {
 
-    if ( !_.isObject( req.headers.bridge ) ) {
-        next( error.createError( 500, 'internalServerError', 'request header bridge is not an object' ) );
-        return;
-    }
-
-    var validation = revalidator.validate( req.headers.bridge, bridgeRequestSchema );
-    var vrsError;
-
-    if ( !validation.valid ) {
-        var firstError = validation.errors[ 0 ];
-
-        var errorCode;
-
-        if ( firstError.property === 'email' ) {
-            errorCode = 'emailInvalid';
-        } else if ( firstError.property === 'time' ) {
-            errorCode = 'timeInvalid';
-        } else if ( firstError.property === 'HMAC' ) {
-            errorCode = 'hmacInvalid';
-        } else {
-            errorCode = 'malformedBridgeHeader';
-        }
-
-        vrsError = error.createError( 400, errorCode, "Property " + firstError.property + " - " + firstError.message + "\n" + "Error Obj: " + JSON.stringify( validation.errors ) );
-
-        next( vrsError );
-        return;
-    }
-
-    req.bridge.isAnon = ( req.headers.bridge.email === "" );
-
-    var hmacSalt;
-
-    if ( req.bridge.isAnon ) {
-        hmacSalt = "";
-
-        if ( !checkHmacSignature( req, hmacSalt ) ) {
-            vrsError = error.createError( 400, 'hmacMismatch', 'HMAC check failed for anonymous request.' );
-            next( vrsError );
-            return;
-        }
-
-        req.bridge.structureVerified = true;
-        next();
-        return;
-    } else {
-
-        database.authenticateRequest( req )
-        .then( function () {
-            hmacSalt = req.bridge.user.PASSWORD;
-
-            if ( !checkHmacSignature( req, hmacSalt ) ) {
-                vrsError = error.createError( 400, 'hmacMismatch', 'HMAC check failed for authenticated request.' );
-                next( vrsError );
-                return;
-            }
-
-            req.bridge.structureVerified = true;
-            next();
-        } )
-        .fail( function ( err ) {
-            next( err );
-
-        } );
-    }
+    req.headers.bridge = req.headers.bridge || {};
+    req.bridge         = req.bridge         || {};
+    req.bridge.isAnon  = true;
 }
 
+/**
+ * Returns the function for the verify request structure middleware.
+ *
+ * @return {Function} The function that has the express style signature.
+ */
 exports.verifyRequestStructure = function () {
     app.log.debug( "Bridge request structure middleware setup" );
     return verifyRequestStructure;
@@ -222,8 +143,10 @@ exports.verifyRequestStructure = function () {
 
 /**
  * Statically hosts file based on the configuration file settings.
+ *
  * @return {Function} Express middleware style function.
  */
+// TODO Rewirte protected files using the new token method
 exports.staticHostFiles = function () {
     app.log.debug( "Static file hosting setup!" );
     var staticHost = express.static( path.resolve( config.server.wwwRoot ) );
@@ -257,7 +180,7 @@ exports.staticHostFiles = function () {
 
             Q.fcall( function() {
                 return Q.Promise( function( resolve, reject ) {
-                    parseBridgeHeader( req, res, function ( err ) {
+                    exports.functions.parseBridgeHeader( req, res, function ( err ) {
                         if ( err ) {
                             reject( err );
                             return;
@@ -378,4 +301,82 @@ exports.bridgeErrorHandler = function () {
 
         //next( errContext );
     };
+};
+
+/**
+ * The schema for validating a token object with revalidator
+ * @type {Schema}
+ */
+var tokenSchema = {
+    properties: {
+        email: {
+            type: 'string',
+            required: true,
+            allowEmpty: false
+        },
+
+        password: {
+            type: 'string',
+            required: true,
+            allowEmpty: false
+        },
+
+        id: {
+            type: 'integer',
+            required: true,
+            minimum: 1
+        },
+
+        expires: {
+            type: 'string',
+            required: true,
+            pattern: regex.ISOTime
+        }
+    }
+};
+
+/**
+ * Express middleware function that is responsible for authenticating object that use the token
+ * object for validation
+ *
+ * @param  {ExpressRequest}   req  Express js request object that is created when a request is made
+ *                                 to the server
+ *
+ * @param  {ExpressResponse}  res  Express response object that is created when a request is made
+ *                                 to the server
+ *
+ * @param  {Function} next         Callback function that is called when the middle ware is complete.
+ *                                 If called with a parameter then that variable is an error object.
+ *
+ * @return {Undefined}
+ */
+exports.authenticateToken = function( req, res, next ) {
+
+    var token = req.bridge.cookies.get( 'BridgeAuth' );
+
+    if ( !token ) {
+        req.bridge.isAnon = true;
+        next();
+        return;
+    }
+
+    var authObj;
+
+    try {
+        authObj = jwt.decode( token, config.security.tokenSecret );
+    } catch ( err ) {
+        next( error.createError( 403, 'invalidToken', err ) );
+        return;
+    }
+
+    // Make sure that the bridge object exists and is at least an empty object.
+    req.bridge = req.bridge || {};
+
+    req.bridge.isAnon = false;
+
+    // Assign the req.bidge.auth variable to the decoded auth object.
+    req.bridge.auth = authObj;
+
+    next();
+
 };

@@ -15,77 +15,33 @@ var config   = require( '../config' );
 
 var schema = {
     properties: {
-        content: {
+        appData: {
             type: 'object',
-            required: true,
-            properties: {
-                appData: {
-                    type: 'object',
-                    required: false,
-                },
-
-                email: {
-                    type: 'string',
-                    allowEmpty: true,
-                    required: false,
-                    pattern: regex.optionalEmail,
-                    messages: {
-                        pattern: "not a valid email"
-                    }
-                },
-
-                firstName: {
-                    type: 'string',
-                    allowEmpty: true,
-                    required: false,
-                },
-
-                lastName: {
-                    type: 'string',
-                    allowEmpty: true,
-                    required: false
-                },
-
-                password: {
-                    type: 'string',
-                    required: false,
-                    pattern: regex.sha256,
-                    messages: {
-                        pattern: "not a valid hash"
-                    }
-                }
-            }
+            required: false,
         },
 
-        email: {
+        firstName: {
             type: 'string',
-            description: "the email to try to login to",
-            format: 'email',
-            allowEmpty: false,
-            required: true
-        },
-        time: {
-            description: "The time the request was made",
-            type: 'string',
-            pattern: regex.ISOTime,
-            allowEmpty: false,
-            required: true,
-            messages: {
-                pattern: "not a valid ISO date"
-            }
+            allowEmpty: true,
+            required: false,
         },
 
-        hmac: {
-            description: "The HMAC of the request to be signed by the bridge client, in hex format",
+        lastName: {
             type: 'string',
+            allowEmpty: true,
+            required: false
+        },
+
+        password: {
+            type: 'string',
+            required: false,
             pattern: regex.sha256,
-            allowEmpty: false,
-            required: true,
             messages: {
                 pattern: "not a valid hash"
             }
         }
     }
+
 };
 
 function validateUpdateUserRequest( req ) {
@@ -100,26 +56,17 @@ function validateUpdateUserRequest( req ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'content.email':
-                    errorCode = 'emailInvalid';
-                    break;
-                case 'content.password':
-                    errorCode = 'passwordInvalid';
-                    break;
-                case 'content.firstName':
-                    errorCode = 'firstNameInvalid';
-                    break;
-                case 'content.lastName':
-                    errorCode = 'lastNameInvalid';
-                    break;
                 case 'email':
                     errorCode = 'emailInvalid';
                     break;
-                case 'hmac':
-                    errorCode = 'hmacInvalid';
+                case 'password':
+                    errorCode = 'passwordInvalid';
                     break;
-                case 'time':
-                    errorCode = 'timeInvalid';
+                case 'firstName':
+                    errorCode = 'firstNameInvalid';
+                    break;
+                case 'lastName':
+                    errorCode = 'lastNameInvalid';
                     break;
                 default:
                     errorCode = 'malformedRequest';
@@ -200,13 +147,8 @@ function sendResponse( res ) {
 
 module.exports = function ( req, res, next ) {
 
-    // Check that the basic request structure is verified.
-    util.checkRequestStructureVerified( req )
-
     // The request must be in a Logged In State
-    .then( function () {
-        return util.mustBeLoggedIn( req );
-    } )
+    util.mustBeLoggedIn( req )
 
     // Validate the request to conform with an UpdateUser Request
     .then( function () {

@@ -14,52 +14,12 @@ var config   = require( '../../server' ).config;
 
 var schema = {
     properties: {
-        content: {
-            description: "This is the content of a ForgotPassword Request",
-            type: 'object',
-            required: true,
-            properties: {
-                message: {
-                    description: "The message relating to the forgot password request. should be an email",
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false,
-                    format: 'email'
-                }
-            }
-        },
-
         email: {
+            description: "The message relating to the forgot password request. should be an email",
             type: 'string',
-            description: "The email of the request, used for identification",
             required: true,
-            allowEmpty: true,
-            pattern: regex.optionalEmail,
-            messages: {
-                pattern: "not a valid email"
-            }
-        },
-
-        time: {
-            description: "The time the request was made",
-            type: 'string',
-            pattern: regex.ISOTime,
             allowEmpty: false,
-            required: true,
-            messages: {
-                pattern: "not a valid ISO date"
-            }
-        },
-
-        hmac: {
-            description: "The HMAC of the request to be signed by the bridge client, in hex format",
-            type: 'string',
-            pattern: regex.sha256,
-            allowEmpty: false,
-            required: true,
-            messages: {
-                pattern: "not a valid hash"
-            }
+            format: 'email'
         }
     }
 };
@@ -77,17 +37,8 @@ function validateForgotPasswordRequest( req ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'content.message':
-                    errorCode = 'emailInvalid';
-                    break;
                 case 'email':
                     errorCode = 'emailInvalid';
-                    break;
-                case 'hmac':
-                    errorCode = 'hmacInvalid';
-                    break;
-                case 'time':
-                    errorCode = 'timeInvalid';
                     break;
                 default:
                     errorCode = 'malformedRequest';
@@ -108,7 +59,7 @@ function checkUserExists( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
         var query  = "SELECT EMAIL FROM users WHERE EMAIL = ?";
-        var values = [ req.headers.bridge.content.message ];
+        var values = [ req.headers.bridge.email ];
 
         database.query( query, values )
             .then( function ( rows ) {
@@ -196,13 +147,9 @@ function sendResponse( res ) {
 
 module.exports = function( req, res, next ) {
 
-    // Check that the request has passed the structure test
-    util.checkRequestStructureVerified( req )
 
     // Check that the request is in the valid format
-    .then( function () {
-        return validateForgotPasswordRequest( req );
-    } )
+    validateForgotPasswordRequest( req )
 
     // Check that the request user exists in the database
     .then( function() {

@@ -15,48 +15,11 @@ var mailer   = require( '../mailer'   );
 
 var schema = {
     properties: {
-        content: {
-            type: 'object',
-            required: true,
-            properties: {
-                hash: {
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false,
-                    pattern: regex.sha256,
-                    messages: {
-                        pattern: "not a valid hash"
-                    }
-                }
-            }
-        },
-        email: {
+        hash: {
             type: 'string',
-            description: "The email of the request, used for identification",
             required: true,
-            allowEmpty: true,
-            pattern: regex.optionalEmail,
-            messages: {
-                pattern: "not a valid email"
-            }
-        },
-        time: {
-            description: "The time the request was made",
-            type: 'string',
-            pattern: regex.ISOTime,
             allowEmpty: false,
-            required: true,
-            messages: {
-                pattern: "not a valid ISO date"
-            }
-        },
-
-        hmac: {
-            description: "The HMAC of the request to be signed by the bridge client, in hex format",
-            type: 'string',
             pattern: regex.sha256,
-            allowEmpty: false,
-            required: true,
             messages: {
                 pattern: "not a valid hash"
             }
@@ -77,17 +40,8 @@ function validateVerifyEmailRequest( req ) {
             var errorCode;
 
             switch( firstError.property ) {
-                case 'content.hash':
+                case 'hash':
                     errorCode = 'userHashInvalid';
-                    break;
-                case 'email':
-                    errorCode = 'emailInvalid';
-                    break;
-                case 'hmac':
-                    errorCode = 'hmacInvalid';
-                    break;
-                case 'time':
-                    errorCode = 'timeInvalid';
                     break;
                 default:
                     errorCode = 'malformedRequest';
@@ -160,13 +114,8 @@ function sendResponse( res ) {
 
 module.exports = function ( req, res, next ) {
 
-    // Check that the basic request structure is verified.
-    util.checkRequestStructureVerified( req )
-
     // Validate the request to conform with the Verify Email request
-    .then( function () {
-        return validateVerifyEmailRequest( req );
-    } )
+    validateVerifyEmailRequest( req )
 
     // Verify the email in the datebase
     .then( function () {

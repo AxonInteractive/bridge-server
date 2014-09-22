@@ -33,7 +33,7 @@ exports.errorCodeMap = {
     "databaseError"           : 2,
     "emailInUse"              : 3,
     "authFailedAnon"          : 4,
-    "hmacMismatch"            : 5,
+    "invalidPassword"         : 5,
     "incorrectUserState"      : 6,
     "emailInvalid"            : 7,
     "firstNameInvalid"        : 8,
@@ -52,7 +52,9 @@ exports.errorCodeMap = {
     "protectedAuthFailed"     : 21,
     "protectedMustBeLoggedIn" : 22,
     "malformedRequest"        : 23,
-    "museBeAnonymous"         : 24
+    "museBeAnonymous"         : 24,
+    "invalidToken"            : 25,
+    "missingToken"            : 26
 };
 
 /**

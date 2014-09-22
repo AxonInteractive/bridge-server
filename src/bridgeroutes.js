@@ -1,8 +1,11 @@
+/** @module BridgeRoutes */
 "use strict";
 
 var fs         = require( 'fs'           );
 var path       = require( 'path'         );
 var express    = require( 'express'      );
+var Cookies    = require( 'cookies'      );
+
 var config     = require( '../server'    ).config;
 var app        = require( '../server'    ).app;
 var bridgeWare = require( './middleware' );
@@ -11,6 +14,18 @@ var indexPath = path.join( config.server.wwwRoot, config.server.indexPath );
 
 app.log.debug( "Index Path: " + path.resolve( indexPath ) );
 
+/**
+ * Servers the file specified by the bridge configuration file under config.server.indexPath, that
+ * is prepended to the config.server.wwwRoot path.
+ *
+ * @param  {ExpressRequest}  req  An express request object that is made when a request is made to
+ *                                the server.
+ *
+ * @param  {ExpressResponse} res  An express response object that is made when a request is made to
+ *                                the server.
+ *
+ * @return {Undefined}
+ */
 exports.serveIndex = function( req, res ) {
 
     var indexPath = path.join( config.server.wwwRoot, config.server.indexPath );
@@ -23,6 +38,18 @@ exports.serveIndex = function( req, res ) {
     exports.send404( req, res );
 };
 
+/**
+ * Sends a 404 html file if it exists. if the file doesn't exists this just sends a string "404 -
+ * Not Found".
+ *
+ * @param  {ExpressRequest}  req  An express request object that is made when a request is made to
+ *                                the server.
+ *
+ * @param  {ExpressResponse} res  An express response object that is made when a request is made to
+ *                                the server.
+ *
+ * @return {Undefined}
+ */
 exports.send404 = function( req, res ) {
     res.status( 404 );
 
@@ -40,19 +67,34 @@ exports.send404 = function( req, res ) {
     } );
 };
 
+/**
+ * Gets the cookies from the request by using the expressjs cookies module. Examples of this module
+ * can be seen at: https://github.com/expressjs/cookies
+ *
+ * @return {ExpressMiddleware} An express middleware function.
+ */
+exports.getCookies = function() {
+    app.log.debug( "Bridge cookie parser setup!" );
+    return function( req, res, next ) {
+        req.bridge = req.bridge || {};
+        req.bridge.cookies = new Cookies( req, res );
+        next();
+    };
+};
+
 exports.setup = function () {
 
     var publicRouter = app.get( 'publicRouter' );
     var privateRouter = app.get( 'privateRouter' );
 
-    //privateRouter.use( bridgeWare.verifyToken() );
+    privateRouter.use( bridgeWare.authenticateToken );
 
-    publicRouter.route( '/login' )
-        .get( require( './requests/login' ) );
+    publicRouter.route( '/user' )
+        .post( require( './requests/register' ) );
 
-    privateRouter.route( '/users' )
-        .post( require( './requests/register' ) )
-        .put( require( './requests/updateUser' ) );
+    privateRouter.route( '/user' )
+        .put( require( './requests/updateUser' ) )
+        .get( require( './requests/getUser' ) );
 
     publicRouter.route( '/recover-password' )
         .put( require( './requests/recoverPassword' ) );
