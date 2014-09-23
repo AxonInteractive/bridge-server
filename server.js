@@ -96,8 +96,8 @@ app.use( function( req, res, next ) {
     next();
 } );
 
-// // Setup the cookie parser
-// app.use( bridgeWare.getCookies() );
+// Setup the cookie parser
+app.use( routes.getCookies() );
 
 // Setup the request logger
 app.use( function ( req, res, next ) {
@@ -110,7 +110,7 @@ app.use( function ( req, res, next ) {
         Secure: req.secure,
         XHR: req.xhr,
         Protocol: req.protocol,
-        BridgeCookie: req.bridge.cookies.get( 'bridge-auth' )
+        BridgeCookie: req.bridge.cookies.get( 'BridgeAuth' )
     } );
 
     next();
@@ -123,7 +123,8 @@ app.use( bridgeWare.staticHostFiles() );
 app.get( '/', routes.serveIndex );
 
 // Handle an authentication request
-app.post( '/authenticate', require( './src/requests/authenticate' ) );
+app.get( 'publicRouter' ).route( '/authenticate' )
+    .post( require( './src/requests/authenticate' ) );
 
 // Automatically parse the body to JSON
 app.use( bodyParser.json() );

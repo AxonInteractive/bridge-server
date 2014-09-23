@@ -79,6 +79,8 @@ function validateAuthenticationRequest( req ) {
             return;
         }
 
+        resolve();
+
     } );
 }
 
@@ -89,18 +91,11 @@ function setUserSessionToken( req, user ) {
 
     var remember = bridgeHeader.rememberMe;
 
-    var tokenDuration = ( remember ?
-            config.security.tokenExpiryDurationRememberMe :
-            config.security.tokenExpiryDuration
-        );
-
-    var tokenExpiry = moment.utc().add( tokenDuration );
 
     var tokenPayload = {
         email: user.EMAIL,
         password: user.PASSWORD,
-        id: user.ID,
-        expires: tokenExpiry.toISOString()
+        id: user.ID
     };
 
     var secret = config.security.tokenSecret;
@@ -108,10 +103,18 @@ function setUserSessionToken( req, user ) {
     var token = jwt.encode( tokenPayload, secret );
 
     var cookieOptions = {
-        httpOnly: false,
-        domain: "." + config.server.hostName,
-        expires: tokenExpiry.toDate()
+        httpOnly: true,
+        overwrite: true
     };
+
+    if ( remember ) {
+
+        var tokenDuration = config.security.tokenExpiryDurationRememberMe;
+
+        var tokenExpiry = moment.utc().add( tokenDuration );
+
+        cookieOptions.expires = tokenExpiry.toDate();
+    }
 
     req.bridge.cookies.set( 'BridgeAuth', token, cookieOptions );
 }
@@ -124,6 +127,7 @@ function sendResponse( res ) {
             message: "Authentication successful!"
         }
     } );
+
 }
 
 /**
@@ -156,13 +160,10 @@ module.exports = function( req, res, next ) {
         return database.authenticateUser( email, password );
     } )
     .then( function( user ) {
-        return setUserSessionToken( req, user );
+        setUserSessionToken( req, user );
     } )
     .then( function() {
-        return sendResponse( res );
-    } )
-    .then( function() {
-        next();
+        sendResponse( res );
     } )
     .fail( function( err ) {
         next( err );

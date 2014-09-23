@@ -89,6 +89,12 @@ exports.setup = function () {
 
     privateRouter.use( bridgeWare.authenticateToken );
 
+    publicRouter.route( '/authenticate' )
+        .post( require( './requests/authenticate' ) );
+
+    privateRouter.route( '/deauthenticate' )
+        .delete( require( './requests/deauthenticate ' ) );
+
     publicRouter.route( '/user' )
         .post( require( './requests/register' ) );
 

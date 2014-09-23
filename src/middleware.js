@@ -248,7 +248,7 @@ exports.bridgeErrorHandler = function () {
         else if( errContext instanceof( Error ) ) {
             res.json({
                 status: 500,
-                errorCode: 'fatal error',
+                errorCode: 'internalServerError',
                 time: moment.utc().toISOString()
             });
             app.log.error( errContext );
@@ -378,5 +378,14 @@ exports.authenticateToken = function( req, res, next ) {
     req.bridge.auth = authObj;
 
     next();
+};
 
+exports.getCookies = function( req, res, next ) {
+    req.bridge = req.bridge || {};
+
+    var cookies = new Cookies( req, res );
+
+    req.bridge.cookies = cookies;
+
+    next();
 };
