@@ -9,6 +9,7 @@ var express     = require( 'express' );
 var fs          = require( 'q-io/fs' );
 var Q           = require( 'q' );
 var jwt         = require( 'jwt-simple' );
+var Cookies     = require( 'cookies' );
 
 var server = require( '../server' );
 var regex  = require( './regex' );
@@ -325,12 +326,6 @@ var tokenSchema = {
             type: 'integer',
             required: true,
             minimum: 1
-        },
-
-        expires: {
-            type: 'string',
-            required: true,
-            pattern: regex.ISOTime
         }
     }
 };
@@ -377,15 +372,39 @@ exports.authenticateToken = function( req, res, next ) {
     // Assign the req.bidge.auth variable to the decoded auth object.
     req.bridge.auth = authObj;
 
-    next();
+    // validate the token.
+
+    var tokenValidation = revalidator.validate( authObj, tokenSchema );
+
+    if ( tokenValidation.valid ) {
+        next( error.createError( 400, 'invalidToken', "see server log for more details" ) );
+        app.log.debug( "Invalid token error: ", tokenValidation.errors );
+        return;
+    }
+
+    database.authenticateUser( authObj.email, authObj.password )
+    .then( function( user ) {
+        req.bridge.user = user;
+        next();
+    } )
+    .fail( function( err ) {
+        next( err );
+    } );
+
+
 };
 
-exports.getCookies = function( req, res, next ) {
-    req.bridge = req.bridge || {};
-
-    var cookies = new Cookies( req, res );
-
-    req.bridge.cookies = cookies;
-
-    next();
+/**
+ * Gets the cookies from the request by using the expressjs cookies module. Examples of this module
+ * can be seen at: https://github.com/expressjs/cookies
+ *
+ * @return {ExpressMiddleware} An express middleware function.
+ */
+exports.getCookies = function() {
+    app.log.debug( "Bridge cookie parser setup!" );
+    return function( req, res, next ) {
+        req.bridge = req.bridge || {};
+        req.bridge.cookies = new Cookies( req, res );
+        next();
+    };
 };

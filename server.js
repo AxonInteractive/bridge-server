@@ -97,7 +97,7 @@ app.use( function( req, res, next ) {
 } );
 
 // Setup the cookie parser
-app.use( routes.getCookies() );
+app.use( bridgeWare.getCookies() );
 
 // Setup the request logger
 app.use( function ( req, res, next ) {

@@ -4,7 +4,6 @@
 var fs         = require( 'fs'           );
 var path       = require( 'path'         );
 var express    = require( 'express'      );
-var Cookies    = require( 'cookies'      );
 
 var config     = require( '../server'    ).config;
 var app        = require( '../server'    ).app;
@@ -65,21 +64,6 @@ exports.send404 = function( req, res ) {
         res.sendFile( path.resolve( NotFoundPath ) );
 
     } );
-};
-
-/**
- * Gets the cookies from the request by using the expressjs cookies module. Examples of this module
- * can be seen at: https://github.com/expressjs/cookies
- *
- * @return {ExpressMiddleware} An express middleware function.
- */
-exports.getCookies = function() {
-    app.log.debug( "Bridge cookie parser setup!" );
-    return function( req, res, next ) {
-        req.bridge = req.bridge || {};
-        req.bridge.cookies = new Cookies( req, res );
-        next();
-    };
 };
 
 exports.setup = function () {

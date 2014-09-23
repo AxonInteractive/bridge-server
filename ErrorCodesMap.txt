@@ -25,5 +25,5 @@
 |        23 | Malformed request                                    |                                      | malformedRequest        |
 |        24 | Request must be anonymous                            |                                      | mustBeAnonymous         |
 |        25 | The token was invalid.                               |                                      | invalidToken            |
-|        26 | The cookie was missing from the request or was empty |                                      | missingCookie                        |
+|        26 | The cookie was missing from the request or was empty |                                      | missingCookie           |
 
