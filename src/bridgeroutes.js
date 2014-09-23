@@ -93,7 +93,7 @@ exports.setup = function () {
         .post( require( './requests/authenticate' ) );
 
     privateRouter.route( '/deauthenticate' )
-        .delete( require( './requests/deauthenticate ' ) );
+        .delete( require( './requests/deauthenticate' ) );
 
     publicRouter.route( '/user' )
         .post( require( './requests/register' ) );
