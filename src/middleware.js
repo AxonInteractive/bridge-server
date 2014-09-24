@@ -130,6 +130,8 @@ function verifyRequestStructure( req, res, next ) {
     req.headers.bridge = req.headers.bridge || {};
     req.bridge         = req.bridge         || {};
     req.bridge.isAnon  = true;
+
+    next();
 }
 
 /**
@@ -252,8 +254,8 @@ exports.bridgeErrorHandler = function () {
                 errorCode: 'internalServerError',
                 time: moment.utc().toISOString()
             });
-            app.log.error( errContext );
-            next();
+            app.log.error( errContext.stack );
+            return;
         } else {
             err = errContext;
         }
@@ -351,7 +353,7 @@ exports.authenticateToken = function( req, res, next ) {
 
     if ( !token ) {
         req.bridge.isAnon = true;
-        next();
+        next( error.createError( 403, 'missingCookie', 'request had no authentication cookie' ) );
         return;
     }
 
@@ -372,11 +374,15 @@ exports.authenticateToken = function( req, res, next ) {
     // Assign the req.bidge.auth variable to the decoded auth object.
     req.bridge.auth = authObj;
 
-    // validate the token.
+    if ( !_.isObject( authObj ) ) {
+        next( error.createError( 400, 'invalidToken', "token is not an object" ) );
+        return;
+    }
 
+    // validate the token.
     var tokenValidation = revalidator.validate( authObj, tokenSchema );
 
-    if ( tokenValidation.valid ) {
+    if ( !tokenValidation.valid ) {
         next( error.createError( 400, 'invalidToken', "see server log for more details" ) );
         app.log.debug( "Invalid token error: ", tokenValidation.errors );
         return;
@@ -390,8 +396,6 @@ exports.authenticateToken = function( req, res, next ) {
     .fail( function( err ) {
         next( err );
     } );
-
-
 };
 
 /**

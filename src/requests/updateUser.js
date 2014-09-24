@@ -101,10 +101,10 @@ function sendUpdatedUserEmail( user ) {
 
         var mail = {
             to: user.EMAIL,
-            subject: config.mailer.recoverAccountEmailSubject
+            subject: config.mailer.updatedUserEmailSubject
         };
 
-        var viewName = config.mailer.recoverAccountViewName;
+        var viewName = config.mailer.updatedUserViewName;
 
         var footerImageURL     = URLModule.resolve( url, 'resources/email/peir-footer.png'    );
         var headerImageURL     = URLModule.resolve( url, 'resources/email/peir-header.png'    );
@@ -133,10 +133,7 @@ function sendResponse( res ) {
     return Q.Promise( function( resolve, reject ) {
 
         res.send( {
-            content: {
-                message: "User updated successfully",
-                time: new Date().toISOString()
-            }
+            content: "User updated successfully"
         } );
 
         res.status( 200 );
@@ -167,11 +164,6 @@ module.exports = function ( req, res, next ) {
     // Send the successful response message
     .then( function () {
         return sendResponse( res );
-    } )
-
-    // Move onto the next middle ware
-    .then( function () {
-        next();
     } )
 
     // Catch any error that might have occurred in the previous promises.

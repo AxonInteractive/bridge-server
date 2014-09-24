@@ -123,9 +123,7 @@ function sendResponse( res ) {
     res.status( 200 );
 
     res.send( {
-        content: {
-            message: "Authentication successful!"
-        }
+        content: "Authentication successful!"
     } );
 
 }

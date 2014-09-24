@@ -2,46 +2,46 @@
 
 "use strict";
 
-var jwt         = require( 'jwt-simple'  );
-var moment      = require( 'moment'      );
+var jwt        = require( 'jwt-simple'   );
+var moment     = require( 'moment'       );
+var Q          = require( 'q'            );
 
-var config     = require( '../config'     );
+var config     = require( '../config'    );
 
 function setUserSessionToken( req ) {
-    var bridgeHeader = req.get( 'bridge' );
+    return Q.Promise( function ( resolve, reject ) {
 
-    var remember = bridgeHeader.rememberMe;
+        var bridgeHeader = req.get( 'bridge' );
 
-    var tokenPayload = "deleted";
+        var remember = bridgeHeader.rememberMe;
 
-    var secret = config.security.tokenSecret;
+        var tokenPayload = {};
 
-    var token = jwt.encode( tokenPayload, secret );
+        var secret = config.security.tokenSecret;
 
-    var cookieOptions = {
-        httpOnly: true,
-        overwrite: true
-    };
+        var token = jwt.encode( tokenPayload, secret );
 
-    if ( remember ) {
+        var cookieOptions = {
+            httpOnly: true,
+            overwrite: true
+        };
 
-        var tokenDuration = config.security.tokenExpiryDurationRememberMe;
-
-        var tokenExpiry = moment.utc(0);
+        var tokenExpiry = moment.utc( '2000', 'YYYY' );
 
         cookieOptions.expires = tokenExpiry.toDate();
-    }
 
-    req.bridge.cookies.set( 'BridgeAuth', token, cookieOptions );
+        req.bridge.cookies.set( 'BridgeAuth', token, cookieOptions );
+
+        resolve();
+
+    } );
 }
 
 function sendResponse( res ) {
     res.status( 200 );
 
     res.send( {
-        content: {
-            message: "Deauthentication successful!"
-        }
+        content: "Deauthentication successful!"
     } );
 
 }

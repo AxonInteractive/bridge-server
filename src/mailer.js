@@ -91,7 +91,7 @@ exports.sendMail = function( viewName, variables, mail ) {
                     return;
                 }
 
-                app.log.info( "Info: ", info );
+                app.log.debug( "Mail info: ", info );
 
                 resolve();
 

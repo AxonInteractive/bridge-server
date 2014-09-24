@@ -33,17 +33,12 @@ function sendReponse( req, res, appData ) {
 
         res.send( {
             content: {
-                user: {
-                    email: user.EMAIL,
-                    firstName: user.FIRST_NAME,
-                    lastName: user.LAST_NAME,
-                    status: user.STATUS,
-                    role: user.ROLE,
-                    appData: appData,
-                    lognData: {}
-                },
-
-                time: new Date().toISOString()
+                email: user.EMAIL,
+                firstName: user.FIRST_NAME,
+                lastName: user.LAST_NAME,
+                status: user.STATUS,
+                role: user.ROLE,
+                appData: appData
             }
         } );
 
@@ -63,10 +58,6 @@ module.exports = function( req, res, next ) {
 
     .then( function( appData ) {
         return sendReponse( req, res, appData );
-    } )
-
-    .then( function() {
-        next();
     } )
 
     .fail( function( err ) {

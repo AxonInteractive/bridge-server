@@ -12,7 +12,7 @@ var database = require( '../database'  );
 var config   = require( '../config'    );
 var mailer   = require( '../mailer'    );
 
-var _ = require('lodash')._;
+var _ = require('lodash');
 
 var schema = {
     type: 'object',
@@ -125,10 +125,7 @@ function sendReponse( res ) {
     return Q.Promise( function( resolve, reject ) {
 
         res.send( {
-            "content": {
-                message: "Password recovery successful!",
-                time: new Date().toISOString()
-            }
+            content: "Password recovery successful!"
         } );
 
         res.status( 200 );
@@ -163,10 +160,6 @@ module.exports = function ( req, res, next ) {
         return sendReponse( res );
     } )
 
-    // Move onto the next middle ware
-    .then( function () {
-        next();
-    } )
 
     // Catch any errors that occurred in the above promises
     .fail( function ( err ) {

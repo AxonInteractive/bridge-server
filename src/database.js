@@ -29,6 +29,10 @@ connection.connect( function(err) {
     app.log.info( "Connected to database successfully as id " + connection.threadId );
 } );
 
+function createUserHash( email, momentDate ) {
+    return crypto.createHash( 'sha256' ).update( email.toLowerCase() + momentDate.toISOString() ).digest( 'hex' );
+}
+
 /**
  * A filter used to authenticate a user from the bridge database.
  *
@@ -99,13 +103,15 @@ exports.registerUser = function ( req, user ) {
                 moment.utc().format( 'YYYY-MM-DD HH:mm:ss' ) + "\", ?, ?, \"user\", 0, ?, \"" +
                 moment.utc().format( 'YYYY-MM-DD HH:mm:ss' ) + "\" )";
 
+        user.hash = createUserHash( user.email, moment.utc() );
+
         var values = [  user.email.toLowerCase(),
                         user.password,
                         _.capitalize( user.firstName ),
                         _.capitalize( user.lastName ),
                         JSON.stringify( user.appData ),
                         state,
-                        "" ];
+                        user.hash ];
 
         connection.query( userInsertionQuery, values, function ( err, retObj ) {
             if ( err ) {
@@ -147,21 +153,12 @@ exports.updateUser = function( req ) {
 
         var updateUserError;
 
-        if ( !_.has( req.bridge, "structureVerified" ) ) {
-            var malformedMessageError = bridgeError.createError( 400, 'structureMustBeVerified', "Request has not been verified using the verify request middleware property" );
-
-
-            reject( malformedMessageError );
-            return;
-        }
-
         if ( !_.has( req.bridge, "user" ) ) {
             var unAuthenticateError = bridgeError.createError( 500, 'internalServerError', "Cannot change password without authentication" );
 
             reject( unAuthenticateError );
             return;
         }
-
 
         var content = req.headers.bridge.content;
 
@@ -264,7 +261,7 @@ exports.verifyEmail = function ( req ) {
         var verifyEmailError;
 
         var query = "SELECT * FROM users WHERE USER_HASH = ? AND DELETED = 0";
-        var values = [ req.headers.bridge.content.hash ];
+        var values = [ req.headers.bridge.hash ];
 
         connection.query( query, values, function ( err, rows ) {
             if ( err ) {
@@ -348,7 +345,7 @@ exports.recoverPassword = function ( userHash, newPasswordHash, req ) {
             var query2 = "UPDATE users SET PASSWORD = ?, STATUS = ?, USER_HASH = ? WHERE id = ?";
             var values2 = [ newPasswordHash, 'normal', '', rows[ 0 ].ID ];
 
-            connection.query( query2, values2, function ( err2, rows ) {
+            connection.query( query2, values2, function ( err2, updateResults ) {
                 if ( err2 ) {
                     recoverPasswordError = bridgeError.createError( 500, 'databaseError', "Database query error, See log for more details" );
                     app.log.error( "Database Error: " + err2 );
@@ -356,8 +353,10 @@ exports.recoverPassword = function ( userHash, newPasswordHash, req ) {
                     return;
                 }
 
-                clearTimeout( recoveryStateUserMap[ rows[ 0 ].ID ] );
-                recoveryStateUserMap[ rows[ 0 ].ID ] = undefined;
+                if ( _.has( recoveryStateUserMap, rows[ 0 ].ID ) ) {
+                    clearTimeout( recoveryStateUserMap[ rows[ 0 ].ID ] );
+                    recoveryStateUserMap[ rows[ 0 ].ID ] = undefined;
+                }
 
                 resolve();
             } );
@@ -395,7 +394,7 @@ exports.forgotPassword = function( user ) {
     return Q.Promise( function( resolve, reject ) {
         var query = "UPDATE users SET STATUS = ?, USER_HASH = ? WHERE EMAIL = ? AND DELETED = ?";
 
-        var userHash = crypto.createHash( 'sha256' ).update( user.EMAIL + moment.utc().toISOString() ).digest( 'hex' );
+        var userHash = createUserHash( user.EMAIL, moment.utc() );
 
         var values = [ 'recovery', userHash, user.EMAIL, 0 ];
 

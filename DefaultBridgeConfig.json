@@ -1,9 +1,13 @@
 {
 
     "server": {
+        // The domain name of the server to act like its from that address. This is used to make
+        // links to the server.
         "hostname": "localhost:3000",
 
         // The mode of the server. [http | https]
+        // HTTPS is highly recommended. Your information will not be nearly as safe as it will be
+        // running in https mode.
         "mode": "https",
 
         // The port the server should use when setting up its service
@@ -23,14 +27,12 @@
         //     //{ "path": "resources/audio", "roles": [ 'user', 'admin' ] }
         // ],
 
-        // The route to the private API
-        "privateAPIRoute": "/api/private",
-
-        // The route to the Public API
-        "publicAPIRoute": "/api",
+        // The route in which the API will be served from.
+        // Note: This is appended to the hostname
+        "apiRoute": "/api",
 
         // The path to the index.html file to host from wwwRoot
-        "indexPath": "index.html",
+        "indexPath": "index.html"
 
     },
 
@@ -40,8 +42,10 @@
         // This is not shared with any application and should be kept a secret from any application.
         "tokenSecret": "!$Th3_X<OSgS0T^{RA4BVRZV$E&aA5NAugzO1)tV<8*LP}sAaHxd9#1eIeg69k>!lUVIf*UB6Ne8SGXzgCFdK%]pSIvfF*xSW0jaIix<45-Hr)$l}beFskzm",
 
-        // The amount of time that a token is valid for.
-        "tokenExpiryDuration": { "days": 7 },
+        // The amount of time that a token is valid for before it expires and a user will have to
+        // login again. If remember me is not selected the cookie will last until the user closes
+        // their browser.
+        "tokenExpiryDurationRememberMe": { "days": 7 },
 
         // Settings used if the server is in https mode
         "sshKeys": {

@@ -136,16 +136,10 @@ app.use( bridgeWare.attachCORSHeaders() );
 app.use( bridgeWare.handleOptionsRequest() );
 
 // Use the public router to send
-app.use( config.server.publicAPIRoute,  app.get( "publicRouter" ) );
+app.use( config.server.apiRoute, app.get( "publicRouter" ) );
 
 // Use the private router to try to interpret the route
-app.use( config.server.privateAPIRoute, app.get( "privateRouter" ) );
-
-//
-app.use( '/api/1.0/', bridgeWare.parseBridgeHeader() );
-
-//
-app.use( '/api/1.0/', bridgeWare.verifyRequestStructure() );
+app.use( config.server.apiRoute, app.get( "privateRouter" ) );
 
 // Error Handler
 app.use( bridgeWare.bridgeErrorHandler() );

@@ -132,10 +132,7 @@ function sendResponse( res ) {
     return Q.Promise( function ( resolve, reject ) {
 
         res.send( {
-            content: {
-                message: "Password recovery email sent successfully",
-                time: new Date().toISOString()
-            }
+            content: "Password recovery email sent successfully"
         } );
 
         res.status( 200 );
@@ -168,11 +165,6 @@ module.exports = function( req, res, next ) {
     // Send the success response
     .then( function () {
         return sendResponse( res );
-    } )
-
-    // Move onto the next middle ware
-    .then( function () {
-        next();
     } )
 
     // Catch any errors that occurred in the above promises

@@ -3,27 +3,30 @@
 var jsonminify  = require( 'jsonminify' );
 var fs          = require( 'fs' );
 var winston     = require( 'winston' );
-var _           = require( 'lodash' )._;
+var _           = require( 'lodash' );
 var revalidator = require( 'revalidator');
 var path        = require( 'path' );
 var moment      = require( 'moment' );
 
+function postMergeDefaults( configObj ) {
+    if (_.isUndefined( configObj.security.tokenExpiryDurationRememberMe ) ) {
+        configObj.security.tokenExpiryDurationRememberMe = { "weeks": 2 };
+    }
+}
+
 var defaults = {
     server: {
-        mode                   : "http",
-        environment            : "production",
-        port                   : 3000,
-        emailVerification      : false,
-        wwwRoot                : "client/",
-        privateAPIRoute        : "/api/private",
-        publicAPIRoute         : "/api",
-        indexPath              : "index.html",
+        mode              : "http",
+        environment       : "production",
+        port              : 3000,
+        emailVerification : false,
+        wwwRoot           : "client/",
+        apiRoute          : "/api",
+        indexPath         : "index.html",
     },
 
     security: {
         tokenSecret: "!$Th3_X<OSgS0T^{RA4BVRZV$E&aA5NAugzO1)tV<8*LP}sAaHxd9#1eIeg69k>!lUVIf*UB6Ne8SGXzgCFdK%]pSIvfF*xSW0jaIix<45-Hr)$l}beFskzm",
-        tokenExpiryDuration: { "hours": 6 },
-        tokenExpiryDurationRememberMe: { "weeks": 2 },
         sshKeys: {
             privateKeyfilepath: "key.pem",
             certificatefilepath: "cert.pem"
@@ -167,13 +170,7 @@ var schema = {
                     }
                 },
 
-                privateAPIRoute: {
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false
-                },
-
-                publicAPIRoute: {
+                apiRoute: {
                     type: 'string',
                     required: true,
                     allowEmpty: false
@@ -183,7 +180,7 @@ var schema = {
                     type: 'string',
                     required: true,
                     allowEmpty: false
-                },
+                }
             }
         },
 
@@ -196,11 +193,6 @@ var schema = {
                     type: 'string',
                     required: true,
                     allowEmpty: false
-                },
-
-                tokenExpiryDuration: {
-                    type: 'object',
-                    required: true
                 },
 
                 tokenExpiryDurationRememberMe: {
@@ -450,6 +442,10 @@ if ( fs.existsSync( 'BridgeConfig.json' ) ) {
 
     // Use the complete user configuration object to make a complete configuration object
     config = _.merge( defaults, userConfig );
+
+    // Apply any defaults that can't be merged nicely with _.merge().
+    // Note: Token expiry ends up adding/unioning durations rather than overrriding with _.merge().
+    postMergeDefaults( config );
 
     if ( config.server.protectedResources ) {
         _( config.server.protectedResources ).forEach( function ( element ) {

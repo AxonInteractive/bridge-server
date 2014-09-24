@@ -100,10 +100,7 @@ function sendResponse( res ) {
     return Q.Promise( function ( resolve, reject ) {
 
         res.send({
-            content: {
-                message: "Email account verified successfully!",
-                time: new Date().toISOString()
-            }
+            content: "Email account verified successfully!"
         });
 
         res.status( 200 );
@@ -129,11 +126,6 @@ module.exports = function ( req, res, next ) {
     // Send the successful response message
     .then( function () {
         return sendResponse( res );
-    } )
-
-    // Move onto the next middle ware
-    .then( function () {
-        next();
     } )
 
     // Catch any error that occurred on the on the above promises

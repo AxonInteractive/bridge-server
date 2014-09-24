@@ -71,10 +71,16 @@ exports.setup = function () {
     var publicRouter = app.get( 'publicRouter' );
     var privateRouter = app.get( 'privateRouter' );
 
+    publicRouter.use( bridgeWare.parseBridgeHeader() );
+    publicRouter.use( bridgeWare.verifyRequestStructure() );
+
     privateRouter.use( bridgeWare.authenticateToken );
 
     publicRouter.route( '/authenticate' )
         .post( require( './requests/authenticate' ) );
+
+    privateRouter.route( '/is-authenticated' )
+        .get( require( './requests/isAuthenticated' ) );
 
     privateRouter.route( '/deauthenticate' )
         .delete( require( './requests/deauthenticate' ) );
@@ -92,7 +98,7 @@ exports.setup = function () {
     publicRouter.route( '/forgot-password' )
         .put( require( './requests/forgotPassword' ) );
 
-    privateRouter.route( '/verify-email' )
+    publicRouter.route( '/verify-email' )
         .put( require( './requests/verifyEmail' ) );
 
 

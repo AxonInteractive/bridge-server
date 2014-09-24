@@ -4,11 +4,11 @@
 |         2 | Database Query Error                                 |                                      | databaseError           |
 |         3 | Email already used                                   |                                      | emailInUse              |
 |         4 | Failed to authenticate anonymous request             |                                      | authFailedAnon          |
-|         5 | HMAC Failed                                          | Password was incorrect               | hmacMismatch            |
+|         5 | HMAC Failed                                          | *DEPRECATED* Password was incorrect  | hmacMismatch            |
 |         6 | Incorrect user state                                 |                                      | incorrectUserState      |
 |         7 | Invalid email format                                 |                                      | emailInvalid            |
 |         8 | Invalid first name format                            |                                      | firstNameInvalid        |
-|         9 | Invalid HMAC format                                  |                                      | hashInvalid             |
+|         9 | Invalid HMAC format                                  | *DEPRECATED*                         | hashInvalid             |
 |        10 | Invalid last name format                             |                                      | lastNameInvalid         |
 |        11 | Invalid password format                              |                                      | passwordInvalid         |
 |        12 | Invalid time format                                  |                                      | timeInvalid             |
@@ -26,4 +26,3 @@
 |        24 | Request must be anonymous                            |                                      | mustBeAnonymous         |
 |        25 | The token was invalid.                               |                                      | invalidToken            |
 |        26 | The cookie was missing from the request or was empty |                                      | missingCookie           |
-

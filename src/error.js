@@ -54,7 +54,7 @@ exports.errorCodeMap = {
     "malformedRequest"        : 23,
     "museBeAnonymous"         : 24,
     "invalidToken"            : 25,
-    "missingToken"            : 26
+    "missingCookie"           : 26
 };
 
 /**
@@ -79,7 +79,7 @@ exports.createError = function ( httpCode, errorString, debugMessage ) {
 
     var error = {
         status: httpCode,
-        errorCode: errorCode || errorCode.internalServerError,
+        errorCode: errorCode || exports.errorCodeMap.internalServerError,
         debugMessage: debugMessage || ""
     };
 

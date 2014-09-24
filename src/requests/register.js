@@ -118,10 +118,17 @@ function sendVerificationEmail( user ) {
                 host: config.server.hostname
             } );
 
+            var verificationURL = URLModule.format( {
+                protocol: config.server.mode,
+                host: config.server.hostname,
+                pathname: '/register',
+                search: "?hash=" + user.hash
+            } );
+
             var variables = {
-                verificationURL    : url,
+                verificationURL    : verificationURL,
                 email              : user.email,
-                name               : _.capitalize( user.firstName + " " + user.lastName ),
+                name               : _.capitalize( user.firstName ) + " " + _.capitalize( user.lastName ),
                 unsubsribeURL      : "",
                 footerImageURL     : URLModule.parse( url + "resources/email/peir-footer.png"    ).href,
                 headerImageURL     : URLModule.parse( url + "resources/email/peir-header.png"    ).href,
@@ -157,10 +164,7 @@ function sendReponse( res ) {
     return Q.Promise( function ( resolve, reject ) {
 
         res.send( {
-            content: {
-                message: "User registered successfully!",
-                time: new Date().toISOString()
-            }
+            content: "User registered successfully!"
         } );
 
         res.status( 200 );
@@ -193,11 +197,6 @@ module.exports = function ( req, res, next ) {
     // Send the successful response message
     .then( function () {
         return sendReponse( res );
-    } )
-
-    // Move onto the next middle ware
-    .then( function () {
-        next();
     } )
 
     // Catch any errors that occurred in the above middle ware
