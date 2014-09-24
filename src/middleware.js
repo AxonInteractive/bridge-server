@@ -249,6 +249,7 @@ exports.bridgeErrorHandler = function () {
             err = errContext[ 0 ];
         }
         else if( errContext instanceof( Error ) ) {
+            res.status ( 500 );
             res.json({
                 status: 500,
                 errorCode: 'internalServerError',
