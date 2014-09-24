@@ -58,19 +58,32 @@ var defaults = {
     },
 
     mailer: {
-        templateDirectory: "templates/email",
+        templateDirectory: "templates/",
 
-        verificationEmailSubject  : "Bridge Example Email Verification",
-        verificationViewName      : "registrationTemplate.ejs",
+        verificationEmail: {
+            subject: "Bridge Example Email Verification",
+            viewName: "registration.ejs"
+        },
 
-        recoverAccountEmailSubject: "Bridge Example Account Recovery",
-        recoverAccountViewName    : "recoverPasswordTemplate.ejs",
+        recoverAccountEmail: {
+            subject: "Bridge Example Account Recovery",
+            viewName: "recoverPassword.ejs"
+        },
 
-        updatedUserEmailSubject   : "Bridge user account updated",
-        updatedUserViewName       : "updatedUserTemplate.ejs",
+        updatedUserInfoEmail: {
+            subject: "Your account information has been updated",
+            viewName: "updatedUserInformation.ejs"
+        },
 
-        welcomeEmailSubject       : "Welcome to the site",
-        welcomeViewName           : "welcomeTemplate.ejs",
+        welcomeEmail: {
+            subject: "Welcome to the site",
+            viewName: "welcome.ejs"
+        },
+
+        updatedUserPasswordEmail: {
+            subject: "Your Password has been updated",
+            viewName: "updatedUserPassword.ejs"
+        },
 
         // The options for the mailer to use
         // See node mailer SMTP transport documentation for examples
@@ -92,6 +105,24 @@ var defaults = {
 
     excelGenerator: {
         cachePath: "xlsx/"
+    }
+};
+
+var emailInfoSchema = {
+    type: 'object',
+    required: true,
+    properties: {
+        subject: {
+            type: 'string',
+            required: true,
+            allowEmpty: false
+        },
+
+        viewName: {
+            type: 'string',
+            required: true,
+            allowEmpty: false
+        }
     }
 };
 
@@ -319,59 +350,17 @@ var schema = {
             required: true,
             properties: {
 
-                templateDirectory: {
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false
-                },
+                templateDirectory: emailInfoSchema,
 
-                verificationEmailSubject: {
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false
-                },
+                verificationEmail: emailInfoSchema,
 
-                verificationViewName: {
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false
-                },
+                recoverAccountEmail: emailInfoSchema,
 
-                recoverAccountEmailSubject: {
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false
-                },
+                updatedUserInfoEmail: emailInfoSchema,
 
-                recoverAccountViewName: {
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false
-                },
+                welcomeEmail: emailInfoSchema,
 
-                updatedUserEmailSubject: {
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false
-                },
-
-                updatedUserViewName: {
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false
-                },
-
-                welcomeEmailSubject: {
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false
-                },
-
-                welcomeViewName: {
-                    type: 'string',
-                    required: true,
-                    allowEmpty: false
-                },
+                updatedUserPasswordEmail: emailInfoSchema,
 
                 options: {
                     type: 'object',

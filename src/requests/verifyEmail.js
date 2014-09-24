@@ -66,11 +66,11 @@ function sendWelcomeEmail( user ) {
             host: config.server.hostname
         } );
 
-        var viewName = config.mailer.welcomeViewName;
+        var viewName = config.mailer.welcomeEmail.viewName;
 
         var mail = {
             to: user.EMAIL,
-            subject: config.mailer.welcomeEmailSubject
+            subject: config.mailer.welcomeEmail.subject
         };
 
         var footerImageURL     = URLModule.resolve( url, 'resources/email/peir-footer.png'    );

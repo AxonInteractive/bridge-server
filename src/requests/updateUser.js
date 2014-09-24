@@ -91,20 +91,47 @@ function validateUpdateUserRequest( req ) {
  *
  * @return {Promise}   A Q style promise object
  */
-function sendUpdatedUserEmail( user ) {
+function sendUpdatedUserEmail( user, fieldsUpdated ) {
     return Q.Promise( function( resolve, reject ) {
+
+        // Determine if a non AppData
+        var updatedNonAppDataField;
+
+        var emailsToSend = [];
+
+        _.each( fieldsUpdated, function( element, index ) {
+
+            if ( element === 'FIRST_NAME' ) {
+                if ( !_.contains( emailsToSend, 'info' ) ) {
+                    emailsToSend.push( 'info' );
+                }
+            }
+
+            if ( element === 'LAST_NAME' ) {
+                if ( !_.contains( emailsToSend, 'info' ) ) {
+                    emailsToSend.push( 'info' );
+                }
+            }
+
+            if ( element === 'PASSWORD' ) {
+                if ( !_.contains( emailsToSend, 'password' ) ) {
+                    emailsToSend.push( 'password' );
+                }
+            }
+
+        } );
+
+        if ( _.isEmpty( emailsToSend ) ) {
+            resolve();
+            return;
+        }
 
         var url = URLModule.format( {
             protocol: config.server.mode,
             name: config.server.hostname
         } );
 
-        var mail = {
-            to: user.EMAIL,
-            subject: config.mailer.updatedUserEmailSubject
-        };
 
-        var viewName = config.mailer.updatedUserViewName;
 
         var footerImageURL     = URLModule.resolve( url, 'resources/email/peir-footer.png'    );
         var headerImageURL     = URLModule.resolve( url, 'resources/email/peir-header.png'    );
@@ -118,13 +145,32 @@ function sendUpdatedUserEmail( user ) {
             backgroundImageURL: backgroundImageURL
         };
 
-        mailer.sendMail( viewName, variables, mail )
-        .then( function() {
-            resolve();
-        } )
-        .fail( function( err ){
-            reject( err );
-        } );
+        if ( _.contains( emailsToSend, 'info' ) ) {
+
+            var mail = {
+                to: user.EMAIL,
+                subject: config.mailer.updatedUserInfoEmail.subject
+            };
+
+            var viewName = config.mailer.updatedUserInfoEmail.viewName;
+
+            mailer.sendMail( viewName, variables, mail )
+            .then( function() {
+                resolve();
+            } )
+            .fail( function( err ){
+                reject( err );
+            } );
+
+        }
+
+        if ( _.contains( emailsToSend, 'password' ) ) {
+            var passwordMail = {
+                to: user.Email,
+                subject: config.mailer.updatedUserPasswordEmail.subject
+            };
+            // TODO Finish sending of password updated email
+        }
 
     } );
 }
@@ -157,8 +203,8 @@ module.exports = function ( req, res, next ) {
         return database.updateUser( req );
     } )
 
-    .then( function() {
-        return sendUpdatedUserEmail( req.bridge.user );
+    .then( function( updatedFields ) {
+        return sendUpdatedUserEmail( req.bridge.user, updatedFields );
     } )
 
     // Send the successful response message

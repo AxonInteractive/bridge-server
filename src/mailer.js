@@ -2,6 +2,7 @@
 
 var fs            = require( 'fs' );
 var Q             = require( 'q' );
+var qfs           = require( 'q-io/fs' );
 var URLmodule     = require( 'url' );
 var path          = require( 'path' );
 var server        = require( '../server' );
@@ -73,30 +74,46 @@ exports.sendMail = function( viewName, variables, mail ) {
             return;
         }
 
-        app.render( viewName, variables, function( err, html ) {
-
-            if ( err ) {
-                app.log.error( "Error occured rendering Email HTML. Error: ", err );
-                reject( error.createError( 500, 'internalServerError', err ) );
-                return;
+        qfs.exists( path.join( config.mailer.templateDirectory, viewName ) )
+        .then( function( exists ) {
+            if ( !exists ) {
+                throw new Error( "View doesn't exist" );
             }
+        } )
+        .then( function() {
+            return Q.Promise( function( resolve, reject ) {
+                app.render( viewName, variables, function( err, html ) {
+                    if ( err ) {
+                        app.log.error( "Error occured rendering Email HTML. Error: ", err );
+                        reject( error.createError( 500, 'internalServerError', err ) );
+                        return;
+                    }
 
-            mail.html = html;
-
-            transport.sendMail( mail, function( err, info ) {
-
-                if ( err ) {
-                    app.log.error( "Mail failed to send. Error: ", err );
-                    reject( error.createError( 500, 'internalServerError', err ) );
-                    return;
-                }
-
-                app.log.debug( "Mail info: ", info );
-
-                resolve();
-
+                    mail.html = html;
+                    resolve();
+                } );
             } );
+        } )
+        .then( function( html ) {
+            return Q.Promise( function( resolve, reject ) {
+                transport.sendMail( mail, function( err, info ) {
+                    if ( err ) {
+                        app.log.error( "Mail failed to send. Error: ", err );
+                        reject( error.createError( 500, 'internalServerError', err ) );
+                        return;
+                    }
 
+                    app.log.debug( "Sent mail info: " + info );
+                    resolve();
+                } );
+            } );
+        } )
+        .then( function() {
+            resolve();
+        } )
+        .fail( function( err ) {
+            reject( err );
         } );
+
     } );
 };

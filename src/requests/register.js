@@ -111,7 +111,7 @@ function sendVerificationEmail( user ) {
 
         if ( config.server.emailVerification === true ) {
 
-            var viewName = config.mailer.verificationViewName;
+            var viewName = config.mailer.verificationEmail.viewName;
 
             var url = URLModule.format( {
                 protocol: config.server.mode,
@@ -137,7 +137,7 @@ function sendVerificationEmail( user ) {
 
             var mail = {
                 to      : user.email,
-                subject : config.mailer.verificationEmailSubject
+                subject : config.mailer.verificationEmail.subject
             };
 
             mailer.sendMail( viewName, variables, mail )

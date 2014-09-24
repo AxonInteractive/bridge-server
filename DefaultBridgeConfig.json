@@ -97,35 +97,59 @@
         // The path from the application root to the folder containing the view to be rendered
         "templateDirectory": "templates",
 
+        // Information about the verification email that is sent went a user registers to the site.
+        "verificationEmail": {
 
-        // The subject line for verification emails
-        "verificationEmailSubject": "Bridge Example Email Verification",
+            // The subject of the email that the user will see in their inbox
+            "subject": "Bridge Example Email Verification",
+            // The file name of the ejs file in the template directory to be sent as an email html content
+            "viewName": "registration.ejs"
+        },
 
-         // The path to the template HTML file used to send email verifications to newly registered users
-        "verificationViewName": "registrationTemplate.ejs",
+        // Information about the account recovery email that is sent when a user forgets their
+        // password
+        "recoverAccountEmail": {
+            // The subject of the email that the user will see in their email inbox when they forget
+            // their password
+            "subject": "Bridge Example Account Recovery",
+            // The file name of the ejs file that will be sent as the HTML content for the bridge
+            // account recovery email.
+            "viewName": "recoverPassword.ejs"
+        },
 
+        // Information about the email that is sent when a user updates their information inside of
+        // the database.
+        // Note: This is for non AppData and Non Password changes.
+        "updatedUserInfoEmail": {
+            // The subject of the email that is sent when the users account information is updated
+            // inside of the database.
+            "subject": "Your account information has been updated",
+            // The file name of the email template that is to be rendered when this email is sent to
+            // the user when their information is updated.
+            "viewName": "updatedUserInformation.ejs"
+        },
 
-        // The subject line for recovery emails
-        "recoverAccountEmailSubject": "Bridge Account Recovery",
+        // Information about the welcome email which is sent after a user successfully verifies their
+        // email and is automatically sent if email verification is turned off.
+        "welcomeEmail": {
+            // The subject of this email that the user will see in their inbox when they receive
+            // this email
+            "subject": "Welcome to the site",
+            // The file name of the email template that is to be rendered when this email is sent to
+            // the user when their information is updated.
+            "viewName": "welcome.ejs"
+        },
 
-        // The path to the template HTML file used for password recovery emails
-        "recoverAccountViewName": "recoverPasswordTemplate.ejs",
-
-
-        // The subject line for emails sent when a user's information is updated
-        "updatedUserEmailSubject": "Bridge user account updated",
-
-        // The name of the file in the template view path relating to the HTML to send when a user
-        // account information is updated
-        "updatedUserViewName": "updatedUserTemplate.ejs",
-
-
-        // The subject line for emails sent when a user's account is verified
-        "welcomeEmailSubject": "Welcome to the Site",
-
-        // The name of the file in the template view path relating to the HTML to send when a
-        // user's email if verified
-        "welcomeViewName": "welcomeTemplate.ejs",
+        // Information about the email that a user will get when their password changes inside of
+        // the database.
+        "updatedUserPasswordEmail": {
+            // The subject of this email that the user will see in their inbox when they receive
+            // this email.
+            "subject": "Your Password has been updated",
+            // The file name of the email template that is in the template directory  and is to be
+            // rendered to the html content of the email.
+            "viewName": "updatedUserPassword.ejs"
+        },
 
 
         // The options for the mailer to use

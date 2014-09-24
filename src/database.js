@@ -241,7 +241,7 @@ exports.updateUser = function( req ) {
                 return;
             }
 
-            resolve();
+            resolve( updateFields );
 
         } );
 

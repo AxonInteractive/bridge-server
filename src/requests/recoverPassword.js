@@ -91,11 +91,11 @@ function sendPasswordUpdateEmail( user ) {
             host: config.server.hostname
         } );
 
-        var viewName = config.mailer.recoverAccountViewName;
+        var viewName = config.mailer.updatedUserPasswordEmail.viewName;
 
         var mail = {
             to: user.EMAIL,
-            subject: config.mailer.recoverAccountEmailSubject
+            subject: config.mailer.updatedUserPasswordEmail.subject
         };
 
         var footerImageURL     = URLModule.resolve( url, 'resources/email/peir-footer.png' );

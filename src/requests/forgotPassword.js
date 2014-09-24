@@ -92,7 +92,7 @@ function checkUserExists( req ) {
 function sendForgotPasswordEMail( user ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        var viewName = config.mailer.recoverAccountViewName;
+        var viewName = config.mailer.recoverAccountEmail.viewName;
 
         var url = URLModule.format( {
             protocol: config.server.mode,
@@ -114,7 +114,7 @@ function sendForgotPasswordEMail( user ) {
 
         var mail = {
             to: user.EMAIL,
-            subject: config.mailer.recoverAccountEmailSubject
+            subject: config.mailer.recoverAccountEmail.subject
         };
 
         mailer.sendMail( viewName, variables, mail )
