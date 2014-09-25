@@ -2,16 +2,16 @@
 "use strict";
 
 var revalidator = require( 'revalidator' );
-var Q           = require( 'q' );
-var _           = require( 'lodash' )._;
-var URLModule   = require( 'url' );
+var Q = require( 'q' );
+var _ = require( 'lodash' )._;
+var URLModule = require( 'url' );
 
-var regex    = require( '../regex' );
-var error    = require( '../error' );
+var regex = require( '../regex' );
+var error = require( '../error' );
 var database = require( '../database' );
-var util     = require( '../utilities');
-var mailer   = require( '../mailer' );
-var config   = require( '../config' );
+var util = require( '../utilities' );
+var mailer = require( '../mailer' );
+var config = require( '../config' );
 
 var schema = {
     properties: {
@@ -45,9 +45,10 @@ var schema = {
 };
 
 function validateUpdateUserRequest( req ) {
-    return Q.Promise( function( resolve, reject ) {
+    return Q.Promise( function ( resolve, reject ) {
 
-        var validation = revalidator.validate( req.headers.bridge, schema );
+        var validation = revalidator.validate( req.headers.bridge,
+            schema );
 
         if ( validation.valid === false ) {
 
@@ -56,24 +57,25 @@ function validateUpdateUserRequest( req ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'email':
-                    errorCode = 'emailInvalid';
-                    break;
-                case 'password':
-                    errorCode = 'passwordInvalid';
-                    break;
-                case 'firstName':
-                    errorCode = 'firstNameInvalid';
-                    break;
-                case 'lastName':
-                    errorCode = 'lastNameInvalid';
-                    break;
-                default:
-                    errorCode = 'malformedRequest';
-                    break;
+            case 'email':
+                errorCode = 'emailInvalid';
+                break;
+            case 'password':
+                errorCode = 'passwordInvalid';
+                break;
+            case 'firstName':
+                errorCode = 'firstNameInvalid';
+                break;
+            case 'lastName':
+                errorCode = 'lastNameInvalid';
+                break;
+            default:
+                errorCode = 'malformedRequest';
+                break;
             }
 
-            var updateError = error.createError( 400, errorCode, firstError.property + " : " + firstError.message );
+            var updateError = error.createError( 400, errorCode,
+                firstError.property + " : " + firstError.message );
 
             reject( updateError );
             return;
@@ -92,14 +94,14 @@ function validateUpdateUserRequest( req ) {
  * @return {Promise}   A Q style promise object
  */
 function sendUpdatedUserEmail( user, fieldsUpdated ) {
-    return Q.Promise( function( resolve, reject ) {
+    return Q.Promise( function ( resolve, reject ) {
 
         // Determine if a non AppData
         var updatedNonAppDataField;
 
         var emailsToSend = [];
 
-        _.each( fieldsUpdated, function( element, index ) {
+        _.each( fieldsUpdated, function ( element, index ) {
 
             if ( element === 'FIRST_NAME' ) {
                 if ( !_.contains( emailsToSend, 'info' ) ) {
@@ -133,9 +135,12 @@ function sendUpdatedUserEmail( user, fieldsUpdated ) {
 
 
 
-        var footerImageURL     = URLModule.resolve( url, 'resources/email/peir-footer.png'    );
-        var headerImageURL     = URLModule.resolve( url, 'resources/email/peir-header.png'    );
-        var backgroundImageURL = URLModule.resolve( url, 'resources/email/right-gradient.png' );
+        var footerImageURL = URLModule.resolve( url,
+            'resources/email/peir-footer.png' );
+        var headerImageURL = URLModule.resolve( url,
+            'resources/email/peir-header.png' );
+        var backgroundImageURL = URLModule.resolve( url,
+            'resources/email/right-gradient.png' );
 
         var variables = {
             email: user.EMAIL,
@@ -145,7 +150,28 @@ function sendUpdatedUserEmail( user, fieldsUpdated ) {
             backgroundImageURL: backgroundImageURL
         };
 
+        var mailerTracker = {};
+
+        function sendMailComplete() {
+            if ( mailerTracker.info.sending ) {
+                if ( !mailerTracker.info.isSent ) {
+                    return;
+                }
+            }
+
+            if ( mailerTracker.password.sending ) {
+                if ( !mailerTracker.password.isSent ) {
+                    return;
+                }
+            }
+
+            resolve();
+        }
+
         if ( _.contains( emailsToSend, 'info' ) ) {
+
+            mailerTracker.info = {};
+            mailerTracker.info.sending = true;
 
             var mail = {
                 to: user.EMAIL,
@@ -155,28 +181,46 @@ function sendUpdatedUserEmail( user, fieldsUpdated ) {
             var viewName = config.mailer.updatedUserInfoEmail.viewName;
 
             mailer.sendMail( viewName, variables, mail )
-            .then( function() {
-                resolve();
-            } )
-            .fail( function( err ){
-                reject( err );
-            } );
+                .then( function () {
+                    mailerTracker.info.isSent = true;
+                    sendMailComplete();
+                } )
+                .fail( function ( err ) {
+                    reject( err );
+                } );
 
         }
 
         if ( _.contains( emailsToSend, 'password' ) ) {
+
+            mailerTracker.password = {};
+            mailerTracker.password.sending = true;
+
             var passwordMail = {
                 to: user.Email,
                 subject: config.mailer.updatedUserPasswordEmail.subject
             };
-            // TODO Finish sending of password updated email
+
+            var passwordViewName = config.mailers.updatedUserPasswordEmail.viewName;
+
+            mailer.sendMail( passwordViewName, variables, passwordMail )
+                .then( function () {
+                    mailerTracker.password.isSent = true;
+                    sendMailComplete();
+                } )
+                .fail( function ( err ) {
+                    reject( err );
+                } );
+
         }
+
+        sendMailComplete();
 
     } );
 }
 
 function sendResponse( res ) {
-    return Q.Promise( function( resolve, reject ) {
+    return Q.Promise( function ( resolve, reject ) {
 
         res.send( {
             content: "User updated successfully"
@@ -185,7 +229,7 @@ function sendResponse( res ) {
         res.status( 200 );
 
         resolve();
-    });
+    } );
 }
 
 module.exports = function ( req, res, next ) {
@@ -203,7 +247,7 @@ module.exports = function ( req, res, next ) {
         return database.updateUser( req );
     } )
 
-    .then( function( updatedFields ) {
+    .then( function ( updatedFields ) {
         return sendUpdatedUserEmail( req.bridge.user, updatedFields );
     } )
 

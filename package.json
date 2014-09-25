@@ -1,50 +1,46 @@
 {
-  "name": "axon-bridge",
-  "version": "0.0.1",
-  "description": "The server-side application of Axon Bridge, a simple uniform interface for providing database services to Single Page Applications.",
-  "main": "server.js",
-  "author": {
-    "name": "Axon Interactive",
-    "email": "theteam@axoninteractive.ca",
-    "url": "axoninteractive.ca"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@bitbucket.org/axoninteractive/bridge-server.git"
-  },
-  "private": true,
-  "license": "No License",
-  "dependencies": {
-    "express": "4.x",
-    "winston": "0.7.3",
-    "mysql": "2.3.0",
-    "jsonminify": "0.2.3",
-    "ejs": "1.0.0",
-    "revalidator": "0.2.0",
-    "q": "^1.0.1",
-    "body-parser": "^1.4.3",
-    "lodash": "^2.4.1",
-    "wkhtmltopdf": "^0.1.5",
-    "mkdirp": "^0.5.0",
-    "q-io": "^1.11.4",
-    "underscore.string": "^2.3.3",
-    "moment": "^2.8.2",
-    "nodemailer": "^1.2.1",
-    "nodemailer-smtp-transport": "^0.1.12",
-    "on-headers": "^1.0.0",
-    "cookies": "^0.5.0",
-    "jwt-simple": "^0.2.0"
-  },
-  "devDependencies": {},
-  "scripts": {
-    "start": "node server.js"
-  },
-  "readme": "[Bridge Client]:https://bitbucket.org/axoninteractive/bridge-client\r\n[Wiki]:https://bitbucket.org/axoninteractive/bridge-server/wiki\r\n# Bridge Server\r\n\r\nThe bridge server is paired with the [bridge client][Bridge Client] to form a secure means of communication between a client and a server and is the basis for a small to medium sized site with a high level of customization. \r\n\r\n[Click here to go to the Wiki][Wiki]\r\n\r\nVersion: v0.0.1\r\n\r\n## Standard API Functionality\r\n\r\n* [Login](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/login)\r\n* [Register](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/register)\r\n* [Forgot Password](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/forgot-password)\r\n* [Recover Password](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/recover=password)\r\n* [Verify Email](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/verify-email)\r\n* [Update User](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/update-user)\r\n\r\n",
-  "readmeFilename": "README.md",
-  "_id": "axon-bridge@0.0.1",
-  "dist": {
-    "shasum": "bdac57c712f181c87b6dadbf4bce2cb76d42bafb"
-  },
-  "_resolved": "git+ssh://git@bitbucket.org/axoninteractive/bridge-server#9ce313608cff26c7ec6b05716337e5844db7592a",
-  "_from": "git+ssh://git@bitbucket.org/axoninteractive/bridge-server"
+    "name": "axon-bridge",
+    "version": "0.0.1",
+    "description": "The server-side application of Axon Bridge, a simple uniform interface for providing database services to Single Page Applications.",
+    "main": "server.js",
+    "author": {
+        "name": "Axon Interactive",
+        "email": "theteam@axoninteractive.ca",
+        "url": "axoninteractive.ca"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+ssh://git@bitbucket.org/axoninteractive/bridge-server.git"
+    },
+    "private": true,
+    "license": "No License",
+    "dependencies": {
+        "express"                  : "4.x",
+        "winston"                  : "0.7.3",
+        "mysql"                    : "2.3.0",
+        "jsonminify"               : "0.2.3",
+        "ejs"                      : "1.0.0",
+        "revalidator"              : "0.2.0",
+        "q"                        : "^1.0.1",
+        "body-parser"              : "^1.4.3",
+        "lodash"                   : "^2.4.1",
+        "wkhtmltopdf"              : "^0.1.5",
+        "mkdirp"                   : "^0.5.0",
+        "q-io"                     : "^1.11.4",
+        "underscore.string"        : "^2.3.3",
+        "moment"                   : "^2.8.2",
+        "nodemailer"               : "^1.2.1",
+        "nodemailer-smtp-transport": "^0.1.12",
+        "on-headers"               : "^1.0.0",
+        "cookies"                  : "^0.5.0",
+        "jwt-simple"               : "^0.2.0"
+    },
+    "readme": "[Bridge Client]:https://bitbucket.org/axoninteractive/bridge-server\n[Wiki]:https://bitbucket.org/axoninteractive/bridge-server/wiki\r\n# Bridge Server\r\n\r\nThe bridge server is paired with the [bridge client][Bridge Client] to form a secure means of communication between a client and a server and is the basis for a small to medium sized site with a high level of customization. \r\n\r\n[Click here to go to the Wiki][Wiki]\r\n\r\nVersion: v0.0.1\r\n\r\n## Standard API Functionality\r\n\r\n* [Login](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/login)\r\n* [Register](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/register)\r\n* [Forgot Password](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/forgot-password)\r\n* [Recover Password](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/recover=password)\r\n* [Verify Email](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/verify-email)\r\n* [Update User](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/update-user)\r\n\r\n",
+    "readmeFilename": "README.md",
+    "_id": "axon-bridge@0.0.1",
+    "dist": {
+        "shasum": "bdac57c712f181c87b6dadbf4bce2cb76d42bafb"
+    },
+    "_resolved": "git+ssh://git@bitbucket.org/axoninteractive/bridge-server#9ce313608cff26c7ec6b05716337e5844db7592a",
+    "_from": "git+ssh://git@bitbucket.org/axoninteractive/bridge-server"
 }

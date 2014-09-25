@@ -1,23 +1,23 @@
 /** @module middleware */
 "use strict";
 var revalidator = require( 'revalidator' );
-var crypto      = require( 'crypto' );
-var _           = require( 'lodash' )._;
-var moment      = require( 'moment' );
-var path        = require( 'path' );
-var express     = require( 'express' );
-var fs          = require( 'q-io/fs' );
-var Q           = require( 'q' );
-var jwt         = require( 'jwt-simple' );
-var Cookies     = require( 'cookies' );
+var crypto = require( 'crypto' );
+var _ = require( 'lodash' )._;
+var moment = require( 'moment' );
+var path = require( 'path' );
+var express = require( 'express' );
+var fs = require( 'q-io/fs' );
+var Q = require( 'q' );
+var jwt = require( 'jwt-simple' );
+var Cookies = require( 'cookies' );
 
 var server = require( '../server' );
-var regex  = require( './regex' );
+var regex = require( './regex' );
 
-var error    = server.error;
+var error = server.error;
 var database = server.database;
-var app      = server.app;
-var config   = server.config;
+var app = server.app;
+var config = server.config;
 
 exports.functions = {};
 
@@ -30,7 +30,8 @@ exports.functions = {};
 exports.attachCORSHeaders = function () {
     app.log.debug( "CORS header middleware setup" );
     return function ( req, res, next ) {
-        res.setHeader( 'Access-Control-Allow-Origin', req.headers.origin || '*' );
+        res.setHeader( 'Access-Control-Allow-Origin', req.headers.origin ||
+            '*' );
         next();
     };
 };
@@ -52,8 +53,10 @@ exports.handleOptionsRequest = function () {
 
         res.status( 204 );
 
-        res.setHeader( 'access-control-allow-methods', 'GET, PUT, OPTIONS, POST, DELETE' );
-        res.setHeader( 'access-control-allow-headers', "content-type, accept, bridge" );
+        res.setHeader( 'access-control-allow-methods',
+            'GET, PUT, OPTIONS, POST, DELETE' );
+        res.setHeader( 'access-control-allow-headers',
+            "content-type, accept, bridge" );
 
         res.setHeader( 'access-control-max-age', 10 );
         res.setHeader( 'content-length', 0 );
@@ -61,7 +64,6 @@ exports.handleOptionsRequest = function () {
         res.send();
     };
 };
-
 
 /**
  * Parses the bridge header object from a string to a JSON object. This return a function to
@@ -79,11 +81,12 @@ exports.handleOptionsRequest = function () {
  *
  * @return {Undefined}
  */
-exports.functions.parseBridgeHeader = function( req, res, next ) {
+exports.functions.parseBridgeHeader = function ( req, res, next ) {
     var bridgeRequestObject;
 
     if ( _.isUndefined( req.headers.bridge ) ) {
-        next( error.createError( 400, 'missingBridgeHeader', 'Request missing bridge header' ) );
+        next( error.createError( 400, 'missingBridgeHeader',
+            'Request missing bridge header' ) );
         return;
     }
 
@@ -108,7 +111,7 @@ exports.functions.parseBridgeHeader = function( req, res, next ) {
  *
  * @return {Function}  An express middleware style function.
  */
-exports.parseBridgeHeader = function() {
+exports.parseBridgeHeader = function () {
     app.log.debug( "Bridge header parser setup" );
     return exports.functions.parseBridgeHeader;
 };
@@ -128,8 +131,8 @@ exports.parseBridgeHeader = function() {
 function verifyRequestStructure( req, res, next ) {
 
     req.headers.bridge = req.headers.bridge || {};
-    req.bridge         = req.bridge         || {};
-    req.bridge.isAnon  = true;
+    req.bridge = req.bridge || {};
+    req.bridge.isAnon = true;
 
     next();
 }
@@ -149,7 +152,7 @@ exports.verifyRequestStructure = function () {
  *
  * @return {Function} Express middleware style function.
  */
-// TODO Rewirte protected files using the new token method
+// TODO: Rewirte protected files using the new token method
 exports.staticHostFiles = function () {
     app.log.debug( "Static file hosting setup!" );
     var staticHost = express.static( path.resolve( config.server.wwwRoot ) );
@@ -159,84 +162,81 @@ exports.staticHostFiles = function () {
         var protectedObject;
 
         //  Determine if the request is a protected. if so get the protected object related to it
-        Q.fcall( function() {
 
-            // if there is no protected Resources array just act like normal
-            if ( !_.has( config.server, 'protectedResources' ) ) {
-                staticHost( req, res, next );
-                return;
+        // if there is no protected Resources array just act like normal
+        if ( !_.has( config.server, 'protectedResources' ) ) {
+            staticHost( req, res, next );
+            return;
+        }
+
+        // Find if the req is asking for a path that is protected
+        _( config.server.protectedResources ).forEach( function (
+            element, index ) {
+            if ( req.path.indexOf( element.path ) > -1 ) {
+                protectedObject = element;
+                return false;
             }
+        } );
 
-            // Find if the req is asking for a path that is protected
-            _( config.server.protectedResources ).forEach( function ( element, index ) {
-                if ( req.path.indexOf( element.path ) > -1 ) {
-                    protectedObject = element;
-                    return false;
-                }
+        // if the path was not found under the list of protected routes statically host like normal
+        if ( !protectedObject ) {
+            staticHost( req, res, next );
+            return;
+        }
+
+        req.bridge = req.bridge || {};
+        req.bridge.cookies = new Cookies( req, res );
+
+        Q.fcall( function () {
+            return Q.Promise( function ( resolve, reject ) {
+                exports.authenticateToken( req, res,
+                    function ( err ) {
+                        if ( err ) {
+                            reject( err );
+                            return;
+                        }
+
+                        resolve();
+                    } );
             } );
-
-            // if the path was not found under the list of protected routes statically host like normal
-            if ( !protectedObject ) {
-                staticHost( req, res, next );
-                return;
-            }
-
-            Q.fcall( function() {
-                return Q.Promise( function( resolve, reject ) {
-                    exports.functions.parseBridgeHeader( req, res, function ( err ) {
-                        if ( err ) {
-                            reject( err );
-                            return;
-                        }
-
-                        resolve();
-                    } );
-                } );
-            } )
-            .then( function() {
-                return Q.Promise( function( resolve, reject ) {
-                    verifyRequestStructure( req, res, function( err ) {
-                        if ( err ) {
-                            reject( err );
-                            return;
-                        }
-
-                        resolve();
-                    } );
-                } );
-            } )
-            .then( function() {
-                // If the request was anonymous then they cannot access content
-                if ( req.bridge.isAnon ) {
-                    throw error.createError( 403, 'protectedMustBeLoggedIn', "Cannot access protected content" );
-                }
+        } )
+            .then( function () {
 
                 // Check to see if the user role is in the protectedObjects list of acceptable roles
-                var found = _.find( protectedObject.roles, function ( element ) {
-                    if ( element === req.bridge.user.ROLE ) {
-                        return element;
-                    }
-                } );
+                var found = _.find( protectedObject.roles,
+                    function ( element ) {
+                        if ( element === req.bridge.user.ROLE ) {
+                            return element;
+                        }
+                    } );
 
                 // If the role was not found send a 401 Unauthorized error
                 if ( !found ) {
-                    throw error.createError( 401, 'protectedAuthFailed', "User role is not on the list of acceptable roles for this resource" );
+                    throw error.createError( 401,
+                        'protectedAuthFailed',
+                        "User role is not on the list of acceptable roles for this resource"
+                    );
                 }
 
                 // If the user checks ouw as privileged to receive this content send the content.
                 staticHost( req, res, next );
                 return;
             } )
-            .fail( function( err ) {
+            .fail( function ( err ) {
                 next( err );
             } );
-        } )
-        .fail( function( err ) {
-            next( err );
-        } );
     };
 };
 
+/**
+ * Bridge handler for errors. this is a catch all error style middleware for an express style
+ * application.
+ *
+ * @method bridgeErrorHandler
+ *
+ * @return {Function}           The express middleware function to go into the application object
+ *                                  using app.use
+ */
 exports.bridgeErrorHandler = function () {
 
     app.log.debug( 'Bridge error handler setup' );
@@ -247,14 +247,13 @@ exports.bridgeErrorHandler = function () {
 
         if ( _.isArray( errContext ) ) {
             err = errContext[ 0 ];
-        }
-        else if( errContext instanceof( Error ) ) {
-            res.status ( 500 );
-            res.json({
+        } else if ( errContext instanceof( Error ) ) {
+            res.status( 500 );
+            res.json( {
                 status: 500,
                 errorCode: 'internalServerError',
                 time: moment.utc().toISOString()
-            });
+            } );
             app.log.error( errContext.stack );
             return;
         } else {
@@ -266,7 +265,7 @@ exports.bridgeErrorHandler = function () {
             return;
         }
 
-        if (_.isArray( errContext ) ) {
+        if ( _.isArray( errContext ) ) {
             res.json( errContext );
             return;
         }
@@ -348,13 +347,13 @@ var tokenSchema = {
  *
  * @return {Undefined}
  */
-exports.authenticateToken = function( req, res, next ) {
+exports.authenticateToken = function ( req, res, next ) {
 
     var token = req.bridge.cookies.get( 'BridgeAuth' );
 
     if ( !token ) {
-        req.bridge.isAnon = true;
-        next( error.createError( 403, 'missingCookie', 'request had no authentication cookie' ) );
+        next( error.createError( 403, 'missingCookie',
+            'request had no authentication cookie' ) );
         return;
     }
 
@@ -390,13 +389,13 @@ exports.authenticateToken = function( req, res, next ) {
     }
 
     database.authenticateUser( authObj.email, authObj.password )
-    .then( function( user ) {
-        req.bridge.user = user;
-        next();
-    } )
-    .fail( function( err ) {
-        next( err );
-    } );
+        .then( function ( user ) {
+            req.bridge.user = user;
+            next();
+        } )
+        .fail( function ( err ) {
+            next( err );
+        } );
 };
 
 /**
@@ -405,9 +404,9 @@ exports.authenticateToken = function( req, res, next ) {
  *
  * @return {ExpressMiddleware} An express middleware function.
  */
-exports.getCookies = function() {
+exports.getCookies = function () {
     app.log.debug( "Bridge cookie parser setup!" );
-    return function( req, res, next ) {
+    return function ( req, res, next ) {
         req.bridge = req.bridge || {};
         req.bridge.cookies = new Cookies( req, res );
         next();
