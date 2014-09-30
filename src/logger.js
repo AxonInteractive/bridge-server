@@ -10,7 +10,7 @@ var _      = require( 'lodash')._;
 
 config.server.filename = path.normalize( config.server.filename );
 
-var dir = path.resolve( path.dirname( config.server.filename ) );
+var dir = path.resolve( path.join( path.dirname( require.main.filename ), path.dirname( config.server.filename ) ) );
 
 winston.verbose( "Verifying that server log directory exists..." );
 winston.debug( dir );

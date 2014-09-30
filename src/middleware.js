@@ -181,7 +181,7 @@ exports.verifyRequestStructure = function () {
  */
 exports.staticHostFiles = function () {
     app.log.debug( "Static file hosting setup!" );
-    var staticHost = express.static( path.resolve( config.server.wwwRoot ) );
+    var staticHost = express.static( path.resolve( path.join( path.dirname( require.main.filename ), config.server.wwwRoot ) ) );
 
     return function ( req, res, next ) {
 
