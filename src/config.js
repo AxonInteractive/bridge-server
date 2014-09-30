@@ -1,18 +1,16 @@
 "use strict";
 
-var jsonminify = require( 'jsonminify' );
-var fs = require( 'fs' );
-var winston = require( 'winston' );
-var _ = require( 'lodash' );
-var revalidator = require( 'revalidator' );
-var path = require( 'path' );
-var moment = require( 'moment' );
+var jsonminify  = require( 'jsonminify' );
+var fs          = require( 'fs' );
+var winston     = require( 'winston' );
+var _           = require( 'lodash' );
+var revalidator = require( 'revalidator');
+var path        = require( 'path' );
+var moment      = require( 'moment' );
 
 function postMergeDefaults( configObj ) {
-    if ( _.isUndefined( configObj.security.tokenExpiryDurationRememberMe ) ) {
-        configObj.security.tokenExpiryDurationRememberMe = {
-            "weeks": 2
-        };
+    if (_.isUndefined( configObj.security.tokenExpiryDurationRememberMe ) ) {
+        configObj.security.tokenExpiryDurationRememberMe = { "weeks": 2 };
     }
 }
 
@@ -37,9 +35,9 @@ var defaults = {
     },
 
     database: {
-        user: 'root',
+        user    : 'root',
         password: '',
-        host: 'localhost',
+        host    : 'localhost',
         database: 'peir'
     },
 
@@ -57,9 +55,7 @@ var defaults = {
     },
 
     accounts: {
-        recoveryStateDuration: {
-            days: 1
-        }
+        recoveryStateDuration: { days: 1 }
     },
 
     mailer: {
@@ -95,7 +91,7 @@ var defaults = {
         // https://github.com/andris9/nodemailer-smtp-transport#usage
         options: {
             service: "gmail",
-            auth: { // The authentication to use for the GMail Service
+            auth: {             // The authentication to use for the GMail Service
                 user: "BridgeSMTPTest@gmail.com",
                 pass: "passwordGoesHere"
             }
@@ -104,7 +100,7 @@ var defaults = {
 
     pdfGenerator: {
         templatePath: "templates/pdfs",
-        cachePath: "pdfs/",
+        cachePath:    "pdfs/",
         cacheLifetimeMinutes: 10
     },
 
@@ -137,7 +133,7 @@ var schema = {
     properties: {
 
         server: {
-            type: 'object',
+            type:'object',
             required: true,
             properties: {
 
@@ -192,7 +188,7 @@ var schema = {
                             },
 
                             roles: {
-                                type: [ 'array' ],
+                                type: ['array'],
                                 required: true,
                                 allowEmpty: false,
                                 items: {
@@ -246,7 +242,7 @@ var schema = {
                     required: true,
                     properties: {
                         privateKeyfilepath: {
-                            type: 'string',
+                            type:'string',
                             required: true,
                             allowEmpty: false
                         },
@@ -292,7 +288,7 @@ var schema = {
         },
 
         logger: {
-            type: 'object',
+            type:'object',
             required: true,
             properties: {
                 server: {
@@ -439,7 +435,8 @@ if ( fs.existsSync( configPath ) ) {
 
     try {
         userConfig = JSON.parse( JSON.minify( userConfigString ) );
-    } catch ( err ) {
+    }
+    catch (err) {
         winston.error( "Could not parse BridgeConfig.json as JSON. ", err );
     }
 
@@ -448,6 +445,9 @@ if ( fs.existsSync( configPath ) ) {
     // Use the complete user configuration object to make a complete configuration object
     config = _.merge( defaults, userConfig );
 
+    // Apply any defaults that can't be merged nicely with _.merge().
+    // Note: Token expiry ends up adding/unioning durations rather than overrriding with _.merge().
+    postMergeDefaults( config );
 
     if ( config.server.protectedResources ) {
         _( config.server.protectedResources ).forEach( function ( element ) {
@@ -461,30 +461,27 @@ if ( fs.existsSync( configPath ) ) {
 // If no user config can be loaded make a default one
 else {
 
+    // Apply any defaults that can't be merged nicely with _.merge().
+    // Note: Token expiry ends up adding/unioning durations rather than overrriding with _.merge().
+    postMergeDefaults( config );
+
     config = _.cloneDeep( defaults );
     config.isDefault = true;
-    winston.warn(
-        'Configuration file not found. Using defaults. This may have undesired effects. Please make "BridgeConfig.json"'
-    );
-}
+    winston.warn('Configuration file not found. Using defaults. This may have undesired effects. Please make "BridgeConfig.json"');
 
-// Apply any defaults that can't be merged nicely with _.merge().
-// Note: Token expiry ends up adding/unioning durations rather than overrriding with _.merge().\
-postMergeDefaults( config );
+}
 
 var validation = revalidator.validate( config, schema );
 
 if ( validation.valid === false ) {
-    winston.error( 'Configuration file is not valid and could not be loaded. Errors: ', JSON.stringify(
-        validation.errors ) );
+    winston.error( 'Configuration file is not valid and could not be loaded. Errors: ', JSON.stringify( validation.errors ) );
 } else {
 
-    config.accounts.recoveryStateDuration = moment.duration( config.accounts.recoveryStateDuration )
-        .asMilliseconds();
+    config.accounts.recoveryStateDuration = moment.duration( config.accounts.recoveryStateDuration ).asMilliseconds();
 
     // If protected folders exists then iterate the set and normalize each path.
     if ( _.has( config.server, 'protectedResources' ) ) {
-        _( config.server.protectedResources ).forEach( function ( element, index ) {
+        _( config.server.protectedResources ).forEach( function( element, index ) {
             config.server.protectedResources[ index ].path = element.path.replace( '\\', '/' );
         } );
     }
