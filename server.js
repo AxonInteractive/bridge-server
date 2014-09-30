@@ -213,7 +213,7 @@ if ( config.server.mode === "https" ) {
 
     }
 
-    fs.read( config.security.sshKeys.privateKeyfilepath )
+    fs.read( path.resolve( path.join( path.dirname( require.main.filename ), config.security.sshKeys.privateKeyfilepath ) ) )
         .then( function( content ) {
             keyFound = true;
             keyContent = content;
@@ -225,7 +225,7 @@ if ( config.server.mode === "https" ) {
                  err );
         } );
 
-    fs.read( config.security.sshKeys.certificatefilepath )
+    fs.read( path.resolve( path.join( path.dirname( require.main.filename ), config.security.sshKeys.certificatefilepath ) ) )
         .then( function( content ) {
             certFound = true;
             certContent = content;

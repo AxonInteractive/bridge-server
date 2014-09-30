@@ -424,13 +424,16 @@ var config;
 winston.verbose( "Verifying that BridgeConfig.json exists" );
 winston.debug( path.resolve( 'BridgeConfig.json' ) );
 
+var configPath = path.dirname( require.main.filename );
+configPath = path.join( configPath, 'BridgeConfig.json' );
+
 // Check if a user config can be loaded
-if ( fs.existsSync( 'BridgeConfig.json' ) ) {
+if ( fs.existsSync( configPath ) ) {
 
     winston.verbose( "BridgeConfig.json found. Reading file...." );
 
     // Read and parse the Config file to make a User Configuration Object
-    var userConfigString = fs.readFileSync( 'BridgeConfig.json', 'utf8' );
+    var userConfigString = fs.readFileSync( configPath, 'utf8' );
 
     var userConfig;
 

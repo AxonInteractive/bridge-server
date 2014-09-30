@@ -53,7 +53,7 @@ function wkHTMLToPDFFound() {
     config.pdfGenerator.templatePath = path.normalize( config.pdfGenerator.templatePath );
     config.pdfGenerator.cachePath    = path.normalize( config.pdfGenerator.cachePath );
 
-    var dir = path.resolve( config.pdfGenerator.templatePath );
+    var dir = path.resolve( path.join( path.dirname( require.main.filename ), config.pdfGenerator.templatePath ) );
 
     app.log.verbose( "Verifying that PDF template directory exists..." );
     app.log.debug( dir );
@@ -72,7 +72,7 @@ function wkHTMLToPDFFound() {
         app.log.verbose( "PDF template directory found." );
     }
 
-    dir = path.resolve( config.pdfGenerator.cachePath );
+    dir = path.resolve( path.join( path.dirname( require.main.filename ), config.pdfGenerator.cachePath ) );
 
     app.log.verbose( "Verifying that PDF cache directory exists..." );
     app.log.debug( dir );

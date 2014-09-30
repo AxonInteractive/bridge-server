@@ -25,13 +25,13 @@ var transport = nodemailer.createTransport( smtpTransport( options ) );
 
 config.mailer.templateDirectory = path.normalize( config.mailer.templateDirectory );
 
-var dir = path.resolve( config.mailer.templateDirectory );
+var dir = path.resolve( path.join( path.dirname( require.main.filename ), config.mailer.templateDirectory ) );
 
 app.log.verbose( "Verifying that mailer template directory exists..." );
 app.log.debug( dir );
 
-if ( !fs.existsSync( config.mailer.templateDirectory ) ) {
-    app.log.warn("PDF directory '" + dir +"' doesn't exist. Attempting to make directory" );
+if ( !fs.existsSync( dir ) ) {
+    app.log.warn("Email template directory '" + dir +"' doesn't exist. Attempting to make directory" );
     mkdirp( dir, function( err ) {
         if ( err ) {
             app.log.error( "Error making directory '" + dir + "', Reason: " + err );
