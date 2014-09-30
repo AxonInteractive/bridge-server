@@ -32,7 +32,11 @@
         "apiRoute": "/api",
 
         // The path to the index.html file to host from wwwRoot
-        "indexPath": "index.html"
+        "indexPath": "index.html",
+
+        // Set true for the server to redirect requests for static content from http to https.
+        // Example: http://www.bridge.com/ would become https://www.bridge.com/
+        "httpRedirect": false
 
     },
 

@@ -37,6 +37,34 @@ exports.attachCORSHeaders = function () {
 };
 
 /**
+ * Apply the global default CSP header to the response for the inbound request. This is an express
+ * middle ware object and doesn't require any other middle ware be run before it.
+ *
+ * @param  {ExpressRequest}   req   The express request object which is made when a request is made
+ *                                  to the sever.
+ *
+ * @param  {ExoressResponse}   res  The express response object which is made when a request is made
+ *                                  to the server.
+ *
+ * @param  {Function} next          The callback function that is called when the middleware has
+ *                                  completed. If called with its first parameter the middleware has
+ *                                  errored and should be handled as such. That parameter will be
+ *                                  the error object relating to the particular error that has occured.
+ *
+ * @return {Function}               Express middleware function which the correct signature.
+ */
+exports.applyDefaultSecuityPolicyHeader = function( req, res, next ) {
+    var policyString = "default-src 'self'; script-src 'self' 'unsafe-eval'; object-src 'self'; style-src 'self' " +
+        "'unsafe-inline' https://fonts.googleapis.com; img-src 'self'; media-src 'self'; frame-src " +
+        "'none'; font-src 'self' https://fonts.gstatic.com; connect-src 'self'";
+
+    res.set('Content-Security-Policy', policyString );
+    res.set('X-Content-Security-Policy', policyString );
+    app.log.info( req.origin );
+    next();
+};
+
+/**
  * Handle CORS request. this is due to the proxy setup for the case of PEIR.
  * @param  {Object}    req The express request object.
  * @param  {Object}    res The express response object.
@@ -102,7 +130,6 @@ exports.functions.parseBridgeHeader = function ( req, res, next ) {
     req.bridge = req.bridge || {};
 
     next();
-
 };
 
 /**
@@ -152,7 +179,6 @@ exports.verifyRequestStructure = function () {
  *
  * @return {Function} Express middleware style function.
  */
-// TODO: Rewirte protected files using the new token method
 exports.staticHostFiles = function () {
     app.log.debug( "Static file hosting setup!" );
     var staticHost = express.static( path.resolve( config.server.wwwRoot ) );

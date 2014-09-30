@@ -1,20 +1,20 @@
 {
-    "name": "axon-bridge",
-    "version": "0.0.1",
-    "description": "The server-side application of Axon Bridge, a simple uniform interface for providing database services to Single Page Applications.",
-    "main": "server.js",
-    "author": {
-        "name": "Axon Interactive",
-        "email": "theteam@axoninteractive.ca",
-        "url": "axoninteractive.ca"
-    },
-    "repository": {
-        "type": "git",
+  "name": "axon-bridge",
+  "version": "0.0.1",
+  "description": "The server-side application of Axon Bridge, a simple uniform interface for providing database services to Single Page Applications.",
+  "main": "server.js",
+  "author": {
+    "name": "Axon Interactive",
+    "email": "theteam@axoninteractive.ca",
+    "url": "axoninteractive.ca"
+  },
+  "repository": {
+    "type": "git",
     "url": "https://bitbucket.org/axoninteractive/bridge-server.git"
-    },
-    "private": true,
-    "license": "No License",
-    "dependencies": {
+  },
+  "private": true,
+  "license": "No License",
+  "dependencies": {
     "express": "4.x",
     "winston": "0.7.3",
     "mysql": "2.3.0",
@@ -33,10 +33,11 @@
     "nodemailer-smtp-transport": "^0.1.12",
     "on-headers": "^1.0.0",
     "cookies": "^0.5.0",
-    "jwt-simple": "^0.2.0"
-    },
-    "devDependencies": {},
-    "scripts": {
-        "start": "node server.js"
-    }
+    "jwt-simple": "^0.2.0",
+    "express-useragent": "^0.1.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node server.js"
+  }
 }

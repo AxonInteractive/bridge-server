@@ -25,6 +25,7 @@ var defaults = {
         wwwRoot: "client/",
         apiRoute: "/api",
         indexPath: "index.html",
+        httpRedirect: false
     },
 
     security: {
@@ -215,6 +216,11 @@ var schema = {
                     type: 'string',
                     required: true,
                     allowEmpty: false
+                },
+
+                httpRedirect: {
+                    type: 'boolean',
+                    required: true
                 }
             }
         },

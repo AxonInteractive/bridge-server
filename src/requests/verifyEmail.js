@@ -1,4 +1,4 @@
-/**@module request/verifyEmail */
+/** @module request/verifyEmail */
 "use strict";
 
 var revalidator = require( "revalidator" );

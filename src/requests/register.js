@@ -118,21 +118,14 @@ function sendVerificationEmail( user ) {
                 host: config.server.hostname
             } );
 
-            var verificationURL = URLModule.format( {
-                protocol: config.server.mode,
-                host: config.server.hostname,
-                pathname: '/register',
-                search: "?hash=" + user.hash
-            } );
-
             var variables = {
-                verificationURL    : verificationURL,
+                verificationURL    : URLModule.parse( url + "/#/account-verification?hash=" + user.hash ).href,
                 email              : user.email,
                 name               : _.capitalize( user.firstName ) + " " + _.capitalize( user.lastName ),
                 unsubsribeURL      : "",
-                footerImageURL     : URLModule.parse( url + "resources/email/peir-footer.png"    ).href,
-                headerImageURL     : URLModule.parse( url + "resources/email/peir-header.png"    ).href,
-                backgroundImageURL : URLModule.parse( url + "resources/email/right-gradient.png" ).href
+                footerImageURL     : URLModule.parse( url + "/resources/email/peir-footer.png"    ).href,
+                headerImageURL     : URLModule.parse( url + "/resources/email/peir-header.png"    ).href,
+                backgroundImageURL : URLModule.parse( url + "/resources/email/right-gradient.png" ).href
             };
 
             var mail = {

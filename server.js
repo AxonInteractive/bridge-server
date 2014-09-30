@@ -12,6 +12,7 @@ var winston    = require( 'winston'     );
 var Q          = require( 'q'           );
 var bodyParser = require( 'body-parser' );
 var onHeaders  = require( 'on-headers'  );
+var userAgent  = require( 'express-useragent' );
 
 Q.longStackSupport = true;
 
@@ -78,6 +79,9 @@ var server = null;
 app.set( 'views', config.mailer.templateDirectory );
 app.set( 'view engine', 'ejs' );
 
+// Remove the header that displays that express powers the application.
+app.disable('x-powered-by');
+
 app.engine( 'html', require( 'ejs' ).renderFile );
 app.engine( 'ejs',  require( 'ejs' ).renderFile );
 
@@ -99,6 +103,8 @@ app.use( function( req, res, next ) {
 // Setup the cookie parser
 app.use( bridgeWare.getCookies() );
 
+app.use( userAgent.express() );
+
 // Setup the request logger
 app.use( function ( req, res, next ) {
 
@@ -115,6 +121,8 @@ app.use( function ( req, res, next ) {
 
     next();
 } );
+
+app.use( bridgeWare.applyDefaultSecuityPolicyHeader );
 
 // Static hosting Middleware
 app.use( bridgeWare.staticHostFiles() );
@@ -192,6 +200,18 @@ if ( config.server.mode === "https" ) {
         app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
         app.log.info( "Server is now running!" );
     };
+
+    if (config.server.httpRedirect) {
+
+        var app2 = express();
+
+        var httpServer = http.createServer( app2 );
+
+        app2.get('*', function(req, res) {
+            res.redirect("https://" + config.server.hostname + req.url);
+        });
+
+    }
 
     fs.read( config.security.sshKeys.privateKeyfilepath )
         .then( function( content ) {
