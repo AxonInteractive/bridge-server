@@ -25,8 +25,13 @@ var transport = nodemailer.createTransport( smtpTransport( options ) );
 
 config.mailer.templateDirectory = path.normalize( config.mailer.templateDirectory );
 
-var dir = path.resolve( path.join( path.dirname( require.main.filename ), config.mailer.templateDirectory ) );
+var dir;
 
+if ( config.mailer.templateDirectory[ 0 ] === '/' ) {
+    dir = path.resolve( config.mailer.templateDirectory );
+} else {
+    dir = path.resolve( path.join( path.dirname( require.main.filename ), config.mailer.templateDirectory ) );
+}
 app.log.verbose( "Verifying that mailer template directory exists..." );
 app.log.debug( dir );
 

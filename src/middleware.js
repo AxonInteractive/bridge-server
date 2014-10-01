@@ -148,7 +148,16 @@ exports.parseBridgeHeader = function () {
  */
 exports.staticHostFiles = function () {
     app.log.debug( "Static file hosting setup!" );
-    var staticHost = express.static( path.resolve( path.join( path.dirname( require.main.filename ), config.server.wwwRoot ) ) );
+
+    var dir;
+
+    if ( config.server.wwwRoot[ 0 ] === '/' ) {
+        dir = path.resolve( config.server.wwwRoot );
+    } else {
+        dir = path.resolve( path.join( path.dirname( require.main.filename ), config.server.wwwRoot ) );
+    }
+
+    var staticHost = express.static( dir );
 
     return function ( req, res, next ) {
 

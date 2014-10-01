@@ -420,6 +420,7 @@ var config;
 winston.verbose( "Verifying that BridgeConfig.json exists" );
 winston.debug( path.resolve( 'BridgeConfig.json' ) );
 
+
 var configPath = path.dirname( require.main.filename );
 configPath = path.join( configPath, 'BridgeConfig.json' );
 
