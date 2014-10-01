@@ -13,6 +13,7 @@ var Q          = require( 'q'           );
 var bodyParser = require( 'body-parser' );
 var onHeaders  = require( 'on-headers'  );
 var userAgent  = require( 'express-useragent' );
+var moment     = require( 'moment' );
 
 Q.longStackSupport = true;
 
@@ -95,7 +96,29 @@ app.enable( 'trust proxy' );
 // Setup the response logger event handler.
 app.use( function( req, res, next ) {
     onHeaders( res, function() {
+        app.log.verbose( "Sending Response." );
         app.log.silly( 'Response headers: ', res._headers );
+
+        if ( _.isObject( req.bridge ) ) {
+            if ( _.isObject( req.bridge.dbLogger ) ) {
+                req.bridge.dbLogger.data.responseHeaders = res._headers;
+                req.bridge.dbLogger.data.bridgeHeader = req.get( 'bridge' );
+
+                var values = [];
+
+                values.push( req.bridge.dbLogger.userID  );
+                values.push( JSON.stringify( req.bridge.dbLogger.data )  );
+                values.push( req.bridge.dbLogger.datatype );
+                values.push( moment().format( 'YYYY-MM-DD HH:mm:ss' ) );
+                values.push( moment().format( 'YYYY-MM-DD HH:mm:ss' ) );
+                values.push( 0 );
+
+                database.insertIntoTable( 'actions', values )
+                .fail( function( err ) {
+                    app.log.warn( "Cannot insert action into the actions table. Error: ", err );
+                } );
+            }
+        }
     } );
     next();
 } );
@@ -108,7 +131,8 @@ app.use( userAgent.express() );
 // Setup the request logger
 app.use( function ( req, res, next ) {
 
-    app.log.silly( "Received Request: ", {
+    app.log.verbose( "Received Request at " + req.path );
+    app.log.silly( {
         RequestBody: req.body,
         BridgeHeader: req.get( 'bridge' ),
         Method: req.method,
@@ -127,8 +151,12 @@ app.use( bridgeWare.applyDefaultSecuityPolicyHeader );
 // Static hosting Middleware
 app.use( bridgeWare.staticHostFiles() );
 
+app.use( bridgeWare.prepBridgeObjects );
+
 // Serve the index if it is a GET request for '/'
 app.get( '/', routes.serveIndex );
+
+app.get( 'publicRouter' ).use( bridgeWare.prepBridgeObjects );
 
 // Handle an authentication request
 app.get( 'publicRouter' ).route( '/authenticate' )
@@ -195,10 +223,12 @@ if ( config.server.mode === "https" ) {
 
         // Listen on the port defined at the beginning of the script
         server.listen( port );
-
-        // Log the start of the server
-        app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
-        app.log.info( "Server is now running!" );
+        Q.delay( 100 ).
+        then( function() {
+            // Log the start of the server
+            app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
+            app.log.info( "Server is now running!" );
+        } );
     };
 
     if (config.server.httpRedirect) {
@@ -207,10 +237,9 @@ if ( config.server.mode === "https" ) {
 
         var httpServer = http.createServer( app2 );
 
-        app2.get('*', function(req, res) {
-            res.redirect("https://" + config.server.hostname + req.url);
-        });
-
+        app2.get( '*', function ( req, res ) {
+            res.redirect( "https://" + config.server.hostname + req.url );
+        } );
     }
 
     fs.read( path.resolve( path.join( path.dirname( require.main.filename ), config.security.sshKeys.privateKeyfilepath ) ) )
@@ -221,8 +250,7 @@ if ( config.server.mode === "https" ) {
             checkIfKeyAndCertAreLoaded();
         } )
         .fail( function( err ) {
-            app.log.error( 'Failed to load private key file. Check your private key file path. Error: ',
-                 err );
+            app.log.error( 'Failed to load private key file. Check your private key file path. Error: ', err );
         } );
 
     fs.read( path.resolve( path.join( path.dirname( require.main.filename ), config.security.sshKeys.certificatefilepath ) ) )
@@ -260,23 +288,23 @@ function cleanUp() {
 
 process.stdin.resume();//so the program will not close instantly
 
-function exitHandler(options, err) {
-    if (options.cleanup) {
+function exitHandler( options, err ) {
+    if ( options.cleanup ) {
         app.log.debug( 'Bridge application closing. Good Bye!' );
     }
-    if (err) {
-        app.log.error(err.stack);
+    if ( err ) {
+        app.log.error( err.stack );
     }
-    if (options.exit) {
+    if ( options.exit ) {
         process.exit();
     }
 }
 
 //do something when app is closing
-process.on('exit', exitHandler.bind(null,{cleanup:true}));
+process.on( 'exit', exitHandler.bind( null,           { cleanup: true } ) );
 
 //catches ctrl+c event
-process.on('SIGINT', exitHandler.bind(null, {exit:true}));
+process.on( 'SIGINT', exitHandler.bind( null,            { exit: true } ) );
 
 //catches uncaught exceptions
-process.on('uncaughtException', exitHandler.bind(null, {exit:true}));
+process.on( 'uncaughtException', exitHandler.bind( null, { exit: true } ) );

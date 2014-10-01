@@ -465,9 +465,12 @@ exports.close = function() {
 
 /**
  * Inserts data into the specified table using the values specified in the values array
- * @param  {String} table  The name of the table in the database.
- * @param  {Array}  values An array of values to insert into the database.
- * @return {Promise}       A Q style promise object.
+ *
+ * @param  {String}  table   The name of the table in the database.
+ *
+ * @param  {Array}   values  An array of values to insert into the database.
+ *
+ * @return {Promise}         A Q style promise object.
  */
 exports.insertIntoTable = function( table, values ) {
     return Q.Promise( function( resolve, reject ){
@@ -506,8 +509,6 @@ exports.insertIntoTable = function( table, values ) {
                 app.log.error( "Database query Error: ", err );
                 return;
             }
-
-            app.log.info( result );
 
             resolve( result );
 
@@ -706,8 +707,6 @@ exports.selectWithQueryObject = function( selectQueryObj ) {
             values.push( limits.maxResults );
 
         }
-
-        app.log.info( mysql.format( query, values ) );
 
         connection.query( query, values, function( err, rows ) {
 

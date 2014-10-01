@@ -30,8 +30,7 @@ exports.functions = {};
 exports.attachCORSHeaders = function () {
     app.log.debug( "CORS header middleware setup" );
     return function ( req, res, next ) {
-        res.setHeader( 'Access-Control-Allow-Origin', req.headers.origin ||
-            '*' );
+        res.setHeader( 'Access-Control-Allow-Origin', req.headers.origin || '*' );
         next();
     };
 };
@@ -58,9 +57,8 @@ exports.applyDefaultSecuityPolicyHeader = function( req, res, next ) {
         "'unsafe-inline' https://fonts.googleapis.com; img-src 'self'; media-src 'self'; frame-src " +
         "'none'; font-src 'self' https://fonts.gstatic.com; connect-src 'self'";
 
-    res.set('Content-Security-Policy', policyString );
+    res.set('Content-Security-Policy',   policyString );
     res.set('X-Content-Security-Policy', policyString );
-    app.log.info( req.origin );
     next();
 };
 
@@ -141,37 +139,6 @@ exports.functions.parseBridgeHeader = function ( req, res, next ) {
 exports.parseBridgeHeader = function () {
     app.log.debug( "Bridge header parser setup" );
     return exports.functions.parseBridgeHeader;
-};
-
-/**
- * Verifies that the correct objects are made and defaults them to an empty object if they are not
- * defined
- *
- * @param  {Object}    req   The express request object.
- *
- * @param  {Object}    res   The express response object.
- *
- * @param  {Function}  next  The function to call when this function is complete
- *
- * @returns {Undefined}
- */
-function verifyRequestStructure( req, res, next ) {
-
-    req.headers.bridge = req.headers.bridge || {};
-    req.bridge = req.bridge || {};
-    req.bridge.isAnon = true;
-
-    next();
-}
-
-/**
- * Returns the function for the verify request structure middleware.
- *
- * @return {Function} The function that has the express style signature.
- */
-exports.verifyRequestStructure = function () {
-    app.log.debug( "Bridge request structure middleware setup" );
-    return verifyRequestStructure;
 };
 
 /**
@@ -437,4 +404,63 @@ exports.getCookies = function () {
         req.bridge.cookies = new Cookies( req, res );
         next();
     };
+};
+
+/**
+ * Preps the bridge object that will be used throughout the rest of the bridge application for
+ * various purposes.
+ *
+ * @param  {ExpressRequest}   req   The request object that is made when a request is made to the
+ *                                  server.
+ *
+ * @param  {ExpressResponse}  res   The response object that is made when a request is made to the
+ *                                  server.
+ *
+ * @param  {Function}         next  The callback function that is called when this middleware
+ *                                  function is complete. If called with a parameter then an error
+ *                                  occurred and is described by that parameter.
+ *
+ *
+ * @return {Undefined}
+ */
+exports.prepBridgeObjects = function( req, res, next ) {
+
+    req.headers.bridge = req.headers.bridge || {};
+    req.bridge = req.bridge || {};
+
+    var user = {};
+
+    _.each( req.useragent, function( element, key ) {
+        if ( _.isBoolean( element ) ) {
+            if ( element === true ) {
+                user[ key ] = element;
+            }
+        } else {
+            user[ key ] = element;
+        }
+    } );
+
+    req.bridge.dbLogger = {
+        data: {
+            origin         :  req.get( 'origin' ),
+            userAgent      :  user,
+            bridgeHeader   :  req.get( 'bridge' ),
+            responseHeaders:  null,
+            method         :  req.method,
+            datatype: path.basename( req.path )
+        },
+        datatype: path.basename( req.path ),
+        userID: 1
+    };
+
+    next();
+
+};
+
+exports.dbLoggerUserIDAssigner = function( req, res, next ) {
+
+    req.bridge.dbLogger.userID = req.bridge.user.ID;
+
+    next();
+
 };

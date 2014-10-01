@@ -98,6 +98,8 @@ function setUserSessionToken( req, user ) {
         id: user.ID
     };
 
+    req.bridge.dbLogger.userID = user.ID;
+
     var secret = config.security.tokenSecret;
 
     var token = jwt.encode( tokenPayload, secret );

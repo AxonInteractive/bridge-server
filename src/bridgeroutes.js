@@ -72,9 +72,10 @@ exports.setup = function () {
     var privateRouter = app.get( 'privateRouter' );
 
     publicRouter.use( bridgeWare.parseBridgeHeader() );
-    publicRouter.use( bridgeWare.verifyRequestStructure() );
 
     privateRouter.use( bridgeWare.authenticateToken );
+
+    privateRouter.use( bridgeWare.dbLoggerUserIDAssigner );
 
     publicRouter.route( '/authenticate' )
         .post( require( './requests/authenticate' ) );

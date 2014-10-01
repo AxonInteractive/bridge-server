@@ -48,6 +48,9 @@ if ( !fs.existsSync( dir ) ) {
     winston.verbose( "Exception log directory found." );
 }
 
+console.log( "logger level: " + config.server.level );
+console.log( "console logger level: " + config.server.consoleLevel );
+
 var loggerConstObj = {
     transports: [
         new winston.transports.DailyRotateFile( {

@@ -461,12 +461,16 @@ if ( fs.existsSync( configPath ) ) {
 // If no user config can be loaded make a default one
 else {
 
+
+
+    config = _.cloneDeep( defaults );
+    config.isDefault = true;
+
     // Apply any defaults that can't be merged nicely with _.merge().
     // Note: Token expiry ends up adding/unioning durations rather than overrriding with _.merge().
     postMergeDefaults( config );
 
-    config = _.cloneDeep( defaults );
-    config.isDefault = true;
+    winston.warn('File Location: ', configPath );
     winston.warn('Configuration file not found. Using defaults. This may have undesired effects. Please make "BridgeConfig.json"');
 
 }
