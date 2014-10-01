@@ -242,7 +242,21 @@ if ( config.server.mode === "https" ) {
         } );
     }
 
-    fs.read( path.resolve( path.join( path.dirname( require.main.filename ), config.security.sshKeys.privateKeyfilepath ) ) )
+    var keyDir, certDir;
+
+    if ( config.security.sshKeys.privateKeyfilepath[ 0 ] === '/' ) {
+        keyDir = path.resolve( config.security.sshKeys.privateKeyfilepath );
+    } else {
+        keyDir = path.resolve( path.join( path.dirname( require.main.filename ), config.security.sshKeys.privateKeyfilepath ) );
+    }
+
+    if ( config.security.sshKeys.certificatefilepath[ 0 ] === '/' ) {
+        certDir = path.resolve( config.security.sshKeys.certificatefilepath );
+    } else {
+        certDir = path.resolve( path.join( path.dirname( require.main.filename ), config.security.sshKeys.certificatefilepath ) );
+    }
+
+    fs.read( keyDir )
         .then( function( content ) {
             keyFound = true;
             keyContent = content;
@@ -253,7 +267,7 @@ if ( config.server.mode === "https" ) {
             app.log.error( 'Failed to load private key file. Check your private key file path. Error: ', err );
         } );
 
-    fs.read( path.resolve( path.join( path.dirname( require.main.filename ), config.security.sshKeys.certificatefilepath ) ) )
+    fs.read( certDir )
         .then( function( content ) {
             certFound = true;
             certContent = content;
