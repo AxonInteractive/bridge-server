@@ -116,6 +116,7 @@ app.use( function( req, res, next ) {
                 database.insertIntoTable( 'actions', values )
                 .fail( function( err ) {
                     app.log.warn( "Cannot insert action into the actions table. Error: ", err );
+                    app.log.debug( "Values", values );
                 } );
             }
         }
@@ -300,7 +301,12 @@ function cleanUp() {
     mailer.close();
 }
 
+
 process.stdin.resume();//so the program will not close instantly
+
+process.stdin.on( 'data', function ( chunk ) {
+
+} );
 
 function exitHandler( options, err ) {
     if ( options.cleanup ) {
@@ -315,10 +321,10 @@ function exitHandler( options, err ) {
 }
 
 //do something when app is closing
-process.on( 'exit', exitHandler.bind( null,           { cleanup: true } ) );
+process.on( 'exit', exitHandler.bind( null, { cleanup: true } ) );
 
 //catches ctrl+c event
-process.on( 'SIGINT', exitHandler.bind( null,            { exit: true } ) );
+process.on( 'SIGINT', exitHandler.bind( null, { exit: true } ) );
 
 //catches uncaught exceptions
 process.on( 'uncaughtException', exitHandler.bind( null, { exit: true } ) );
