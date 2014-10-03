@@ -507,6 +507,8 @@ exports.insertIntoTable = function( table, values ) {
             if ( err ) {
                 reject( bridgeError.createError( 500, 'databaseError', "Database Error, See error log for more details." ) );
                 app.log.error( "Database query Error: ", err );
+                app.log.debug( "Query: ", query );
+                app.log.debug( "Values: ", values );
                 return;
             }
 

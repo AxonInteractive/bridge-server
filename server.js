@@ -116,7 +116,6 @@ app.use( function( req, res, next ) {
                 database.insertIntoTable( 'actions', values )
                 .fail( function( err ) {
                     app.log.warn( "Cannot insert action into the actions table. Error: ", err );
-                    app.log.debug( "Values", values );
                 } );
             }
         }

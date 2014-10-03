@@ -459,7 +459,7 @@ exports.prepBridgeObjects = function( req, res, next ) {
             datatype: path.basename( req.path )
         },
         datatype: path.basename( req.path ),
-        userID: 1
+        userID: 0
     };
 
     next();
