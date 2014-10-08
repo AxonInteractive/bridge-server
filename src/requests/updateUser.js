@@ -2,16 +2,17 @@
 "use strict";
 
 var revalidator = require( 'revalidator' );
-var Q = require( 'q' );
-var _ = require( 'lodash' )._;
-var URLModule = require( 'url' );
+var Q           = require( 'q' );
+var _           = require( 'lodash' );
+var uri         = require( 'uri-js' );
 
-var regex = require( '../regex' );
-var error = require( '../error' );
+var regex    = require( '../regex' );
+var error    = require( '../error' );
 var database = require( '../database' );
-var util = require( '../utilities' );
-var mailer = require( '../mailer' );
-var config = require( '../config' );
+var util     = require( '../utilities' );
+var mailer   = require( '../mailer' );
+var config   = require( '../config' );
+var app      = require( '../../server' ).app;
 
 var schema = {
     properties: {
@@ -128,27 +129,26 @@ function sendUpdatedUserEmail( user, fieldsUpdated ) {
             return;
         }
 
-        var url = URLModule.format( {
-            protocol: config.server.mode,
-            name: config.server.hostname
-        } );
 
+        var url = app.get( 'uriObject' );
 
+        var footerImageURL     = _.cloneDeep( url );// + 'resources/email/peir-footer.png';
+        var headerImageURL     = _.cloneDeep( url );// + 'resources/email/peir-header.png';
+        var backgroundImageURL = _.cloneDeep( url );// url + 'resources/email/right-gradient.png';
 
-        var footerImageURL = URLModule.resolve( url,
-            'resources/email/peir-footer.png' );
-        var headerImageURL = URLModule.resolve( url,
-            'resources/email/peir-header.png' );
-        var backgroundImageURL = URLModule.resolve( url,
-            'resources/email/right-gradient.png' );
+        footerImageURL.path = '/resources/email/peir-footer.png';
+        footerImageURL.path = '/resources/email/peir-header.png';
+        footerImageURL.path = '/resources/email/reight-gradient.png';
 
         var variables = {
             email: user.EMAIL,
             name: _.capitalize( user.FIRST_NAME + ' ' + user.LAST_NAME ),
-            footerImageURL: footerImageURL,
-            headerImageURL: headerImageURL,
-            backgroundImageURL: backgroundImageURL
+            footerImageURL: uri.serialize( footerImageURL ),
+            headerImageURL: uri.serialize( headerImageURL ),
+            backgroundImageURL: uri.serialize( backgroundImageURL )
         };
+
+        app.log.debug( 'Update user email variables: ', variables );
 
         var mailerTracker = {};
 

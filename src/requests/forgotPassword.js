@@ -3,14 +3,13 @@
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
 var _           = require( 'lodash' )._;
-var URLModule   = require( 'url' );
 
 var regex    = require( '../regex'     );
 var error    = require( '../error'     );
 var mailer   = require( '../mailer'    );
 var database = require( '../database'  );
-var util     = require( '../../server' ).util;
-var config   = require( '../../server' ).config;
+var config   = require( '../config'    );
+var app      = require( '../../server' ).app;
 
 var schema = {
     properties: {
@@ -94,14 +93,11 @@ function sendForgotPasswordEMail( user ) {
 
         var viewName = config.mailer.recoverAccountEmail.viewName;
 
-        var url = URLModule.format( {
-            protocol: config.server.mode,
-            host: config.server.hostname,
-        } );
+        var url = app.get( 'rootURL' );
 
-        var footerURL = URLModule.resolve( url, 'resources/email/peir-footer.png' );
-        var headerURL = URLModule.resolve( url, 'resources/email/peir-header.png' );
-        var backgroundURL = URLModule.resolve( url, 'resources/email/right-gradient.png' );
+        var footerURL     = url + 'resources/email/peir-footer.png';
+        var headerURL     = url + 'resources/email/peir-header.png';
+        var backgroundURL = url + 'resources/email/right-gradient.png';
 
         var variables = {
             email: user.EMAIL,

@@ -9,7 +9,7 @@ var server    = require( '../server' );
 var Q         = require( 'q' );
 var _         = require( 'lodash')._;
 var ejs       = require( 'ejs' );
-var url       = require( 'url' );
+var uri       = require( 'uri-js' );
 
 var config = server.config;
 var app    = server.app;
@@ -182,11 +182,7 @@ function wkHTMLToPDFFound() {
 
                         setTimeout( deleteFile, config.pdfGenerator.cacheLifetimeMinutes * 60 * 1000, pathToPDF );
 
-                        var pdfURL = url.format( {
-                            protocol: config.server.mode,
-                            host: config.server.hostname,
-                            pathName: config.pdfGenerator.cachePath
-                        } );
+                        var pdfURL = app.get( 'rootURL' ) + config.pdfGenerator.cachePath;
 
                         var urlPathToFile = path.join( config.pdfGenerator.cachePath, folder, path.basename( pathToPDF ) );
 

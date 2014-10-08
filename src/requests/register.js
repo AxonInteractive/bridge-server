@@ -4,14 +4,16 @@
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
 var _           = require( 'lodash' )._;
-var URLModule   = require( 'url' );
+var uri         = require( 'uri-js' );
 
 var regex    = require( '../regex' );
 var error    = require( '../error' );
 var database = require( '../database' );
 var mailer   = require( '../mailer' );
 var util     = require( '../utilities' );
-var config   = require( '../../server' ).config;
+var server   = require( '../../server' );
+var config   = require( '../config' );
+var app      = server.app;
 
 var schema = {
     properties: {
@@ -101,39 +103,29 @@ function getUserObject( req ) {
  * Sends a email to verify a registration request.
  * *NOTE* ONLY used when email verification is turned on.
  *
- * @param  {User} user A user object in the form of the DB Table relating to the user where each
- *                     column is a variable my the column name.
+ * @param  {User}  user             A user object in the form of the DB Table relating to the user
+ *                                  where each column is a variable my the column name.
+ *
+ * @param  {Object} emailVariables  The variables that get fed into the email template to fill in
+ *                                  the template variables.
  *
  * @return {Promise}   A Q style promise object
  */
-function sendVerificationEmail( user ) {
+function sendVerificationEmail( user, emailVariables ) {
     return Q.Promise( function ( resolve, reject ) {
 
         if ( config.server.emailVerification === true ) {
 
             var viewName = config.mailer.verificationEmail.viewName;
 
-            var url = URLModule.format( {
-                protocol: config.server.mode,
-                host: config.server.hostname
-            } );
-
-            var variables = {
-                verificationURL    : URLModule.parse( url + "/#/account-verification?hash=" + user.hash ).href,
-                email              : user.email,
-                name               : _.capitalize( user.firstName ) + " " + _.capitalize( user.lastName ),
-                unsubsribeURL      : "",
-                footerImageURL     : URLModule.parse( url + "/resources/email/peir-footer.png"    ).href,
-                headerImageURL     : URLModule.parse( url + "/resources/email/peir-header.png"    ).href,
-                backgroundImageURL : URLModule.parse( url + "/resources/email/right-gradient.png" ).href
-            };
+            var url = uri.parse( app.get( 'rootURL' ) );
 
             var mail = {
                 to      : user.email,
                 subject : config.mailer.verificationEmail.subject
             };
 
-            mailer.sendMail( viewName, variables, mail )
+            mailer.sendMail( viewName, emailVariables, mail )
             .then( function() {
                 resolve();
             } )
@@ -168,7 +160,6 @@ function sendReponse( res ) {
 
 module.exports = function ( req, res, next ) {
 
-
     // Validate the structure of the request against the registration schema
     validateRegisterRequest( req )
 
@@ -182,9 +173,17 @@ module.exports = function ( req, res, next ) {
         return database.registerUser( req, user );
     } )
 
+    // Run the user extension function. This should work as a promise
+    .then( function() {
+        var userFunc = app.get( 'registerMiddleware' );
+        if ( _.isFunction( userFunc ) ) {
+            return userFunc( req.   bridge.user, req, res );
+        }
+    } )
+
     // Send the verification email using the user object
-    .then( function () {
-        return sendVerificationEmail( req.bridge.user );
+    .then( function ( emailVariables ) {
+        return sendVerificationEmail( req.bridge.user, emailVariables );
     } )
 
     // Send the successful response message

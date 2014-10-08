@@ -12,6 +12,7 @@ var database = require( '../database' );
 var util     = require( '../utilities');
 var config   = require( '../config'   );
 var mailer   = require( '../mailer'   );
+var app      = require( '../../server' ).app;
 
 var schema = {
     properties: {
@@ -117,6 +118,13 @@ module.exports = function ( req, res, next ) {
     // Verify the email in the datebase
     .then( function () {
         return database.verifyEmail( req );
+    } )
+
+    .then( function() {
+        var userFunc = app.get( 'verifyEmailMiddleware' );
+        if ( _.isFunction( userFunc ) ) {
+            return userFunc( req.bridge.user, req, res );
+        }
     } )
 
     .then( function() {

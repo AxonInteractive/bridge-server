@@ -32,24 +32,35 @@ _.str = require( 'underscore.string' );
 // Mix in non-conflict functions to Underscore namespace if you want
 _.mixin( _.str.exports() );
 
+// Start the express app
+var app = exports.app = express();
+
 var config = require( './src/config' );
 
 // Export important files for bridge configuration and setup
 exports.config = config;
 
-// Start the express app
-var app = exports.app = express();
+// Set the host variable in the application
+app.set( 'host', config.server.hostname + ":" + config.server.port );
+
+// Set the rootURL variable that has a trailing slash
+app.set( 'rootURL', config.server.mode + "://" + app.get( 'host' ) + "/" );
 
 // Create the routers that will be used by the bridge app.
 var routerOptions = { caseSensitive: true };
 app.set( 'privateRouter' , express.Router( routerOptions ) );
 app.set( 'publicRouter'  , express.Router( routerOptions ) );
-
+app.set( 'extensionFunctions', {
+    registration: null
+} );
 // Determine the port to listen on
 var port = config.server.port;
 process.env.PORT = port;
 
 var loggerObj  = require( './src/logger' );
+
+app.log.debug( "App host: ", app.get( 'host' ) );
+app.log.debug( "App root URL: ", app.get( 'rootURL' ) );
 
 // Read in local modules that are to be exported
 var regex        = require( './src/regex' );

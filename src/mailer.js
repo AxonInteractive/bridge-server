@@ -87,6 +87,8 @@ exports.sendMail = function( viewName, variables, mail ) {
         } )
         .then( function() {
             return Q.Promise( function( resolve, reject ) {
+                app.log.debug( "Rendering Email..." );
+                app.log.debug( "Variables: ", variables );
                 app.render( viewName, variables, function( err, html ) {
                     if ( err ) {
                         app.log.error( "Error occured rendering Email HTML. Error: ", err );
@@ -101,6 +103,7 @@ exports.sendMail = function( viewName, variables, mail ) {
         } )
         .then( function( html ) {
             return Q.Promise( function( resolve, reject ) {
+                app.log.debug( "Sending mail..." );
                 transport.sendMail( mail, function( err, info ) {
                     if ( err ) {
                         app.log.error( "Mail failed to send. Error: ", err );
@@ -108,7 +111,7 @@ exports.sendMail = function( viewName, variables, mail ) {
                         return;
                     }
 
-                    app.log.debug( "Sent mail info: " + info );
+                    app.log.debug( "Sent mail info: ", info );
                     resolve();
                 } );
             } );

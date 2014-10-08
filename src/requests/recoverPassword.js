@@ -3,7 +3,7 @@
 
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
-var URLModule   = require( 'url' );
+var _           = require( 'lodash' );
 
 var regex    = require( '../regex'     );
 var error    = require( '../error'     );
@@ -11,8 +11,8 @@ var util     = require( '../utilities' );
 var database = require( '../database'  );
 var config   = require( '../config'    );
 var mailer   = require( '../mailer'    );
+var app      = require( '../../server').app;
 
-var _ = require('lodash');
 
 var schema = {
     type: 'object',
@@ -86,10 +86,6 @@ function validateRecoverPasswordRequest( req ) {
 function sendPasswordUpdateEmail( user ) {
     return Q.Promise( function( resolve, reject ) {
 
-        var url = URLModule.format( {
-            protocol: config.server.mode,
-            host: config.server.hostname
-        } );
 
         var viewName = config.mailer.updatedUserPasswordEmail.viewName;
 
@@ -98,9 +94,11 @@ function sendPasswordUpdateEmail( user ) {
             subject: config.mailer.updatedUserPasswordEmail.subject
         };
 
-        var footerImageURL     = URLModule.resolve( url, 'resources/email/peir-footer.png' );
-        var headerImageURL     = URLModule.resolve( url, 'resources/email/peir-header.png' );
-        var backgroundImageURL = URLModule.resolve( url, 'resources/email/right-gradient.png' );
+        var url = app.get( 'rootURL' );
+
+        var footerImageURL     = url + 'resources/email/peir-footer.png';
+        var headerImageURL     = url + 'resources/email/peir-header.png';
+        var backgroundImageURL = url + 'resources/email/right-gradient.png';
 
         var variables = {
             email: user.EMAIL,
