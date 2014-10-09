@@ -23,7 +23,7 @@ winston.verbose( "Verifying that server log directory exists..." );
 winston.debug( dir );
 
 if ( !fs.existsSync( dir ) ) {
-    winston.warn("Log directory '" + dir + "' doesn't exist. Attempting to make directory now...");
+    winston.warn( "Log directory '" + dir + "' doesn't exist. Attempting to make directory now..." );
     mkdirp( dir, function ( err ) {
         if ( err ) {
             winston.error( "Error making server directory '" + dir + "', Reason: " + err );

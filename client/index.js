@@ -115,8 +115,6 @@ window.onload = function () {
   // USAGE
   // =====
 
-  // Initialize your Bridge with the base URL of your API and a timeout (in milliseconds):
-  Bridge.init( 'https://localhost:3000/api/1.0/', 10000 );
 
   // Hook up the registration process to a button:
   $( '#register' ).click( function ( evt ) {
@@ -129,8 +127,8 @@ window.onload = function () {
     var appData = JSON.parse( $( '#app-data' ).val() );
 
     // Send a register request using Bridge.
-    Bridge.requestRegister( email, password, firstName, lastName, appData )
-      .done( registerSuccessHandler )
+    Bridge.register( 'https://localhost:3000/api/', email, password, firstName, lastName, appData )
+      .then( registerSuccessHandler )
       .fail( registerFailHandler );
 
   } );
@@ -139,12 +137,11 @@ window.onload = function () {
   $( '#verify-email' ).click( function ( evt ) {
 
     // Read in the input fields
-    var email = $( '#email3' ).val();
     var hash = $( '#hash' ).val();
 
     // Send a verify email request using Bridge.
-    Bridge.requestVerifyEmail( email, hash )
-      .done( function ( data, jqXHR ) {
+    Bridge.verifyEmail( "/api", hash )
+      .then( function ( data, jqXHR ) {
 
         $( '#notify' ).prepend( timestamp( '<strong>Email account verified successfully!</strong>' ) );
 
@@ -163,11 +160,11 @@ window.onload = function () {
     // Read in the input fields
     var email = $( '#email2' ).val();
     var password = $( '#password2' ).val();
-    var useLocalStorage = $( '#use-local-storage' ).prop( 'checked' );
+    var rememberMe = $( '#use-local-storage' ).prop( 'checked' );
 
     // Send a login request using Bridge.
-    Bridge.requestLogin( email, password, useLocalStorage )
-      .done( loginSuccessHandler )
+    Bridge.login( 'https://localhost:3000/api', email, password, rememberMe )
+      .then( loginSuccessHandler )
       .fail( loginFailHandler );
 
   } );
@@ -180,8 +177,8 @@ window.onload = function () {
     var newPassword = $( '#new-password' ).val();
 
     // Send a change password request using Bridge.
-    Bridge.requestChangePassword( oldPassword, newPassword )
-      .done( function ( data, jqXHR ) {
+    Bridge.saveUser( '/api', oldPassword, newPassword )
+      .then( function ( data, jqXHR ) {
 
         $( '#notify' ).prepend( timestamp( '<strong>Password changed successfully!</strong>' ) );
 
@@ -201,8 +198,8 @@ window.onload = function () {
     var email = $( '#email5' ).val();
 
     // Send a recover password request using Bridge.
-    Bridge.requestForgotPassword( email )
-      .done( function ( data, jqXHR ) {
+    Bridge.forgotPassword( 'https://localhost:3000/api/', email )
+      .then( function ( data, jqXHR ) {
 
         $( '#notify' ).prepend( timestamp( '<strong>Password recovery email sent successfully!</strong>' ) );
 
@@ -224,8 +221,8 @@ window.onload = function () {
     var hash = $( '#hash2' ).val();
 
     // Send a recover password request using Bridge.
-    Bridge.requestRecoverPassword( email, newPassword, hash )
-      .done( function ( data, jqXHR ) {
+    Bridge.recoverPassword( 'https://localhost:3000/api/', email, newPassword, hash )
+      .then( function ( data, jqXHR ) {
 
         $( '#notify' ).prepend( timestamp( '<strong>Password recovered successfully!</strong>' ) );
 
@@ -242,7 +239,7 @@ window.onload = function () {
   $( '#logout' ).click( function ( evt ) {
 
     // Call Bridge.logout() to clear the user from Bridge.
-    Bridge.logout();
+    Bridge.logout( "/api/" );
 
   } );
 
@@ -253,26 +250,5 @@ window.onload = function () {
     $.jStorage.deleteKey( 'bridge-client-identity' );
 
   } );
-
-
-  // ======================
-  // USING STORED IDENTITES
-  // ======================
-
-  // Attempt to load up a locally stored user identity and login with that:
-  var loginPromise = Bridge.requestLoginStoredIdentity();
-  if ( loginPromise === null ) {
-
-    $( '#notify' ).prepend( timestamp( '<strong>No HTML5 stored user. Waiting for manual login...</strong>' ) );
-
-  }
-  else {
-
-    $( '#notify' ).prepend( timestamp( '<strong>HTML5 stored user found. Logging in...</strong>' ) );
-
-    // Attach handlers to the login promise, if you like.
-    loginPromise.done( loginSuccessHandler ).fail( loginFailHandler );
-
-  }
 
 };

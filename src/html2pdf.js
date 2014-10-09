@@ -182,7 +182,9 @@ function wkHTMLToPDFFound() {
 
                         setTimeout( deleteFile, config.pdfGenerator.cacheLifetimeMinutes * 60 * 1000, pathToPDF );
 
-                        var pdfURL = app.get( 'rootURL' ) + config.pdfGenerator.cachePath;
+
+
+                        var pdfURL = _.cloneDeep( app.get( 'uriObject' ) ) + config.pdfGenerator.cachePath;
 
                         var urlPathToFile = path.join( config.pdfGenerator.cachePath, folder, path.basename( pathToPDF ) );
 

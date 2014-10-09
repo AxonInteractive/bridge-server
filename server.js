@@ -50,9 +50,7 @@ app.set( 'rootURL', config.server.mode + "://" + app.get( 'host' ) + "/" );
 var routerOptions = { caseSensitive: true };
 app.set( 'privateRouter' , express.Router( routerOptions ) );
 app.set( 'publicRouter'  , express.Router( routerOptions ) );
-app.set( 'extensionFunctions', {
-    registration: null
-} );
+
 // Determine the port to listen on
 var port = config.server.port;
 process.env.PORT = port;

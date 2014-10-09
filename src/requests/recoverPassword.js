@@ -81,9 +81,12 @@ function validateRecoverPasswordRequest( req ) {
  *
  * @param  {User} user A user object in the form of the DB Table relating to the user where each
  *                     column is a variable my the column name.
+ *
+ * @param {Object} emailVariables An object of
+ *
  * @return {Promise}   A Q style promise object
  */
-function sendPasswordUpdateEmail( user ) {
+function sendPasswordUpdateEmail( user, emailVariables ) {
     return Q.Promise( function( resolve, reject ) {
 
 
@@ -94,21 +97,11 @@ function sendPasswordUpdateEmail( user ) {
             subject: config.mailer.updatedUserPasswordEmail.subject
         };
 
-        var url = app.get( 'rootURL' );
+         if ( !_.isObject( emailVariables ) ) {
+            emailVariables = {};
+        }
 
-        var footerImageURL     = url + 'resources/email/peir-footer.png';
-        var headerImageURL     = url + 'resources/email/peir-header.png';
-        var backgroundImageURL = url + 'resources/email/right-gradient.png';
-
-        var variables = {
-            email: user.EMAIL,
-            name: _.capitalize( user.FIRST_NAME + " " + user.LAST_NAME ),
-            footerImageURL: footerImageURL,
-            headerImageURL: headerImageURL,
-            backgroundImageURL: backgroundImageURL
-        };
-
-        mailer.sendMail( viewName, variables, mail )
+        mailer.sendMail( viewName, emailVariables, mail )
         .then( function() {
             resolve();
         } )
@@ -148,9 +141,16 @@ module.exports = function ( req, res, next ) {
         return database.recoverPassword( userHash, newPassword, req );
     } )
 
-    // Send the updated password email
     .then( function() {
-        return sendPasswordUpdateEmail( req.bridge.user );
+        var userFunc = app.get( 'recoverPasswordMiddleware' );
+        if ( _.isFunction( userFunc ) ) {
+            return userFunc( req.bridge.user, req, res );
+        }
+    } )
+
+    // Send the updated password email
+    .then( function( emailVariables ) {
+        return sendPasswordUpdateEmail( req.bridge.user, emailVariables );
     } )
 
     // Send the success response

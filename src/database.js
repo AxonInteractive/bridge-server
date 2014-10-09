@@ -160,7 +160,7 @@ exports.updateUser = function( req ) {
             return;
         }
 
-        var content = req.headers.bridge.content;
+        var content = req.headers.bridge;
 
         var updateFields = {};
 
@@ -230,6 +230,10 @@ exports.updateUser = function( req ) {
         query = query.concat( " WHERE EMAIL = ?" );
 
         values.push( req.bridge.user.EMAIL.toLowerCase() );
+
+        app.log.debug( "Querying database to updateUser" );
+        app.log.debug( "Query: ", query );
+        app.log.debug( "Values: ", values );
 
         connection.query( query, values, function ( err, retObj ) {
 

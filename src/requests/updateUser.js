@@ -5,6 +5,7 @@ var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
 var _           = require( 'lodash' );
 var uri         = require( 'uri-js' );
+var jwt         = require( 'jwt-simple' );
 
 var regex    = require( '../regex' );
 var error    = require( '../error' );
@@ -89,12 +90,17 @@ function validateUpdateUserRequest( req ) {
 /**
  * Send a email notifiying the owner of the account that their user information has been updated.
  *
- * @param  {User} user A user object in the form of the DB Table relating to the user where each
+ * @param  {User} user             A user object in the form of the DB Table relating to the user where each
  *                     column is a variable my the column name.
+ *
+ * @param {Object} emailVariabels  The variabels object to be passed to e.js to template the emails
+ *                                to send
+ *
+ * @param {Array} fieldsUpdated The field
  *
  * @return {Promise}   A Q style promise object
  */
-function sendUpdatedUserEmail( user, fieldsUpdated ) {
+function sendUpdatedUserEmail( user, emailVariables, fieldsUpdated ) {
     return Q.Promise( function ( resolve, reject ) {
 
         // Determine if a non AppData
@@ -219,6 +225,36 @@ function sendUpdatedUserEmail( user, fieldsUpdated ) {
     } );
 }
 
+function updateCookie( req, res ) {
+
+    app.log.debug( res.updatedFields );
+
+    if ( !_.has( res.updatedFields, 'PASSWORD' ) ) {
+        return;
+    }
+
+    var expires = req.bridge.auth.expires;
+
+    req.bridge.auth.password = res.updatedFields.PASSWORD;
+
+    if ( _.isString( expires ) ) {
+        expires = new Date( expires );
+    }
+
+    var cookieOptions = {
+        httpOnly: true,
+        overwrite: true,
+        expires: expires
+    };
+
+    var secret = config.security.tokenSecret;
+
+    var token = jwt.encode( req.bridge.auth, secret );
+
+    req.bridge.cookies.set( 'BridgeAuth', token, cookieOptions );
+
+}
+
 function sendResponse( res ) {
     return Q.Promise( function ( resolve, reject ) {
 
@@ -247,8 +283,20 @@ module.exports = function ( req, res, next ) {
         return database.updateUser( req );
     } )
 
-    .then( function ( updatedFields ) {
-        return sendUpdatedUserEmail( req.bridge.user, updatedFields );
+    .then( function( updatedFields ) {
+        var userFunc = app.get( 'updateUserMiddleware' );
+        res.updatedFields = updatedFields;
+        if ( _.isFunction( userFunc ) ) {
+            return userFunc( req.bridge.user, req, res );
+        }
+    } )
+
+    .then( function ( emailVariables ) {
+        return sendUpdatedUserEmail( req.bridge.user, emailVariables, res.updatedFields );
+    } )
+
+    .then( function() {
+        return updateCookie( req, res );
     } )
 
     // Send the successful response message

@@ -125,6 +125,21 @@ function sendVerificationEmail( user, emailVariables ) {
                 subject : config.mailer.verificationEmail.subject
             };
 
+            if ( !_.isObject( emailVariables ) ) {
+                emailVariables = {};
+            }
+
+            emailVariables.verificationURL = uri.parse( app.get( 'rootURL' ) );
+
+            var fragment = uri.serialize( {
+                path: '/account-verification',
+                query: 'hash=' + user.hash
+            } );
+
+            emailVariables.verificationURL.path = "/";
+            emailVariables.verificationURL.fragment = fragment;
+            emailVariables.verificationURL = uri.serialize( emailVariables.verificationURL );
+
             mailer.sendMail( viewName, emailVariables, mail )
             .then( function() {
                 resolve();

@@ -2,16 +2,16 @@
 
 "use strict";
 
-var jwt         = require( 'jwt-simple'  );
-var moment      = require( 'moment'      );
-var Q           = require( 'q'           );
+var jwt = require( 'jwt-simple' );
+var moment = require( 'moment' );
+var Q = require( 'q' );
 var revalidator = require( 'revalidator' );
 
 var bridgeWare = require( '../middleware' );
-var database   = require( '../database'   );
-var config     = require( '../config'     );
-var regex      = require( '../regex'      );
-var error      = require( '../error'      );
+var database   = require( '../database' );
+var config     = require( '../config' );
+var regex      = require( '../regex' );
+var error      = require( '../error' );
 
 var schema = {
     properties: {
@@ -38,8 +38,8 @@ var schema = {
 };
 
 function parseBridgeHeader( req, res ) {
-    return Q.Promise( function( resolve, reject ) {
-        bridgeWare.functions.parseBridgeHeader( req, res, function( err ) {
+    return Q.Promise( function ( resolve, reject ) {
+        bridgeWare.functions.parseBridgeHeader( req, res, function ( err ) {
             if ( err ) {
                 reject( err );
                 return;
@@ -51,7 +51,7 @@ function parseBridgeHeader( req, res ) {
 }
 
 function validateAuthenticationRequest( req ) {
-    return Q.Promise( function( resolve, reject ) {
+    return Q.Promise( function ( resolve, reject ) {
 
         var bridgeHeader = req.get( 'bridge' );
 
@@ -64,18 +64,19 @@ function validateAuthenticationRequest( req ) {
             var errorCode;
 
             switch ( firstError.property ) {
-                case 'email':
-                    errorCode = 'emailInvalid';
-                    break;
-                case 'password':
-                    errorCode = 'passwordInvalid';
-                    break;
-                default:
-                    errorCode = 'malformedRequest';
-                    break;
+            case 'email':
+                errorCode = 'emailInvalid';
+                break;
+            case 'password':
+                errorCode = 'passwordInvalid';
+                break;
+            default:
+                errorCode = 'malformedRequest';
+                break;
             }
 
-            reject( error.createError( 400, errorCode, firstError.property + " : " + firstError.message ) );
+            reject( error.createError( 400, errorCode, firstError.property + " : " +
+                firstError.message ) );
             return;
         }
 
@@ -102,8 +103,6 @@ function setUserSessionToken( req, user ) {
 
     var secret = config.security.tokenSecret;
 
-    var token = jwt.encode( tokenPayload, secret );
-
     var cookieOptions = {
         httpOnly: true,
         overwrite: true
@@ -116,7 +115,11 @@ function setUserSessionToken( req, user ) {
         var tokenExpiry = moment.utc().add( tokenDuration );
 
         cookieOptions.expires = tokenExpiry.toDate();
+
+        tokenPayload.expires = tokenExpiry.toISOString();
     }
+
+    var token = jwt.encode( tokenPayload, secret );
 
     req.bridge.cookies.set( 'BridgeAuth', token, cookieOptions );
 }
@@ -145,28 +148,28 @@ function sendResponse( res ) {
  *
  * @return {Undefined}
  */
-module.exports = function( req, res, next ) {
+module.exports = function ( req, res, next ) {
 
     parseBridgeHeader( req, res )
-    .then( function() {
-        return validateAuthenticationRequest( req );
-    } )
-    .then( function() {
-        var bridgeHeader = req.get( 'bridge' );
+        .then( function () {
+            return validateAuthenticationRequest( req );
+        } )
+        .then( function () {
+            var bridgeHeader = req.get( 'bridge' );
 
-        var email = bridgeHeader.email;
-        var password = bridgeHeader.password;
+            var email = bridgeHeader.email;
+            var password = bridgeHeader.password;
 
-        return database.authenticateUser( email, password );
-    } )
-    .then( function( user ) {
-        setUserSessionToken( req, user );
-    } )
-    .then( function() {
-        sendResponse( res );
-    } )
-    .fail( function( err ) {
-        next( err );
-    } );
+            return database.authenticateUser( email, password );
+        } )
+        .then( function ( user ) {
+            setUserSessionToken( req, user );
+        } )
+        .then( function () {
+            sendResponse( res );
+        } )
+        .fail( function ( err ) {
+            next( err );
+        } );
 
 };

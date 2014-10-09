@@ -59,7 +59,7 @@ function validateVerifyEmailRequest( req ) {
     } );
 }
 
-function sendWelcomeEmail( user ) {
+function sendWelcomeEmail( user, emailVariables ) {
     return Q.Promise( function( resolve, reject ) {
 
         var url = URLModule.format( {
@@ -74,19 +74,11 @@ function sendWelcomeEmail( user ) {
             subject: config.mailer.welcomeEmail.subject
         };
 
-        var footerImageURL     = URLModule.resolve( url, 'resources/email/peir-footer.png'    );
-        var headerImageURL     = URLModule.resolve( url, 'resources/emali/peir-header.png'    );
-        var backgroundImageURL = URLModule.resolve( url, 'resources/email/right-gradient.png' );
+        if ( !_.isObject( emailVariables ) ) {
+            emailVariables = {};
+        }
 
-        var variables = {
-            email: user.EMAIL,
-            name: _.capitalize( user.FIRST_NAME + ' ' + user.LAST_NAME ),
-            footerImageURL: footerImageURL,
-            headerImageURL: headerImageURL,
-            backgroundImageURL: backgroundImageURL
-        };
-
-        mailer.sendMail( viewName, variables, mail )
+        mailer.sendMail( viewName, emailVariables, mail )
         .then( function() {
             resolve();
         } )
@@ -127,8 +119,8 @@ module.exports = function ( req, res, next ) {
         }
     } )
 
-    .then( function() {
-        return sendWelcomeEmail( req.bridge.user );
+    .then( function( emailVariables ) {
+        return sendWelcomeEmail( req.bridge.user, emailVariables );
     } )
 
     // Send the successful response message
