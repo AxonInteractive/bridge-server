@@ -171,7 +171,11 @@ exports.updateUser = function( req ) {
         // App Data Check
         if ( _.has( content, 'appData' ) ) {
             if ( !_.isEmpty( content.appData ) ) {
-                updateFields.APP_DATA = content.appData;
+                if ( !_.isString( content.appData ) ) {
+                    updateFields.APP_DATA = JSON.stringify( content.appData );
+                } else {
+                    updateFields.APP_DATA = content.appData;
+                }
             }
         }
 
