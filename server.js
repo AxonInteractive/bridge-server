@@ -240,13 +240,11 @@ if ( config.server.mode === "https" ) {
         } );
     };
 
-    if (config.server.httpRedirect) {
+    if ( config.server.httpRedirect ) {
 
-        var app2 = express();
+        http.createServer( app );
 
-        var httpServer = http.createServer( app2 );
-
-        app2.get( '*', function ( req, res ) {
+        app.get( '*', function ( req, res ) {
             res.redirect( "https://" + config.server.hostname + req.url );
         } );
     }
