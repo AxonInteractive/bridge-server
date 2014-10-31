@@ -3,7 +3,7 @@
 var mysql       = require( 'mysql' );
 var crypto      = require( 'crypto' );
 var Q           = require( 'q' );
-var _           = require( 'lodash' )._;
+var _           = require( 'lodash' );
 var revalidator = require( 'revalidator' );
 var moment      = require( 'moment' );
 
@@ -17,7 +17,11 @@ var connection  = null;
 
 var recoveryStateUserMap = {};
 
-connection = mysql.createConnection( server.config.database );
+var dbConfig = _.merge( server.config.database, {
+    dateStrings: true
+} );
+
+connection = mysql.createConnection( dbConfig );
 
 connection.connect( function(err) {
     if (err) {
