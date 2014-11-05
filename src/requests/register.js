@@ -136,7 +136,7 @@ function sendVerificationEmail( user, emailVariables ) {
                 query: 'hash=' + user.hash
             } );
 
-            emailVariables.verificationURL.path = "/";
+            //emailVariables.verificationURL.path = "/";
             emailVariables.verificationURL.fragment = fragment;
             emailVariables.verificationURL = uri.serialize( emailVariables.verificationURL );
 

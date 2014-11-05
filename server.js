@@ -41,7 +41,7 @@ var config = require( './src/config' );
 exports.config = config;
 
 // Set the host variable in the application
-app.set( 'host', config.server.hostname + ":" + config.server.port );
+app.set( 'host', config.server.hostname );
 
 // Set the rootURL variable that has a trailing slash
 app.set( 'rootURL', config.server.mode + "://" + app.get( 'host' ) + "/" );
