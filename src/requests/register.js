@@ -149,7 +149,7 @@ function sendVerificationEmail( user, emailVariables ) {
                     reject( err );
                 } )
                 .fail( function( dbErr ) {
-                    reject( 500, 'could not delete new user upon email failing to send', dbErr );
+                    reject( error.createError( 500, 'databaseError', dbErr ) );
                 } );
             } );
         } else {
