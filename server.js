@@ -40,11 +40,19 @@ var config = require( './src/config' );
 // Export important files for bridge configuration and setup
 exports.config = config;
 
+if ( config.server.hostname.substr( -1 ) === '/' ) {
+    config.server.hostname = config.server.hostname.substr( 0, config.server.hostname.length - 1 );
+}
+
 // Set the host variable in the application
 app.set( 'host', config.server.hostname );
 
+var rootURL = config.server.mode + "://" + app.get( 'host' );
+
 // Set the rootURL variable that has a trailing slash
 app.set( 'rootURL', config.server.mode + "://" + app.get( 'host' ) + "/" );
+
+
 
 // Create the routers that will be used by the bridge app.
 var routerOptions = { caseSensitive: true };
