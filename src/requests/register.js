@@ -3,8 +3,10 @@
 
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
-var _           = require( 'lodash' )._;
+var _           = require( 'lodash' );
 var uri         = require( 'uri-js' );
+var fs          = require( 'fs' );
+var path        = require( 'path' );
 
 var regex    = require( '../regex' );
 var error    = require( '../error' );
@@ -93,6 +95,7 @@ function validateRegisterRequest( req ) {
     } );
 }
 
+
 function getUserObject( req ) {
     return Q.Promise( function ( resolve, reject ) {
         resolve( req.headers.bridge );
@@ -177,6 +180,14 @@ module.exports = function ( req, res, next ) {
     // Validate the structure of the request against the registration schema
     validateRegisterRequest( req )
 
+    // Run the user extension function. This should work as a promise
+    .then( function() {
+        var userFunc = app.get( 'preRegisterMiddleware' );
+        if ( _.isFunction( userFunc ) ) {
+            return userFunc( req, res );
+        }
+    } )
+
     // Get the user object out of the request
     .then( function () {
         return getUserObject( req );
@@ -187,11 +198,10 @@ module.exports = function ( req, res, next ) {
         return database.registerUser( req, user );
     } )
 
-    // Run the user extension function. This should work as a promise
     .then( function() {
-        var userFunc = app.get( 'registerMiddleware' );
+        var userFunc = app.get( 'postRegisterMiddleware' );
         if ( _.isFunction( userFunc ) ) {
-            return userFunc( req.   bridge.user, req, res );
+            return userFunc( req.bridge.user, req, res );
         }
     } )
 
