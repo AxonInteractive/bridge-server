@@ -113,7 +113,7 @@ function sendForgotPasswordEMail( user ) {
             subject: config.mailer.recoverAccountEmail.subject
         };
 
-        mailer.sendMail( viewName, variables, mail )
+        mailer.sendMail( viewName, variables, mail, user )
         .then( function() {
             resolve();
         } )

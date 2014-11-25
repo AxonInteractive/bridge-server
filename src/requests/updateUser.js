@@ -186,7 +186,7 @@ function sendUpdatedUserEmail( user, emailVariables, fieldsUpdated ) {
 
             var viewName = config.mailer.updatedUserInfoEmail.viewName;
 
-            mailer.sendMail( viewName, variables, mail )
+            mailer.sendMail( viewName, variables, mail, user )
                 .then( function () {
                     mailerTracker.info.isSent = true;
                     sendMailComplete();
@@ -209,7 +209,7 @@ function sendUpdatedUserEmail( user, emailVariables, fieldsUpdated ) {
 
             var passwordViewName = config.mailers.updatedUserPasswordEmail.viewName;
 
-            mailer.sendMail( passwordViewName, variables, passwordMail )
+            mailer.sendMail( passwordViewName, variables, passwordMail, user )
                 .then( function () {
                     mailerTracker.password.isSent = true;
                     sendMailComplete();

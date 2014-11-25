@@ -67,7 +67,7 @@ app.log.debug( 'Template Path: ' + path.resolve( dir ) );
  *
  * @return {Promise}          A Q style promise object.
  */
-exports.sendMail = function( viewName, variables, mail ) {
+exports.sendMail = function( viewName, variables, mail, user ) {
     return Q.Promise( function( resolve, reject ) {
 
         app.log.silly('send mail request recieved. Mail:', mail);
@@ -85,6 +85,8 @@ exports.sendMail = function( viewName, variables, mail ) {
         } )
         .then( function() {
             return Q.Promise( function( resolve, reject ) {
+                variables.siteURL = app.get( 'rootURL' );
+                variables.user = user;
                 app.log.debug( 'Rendering Email...' );
                 app.log.debug( 'Variables: ', variables );
                 app.render( viewName, variables, function( err, html ) {

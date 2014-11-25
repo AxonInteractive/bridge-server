@@ -142,7 +142,7 @@ function sendVerificationEmail( user, emailVariables ) {
             emailVariables.verificationURL.fragment = fragment;
             emailVariables.verificationURL = uri.serialize( emailVariables.verificationURL );
 
-            mailer.sendMail( viewName, emailVariables, mail )
+            mailer.sendMail( viewName, emailVariables, mail, user )
             .then( function() {
                 resolve();
             } )

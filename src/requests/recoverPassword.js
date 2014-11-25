@@ -101,7 +101,7 @@ function sendPasswordUpdateEmail( user, emailVariables ) {
             emailVariables = {};
         }
 
-        mailer.sendMail( viewName, emailVariables, mail )
+        mailer.sendMail( viewName, emailVariables, mail, user )
         .then( function() {
             resolve();
         } )
