@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var jsonminify  = require( 'jsonminify' );
 var fs          = require( 'fs' );
@@ -10,27 +10,27 @@ var moment      = require( 'moment' );
 
 function postMergeDefaults( configObj ) {
     if (_.isUndefined( configObj.security.tokenExpiryDurationRememberMe ) ) {
-        configObj.security.tokenExpiryDurationRememberMe = { "weeks": 2 };
+        configObj.security.tokenExpiryDurationRememberMe = { 'weeks': 2 };
     }
 }
 
 var defaults = {
     server: {
-        mode: "http",
-        environment: "production",
+        mode: 'http',
+        environment: 'production',
         port: 3000,
         emailVerification: false,
-        wwwRoot: "client/",
-        apiRoute: "/api",
-        indexPath: "index.html",
+        wwwRoot: 'client/',
+        apiRoute: '/api',
+        indexPath: 'index.html',
         httpRedirect: false
     },
 
     security: {
-        tokenSecret: "!$Th3_X<OSgS0T^{RA4BVRZV$E&aA5NAugzO1)tV<8*LP}sAaHxd9#1eIeg69k>!lUVIf*UB6Ne8SGXzgCFdK%]pSIvfF*xSW0jaIix<45-Hr)$l}beFskzm",
+        tokenSecret: '!$Th3_X<OSgS0T^{RA4BVRZV$E&aA5NAugzO1)tV<8*LP}sAaHxd9#1eIeg69k>!lUVIf*UB6Ne8SGXzgCFdK%]pSIvfF*xSW0jaIix<45-Hr)$l}beFskzm',
         sshKeys: {
-            privateKeyfilepath: "key.pem",
-            certificatefilepath: "cert.pem"
+            privateKeyfilepath: 'key.pem',
+            certificatefilepath: 'cert.pem'
         }
     },
 
@@ -43,7 +43,7 @@ var defaults = {
 
     logger: {
         server: {
-            filename: "logs/server.log",
+            filename: 'logs/server.log',
             level: 'verbose',
             consoleLevel: 'info'
         },
@@ -59,53 +59,56 @@ var defaults = {
     },
 
     mailer: {
-        templateDirectory: "templates/",
+
+        fromAddress: '',
+
+        templateDirectory: 'templates/',
 
         verificationEmail: {
-            subject: "Bridge Example Email Verification",
-            viewName: "registration.ejs"
+            subject: 'Bridge Example Email Verification',
+            viewName: 'registration.ejs'
         },
 
         recoverAccountEmail: {
-            subject: "Bridge Example Account Recovery",
-            viewName: "recoverPassword.ejs"
+            subject: 'Bridge Example Account Recovery',
+            viewName: 'recoverPassword.ejs'
         },
 
         updatedUserInfoEmail: {
-            subject: "Your account information has been updated",
-            viewName: "updatedUserInformation.ejs"
+            subject: 'Your account information has been updated',
+            viewName: 'updatedUserInformation.ejs'
         },
 
         welcomeEmail: {
-            subject: "Welcome to the site",
-            viewName: "welcome.ejs"
+            subject: 'Welcome to the site',
+            viewName: 'welcome.ejs'
         },
 
         updatedUserPasswordEmail: {
-            subject: "Your Password has been updated",
-            viewName: "updatedUserPassword.ejs"
+            subject: 'Your Password has been updated',
+            viewName: 'updatedUserPassword.ejs'
         },
 
         // The options for the mailer to use
         // See node mailer SMTP transport documentation for examples
         // https://github.com/andris9/nodemailer-smtp-transport#usage
         options: {
-            service: "gmail",
+            service: 'gmail',
             auth: {             // The authentication to use for the GMail Service
-                user: "BridgeSMTPTest@gmail.com",
-                pass: "passwordGoesHere"
+                user: 'BridgeSMTPTest@gmail.com',
+                pass: 'passwordGoesHere'
             }
         }
     },
 
     pdfGenerator: {
-        templatePath: "templates/pdfs",
-        cachePath:    "pdfs/",
+        templatePath: 'templates/pdfs',
+        cachePath:    'pdfs/',
         cacheLifetimeMinutes: 10
     },
 
     excelGenerator: {
-        cachePath: "xlsx/"
+        cachePath: 'xlsx/'
     }
 };
 
@@ -142,7 +145,7 @@ var schema = {
                     required: true,
                     enum: [ 'http', 'https' ],
                     messages: {
-                        enum: "Server mode must be http or https"
+                        enum: 'Server mode must be http or https'
                     }
                 },
 
@@ -151,7 +154,7 @@ var schema = {
                     required: true,
                     enum: [ 'development', 'production' ],
                     messages: {
-                        enum: "Server environment must be 'development' or 'production'"
+                        enum: 'Server environment must be \'development\' or \'production\''
                     }
                 },
 
@@ -307,7 +310,7 @@ var schema = {
                             required: true,
                             enum: [ 'silly', 'debug', 'verbose', 'info', 'warn', 'error' ],
                             messages: {
-                                enum: "Server logger level must by one of the following levels: silly, debug, verbose, info, warn, error"
+                                enum: 'Server logger level must by one of the following levels: silly, debug, verbose, info, warn, error'
                             }
                         },
 
@@ -316,7 +319,7 @@ var schema = {
                             required: true,
                             enum: [ 'silly', 'debug', 'verbose', 'info', 'warn', 'error' ],
                             messages: {
-                                enum: "Server console logger level must by one of the following levels: silly, debug, verbose, info, warn, error"
+                                enum: 'Server console logger level must by one of the following levels: silly, debug, verbose, info, warn, error'
                             }
                         }
                     }
@@ -355,6 +358,12 @@ var schema = {
             type: 'object',
             required: true,
             properties: {
+
+                fromAddress: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
 
                 templateDirectory: {
                     type: 'string',
@@ -417,7 +426,7 @@ var schema = {
 
 var config;
 
-winston.verbose( "Verifying that BridgeConfig.json exists" );
+winston.verbose( 'Verifying that BridgeConfig.json exists' );
 winston.debug( path.resolve( 'BridgeConfig.json' ) );
 
 
@@ -427,7 +436,7 @@ configPath = path.join( configPath, 'BridgeConfig.json' );
 // Check if a user config can be loaded
 if ( fs.existsSync( configPath ) ) {
 
-    winston.verbose( "BridgeConfig.json found. Reading file...." );
+    winston.verbose( 'BridgeConfig.json found. Reading file....' );
 
     // Read and parse the Config file to make a User Configuration Object
     var userConfigString = fs.readFileSync( configPath, 'utf8' );
@@ -438,10 +447,10 @@ if ( fs.existsSync( configPath ) ) {
         userConfig = JSON.parse( JSON.minify( userConfigString ) );
     }
     catch (err) {
-        winston.error( "Could not parse BridgeConfig.json as JSON. ", err );
+        winston.error( 'Could not parse BridgeConfig.json as JSON. ', err );
     }
 
-    winston.verbose( "Bridge config successfully read and parsed as JSON" );
+    winston.verbose( 'Bridge config successfully read and parsed as JSON' );
 
     // Use the complete user configuration object to make a complete configuration object
     config = _.merge( defaults, userConfig );

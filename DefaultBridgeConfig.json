@@ -98,8 +98,12 @@
     // Configuration settings relating to the SMTP server
     "mailer": {
 
+        // The address that will be used to send mail.
+        // e.g. "Bridge <no-reply@bridge.ca>"
+       "fromAddress": "PEIR <admin@peir.ca>",
+
         // The path from the application root to the folder containing the view to be rendered
-        "templateDirectory": "templates",
+        "templateDirectory": "templates/email",
 
         // Information about the verification email that is sent went a user registers to the site.
         "verificationEmail": {

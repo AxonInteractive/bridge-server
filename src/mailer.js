@@ -1,9 +1,8 @@
-"use strict";
+'use strict';
 
 var fs            = require( 'fs' );
 var Q             = require( 'q' );
 var qfs           = require( 'q-io/fs' );
-var URLmodule     = require( 'url' );
 var path          = require( 'path' );
 var server        = require( '../server' );
 var mkdirp        = require( 'mkdirp' );
@@ -14,7 +13,6 @@ var smtpTransport = require( 'nodemailer-smtp-transport' );
 var app      = server.app;
 var error    = server.error;
 var config   = server.config;
-var database = server.database;
 
 var options = config.mailer.options;
 
@@ -32,24 +30,24 @@ if ( config.mailer.templateDirectory[ 0 ] === '/' ) {
 } else {
     dir = path.resolve( path.join( path.dirname( require.main.filename ), config.mailer.templateDirectory ) );
 }
-app.log.verbose( "Verifying that mailer template directory exists..." );
+app.log.verbose( 'Verifying that mailer template directory exists...' );
 app.log.debug( dir );
 
 if ( !fs.existsSync( dir ) ) {
-    app.log.warn("Email template directory '" + dir +"' doesn't exist. Attempting to make directory" );
+    app.log.warn('Email template directory \'' + dir +'\' doesn\'t exist. Attempting to make directory' );
     mkdirp( dir, function( err ) {
         if ( err ) {
-            app.log.error( "Error making directory '" + dir + "', Reason: " + err );
+            app.log.error( 'Error making directory \'' + dir + '\', Reason: ' + err );
             return;
         }
 
-        app.log.info( "Template directory created successfully" );
+        app.log.info( 'Template directory created successfully' );
     } );
 } else {
-    app.log.verbose( "Template directory found." );
+    app.log.verbose( 'Template directory found.' );
 }
 
-app.log.debug( "Template Path: " + path.resolve( dir ) );
+app.log.debug( 'Template Path: ' + path.resolve( dir ) );
 
 // End of template directory existence check
 ////////////////////////////////////////////////////
@@ -75,23 +73,23 @@ exports.sendMail = function( viewName, variables, mail ) {
         app.log.silly('send mail request recieved. Mail:', mail);
 
         if ( !_.isString( viewName ) ) {
-            reject( error.createError( 500, 'internalServerError', "viewName must be a string" ) );
+            reject( error.createError( 500, 'internalServerError', 'viewName must be a string' ) );
             return;
         }
 
         qfs.exists( path.join( config.mailer.templateDirectory, viewName ) )
         .then( function( exists ) {
             if ( !exists ) {
-                throw new Error( "View doesn't exist" );
+                throw new Error( 'View doesn\'t exist' );
             }
         } )
         .then( function() {
             return Q.Promise( function( resolve, reject ) {
-                app.log.debug( "Rendering Email..." );
-                app.log.debug( "Variables: ", variables );
+                app.log.debug( 'Rendering Email...' );
+                app.log.debug( 'Variables: ', variables );
                 app.render( viewName, variables, function( err, html ) {
                     if ( err ) {
-                        app.log.error( "Error occured rendering Email HTML. Error: ", err );
+                        app.log.error( 'Error occured rendering Email HTML. Error: ', err );
                         reject( error.createError( 500, 'internalServerError', err ) );
                         return;
                     }
@@ -101,17 +99,18 @@ exports.sendMail = function( viewName, variables, mail ) {
                 } );
             } );
         } )
-        .then( function( html ) {
+        .then( function() {
             return Q.Promise( function( resolve, reject ) {
-                app.log.debug( "Sending mail..." );
+                app.log.debug( 'Sending mail...' );
+                mail.from = config.mailer.fromAddress;
                 transport.sendMail( mail, function( err, info ) {
                     if ( err ) {
-                        app.log.error( "Mail failed to send. Error: ", err );
+                        app.log.error( 'Mail failed to send. Error: ', err );
                         reject( error.createError( 500, 'internalServerError', err ) );
                         return;
                     }
 
-                    app.log.debug( "Sent mail info: ", info );
+                    app.log.debug( 'Sent mail info: ', info );
                     resolve();
                 } );
             } );
