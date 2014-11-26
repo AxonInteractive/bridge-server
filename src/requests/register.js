@@ -182,7 +182,7 @@ module.exports = function ( req, res, next ) {
 
     // Run the user extension function. This should work as a promise
     .then( function() {
-        var userFunc = app.get( 'preRegisterMiddleware' );
+        var userFunc = app.get( 'validateRegistrationRequest' );
         if ( _.isFunction( userFunc ) ) {
             return userFunc( req, res );
         }
@@ -196,13 +196,6 @@ module.exports = function ( req, res, next ) {
     // Register the user object using the re
     .then( function ( user ) {
         return database.registerUser( req, user );
-    } )
-
-    .then( function() {
-        var userFunc = app.get( 'postRegisterMiddleware' );
-        if ( _.isFunction( userFunc ) ) {
-            return userFunc( req.bridge.user, req, res );
-        }
     } )
 
     // Send the verification email using the user object

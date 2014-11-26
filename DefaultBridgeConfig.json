@@ -1,6 +1,10 @@
 {
 
     "server": {
+
+        // The email to display to the users to contact for help..
+        "supportEmail": "theteam@axoninteractive.ca"
+
         // The domain name of the server to act like its from that address. This is used to make
         // links to the server.
         "hostname": "localhost:3000",

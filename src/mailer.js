@@ -34,7 +34,7 @@ app.log.verbose( 'Verifying that mailer template directory exists...' );
 app.log.debug( dir );
 
 if ( !fs.existsSync( dir ) ) {
-    app.log.warn('Email template directory \'' + dir +'\' doesn\'t exist. Attempting to make directory' );
+    app.log.warn( 'Email template directory \'' + dir +'\' doesn\'t exist. Attempting to make directory' );
     mkdirp( dir, function( err ) {
         if ( err ) {
             app.log.error( 'Error making directory \'' + dir + '\', Reason: ' + err );
@@ -86,7 +86,26 @@ exports.sendMail = function( viewName, variables, mail, user ) {
         .then( function() {
             return Q.Promise( function( resolve, reject ) {
                 variables.siteURL = app.get( 'rootURL' );
-                variables.user = user;
+                variables.supportEmail = config.server.supportEmail;
+                variables.user = _.transform( user, function( result, value, key ) {
+                  key = key.toLowerCase();
+                  var arr = key.split('_');
+                  for ( var i = 1; i < arr.length; i += 1 ) {
+                    arr[ i ] = arr[ i ].charAt(0).toUpperCase() + arr[ i ].slice(1);
+                  }
+                  key = arr.join('');
+                  result[ key ] = value;
+                } );
+
+                var clientFunc = app.get( 'emailVariables' );
+                var clientVars = {};
+
+                if ( _.isFunction( clientFunc ) ) {
+                    clientVars = clientFunc( user );
+                }
+
+                _.extend( variables, clientVars );
+
                 app.log.debug( 'Rendering Email...' );
                 app.log.debug( 'Variables: ', variables );
                 app.render( viewName, variables, function( err, html ) {

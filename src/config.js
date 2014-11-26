@@ -16,6 +16,7 @@ function postMergeDefaults( configObj ) {
 
 var defaults = {
     server: {
+        supportEmail: 'theteam@axoninteractive.ca',
         mode: 'http',
         environment: 'production',
         port: 3000,
@@ -139,6 +140,12 @@ var schema = {
             type:'object',
             required: true,
             properties: {
+
+                supportEmail: {
+                    type: 'string',
+                    required: true,
+                    format: 'email'
+                },
 
                 mode: {
                     type: 'string',

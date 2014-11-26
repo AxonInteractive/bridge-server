@@ -87,7 +87,20 @@ exports.authenticateUser = function ( email, password ) {
                 return;
             }
 
-            resolve( user );
+            if ( user.STATUS === 'recovery' ) {
+                connection.query( 'UPDATE users SET STATUS = ?, USER_HASH = ? WHERE ID = ?', [ 'normal', '0', user.ID ], function ( err, rows ) {
+                    if ( err ) {
+                        reject( bridgeError.createError( 500, 'databaseError', 'Database error, See server log for more details' ) );
+                        app.log.error( "Could not update user status from 'recovery' to 'normal'" );
+                        app.log.error( "Database query error: ", err );
+                        return;
+                    } else {
+                        resolve( user );
+                    }
+                } );
+            } else {
+                resolve( user );
+            }
         } );
     } );
 };
@@ -413,7 +426,7 @@ exports.forgotPassword = function( user ) {
         connection.query( query, values, function( err, rows ) {
 
             if ( err ) {
-                reject( bridgeError.createError( 500, 'databaseError', "Database error, See log for more details" ) );
+                reject( bridgeError.createError( 500, 'databaseError', "Database error, See server log for more details" ) );
                 app.log.error( "Database query error: ", err );
                 return;
             }

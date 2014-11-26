@@ -3,6 +3,7 @@
 var revalidator = require( 'revalidator' );
 var Q           = require( 'q' );
 var _           = require( 'lodash' )._;
+var uri         = require( 'uri-js' );
 
 var regex    = require( '../regex'     );
 var error    = require( '../error'     );
@@ -57,7 +58,7 @@ function validateForgotPasswordRequest( req ) {
 function checkUserExists( req ) {
     return Q.Promise( function ( resolve, reject ) {
 
-        var query  = "SELECT EMAIL FROM users WHERE EMAIL = ?";
+        var query  = "SELECT * FROM users WHERE EMAIL = ?";
         var values = [ req.headers.bridge.email ];
 
         database.query( query, values )
@@ -95,18 +96,19 @@ function sendForgotPasswordEMail( user ) {
 
         var url = app.get( 'rootURL' );
 
-        var footerURL     = url + 'resources/email/peir-footer.png';
-        var headerURL     = url + 'resources/email/peir-header.png';
-        var backgroundURL = url + 'resources/email/right-gradient.png';
+        var fragment = uri.serialize( {
+            path: '/account-recovery',
+            query: 'hash=' + user.USER_HASH
+        } );
 
         var variables = {
-            email: user.EMAIL,
-            name : _.capitalize( user.FIRST_NAME + " " + user.LAST_NAME ),
-            footerImageURL: footerURL,
-            headerImageURL: headerURL,
-            backgroundImageURL: backgroundURL,
-            recoveryURL: ""
+            recoveryURL: null
         };
+
+        variables.recoveryURL = uri.parse( app.get( 'rootURL' ) );
+
+        variables.recoveryURL.fragment = fragment;
+        variables.recoveryURL = uri.serialize( variables.recoveryURL );
 
         var mail = {
             to: user.EMAIL,
