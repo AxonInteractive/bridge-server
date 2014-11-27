@@ -611,7 +611,7 @@ var selectQueryObjectSchema = {
             properties: {
                 maxResults: {
                     type: 'integer',
-                    required: true,
+                    required: false,
                     minimum: 1
                 },
                 offset: {
@@ -721,7 +721,7 @@ exports.selectWithQueryObject = function( selectQueryObj ) {
             } );
         }
 
-        if ( limits ) {
+        if ( !_.isEmpty( limits ) ) {
 
             query = query.concat( " LIMIT ");
 

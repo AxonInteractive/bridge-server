@@ -104,12 +104,14 @@ var defaults = {
 
     pdfGenerator: {
         templatePath: 'templates/pdfs',
-        cachePath:    'pdfs/',
-        cacheLifetimeMinutes: 10
+        cacheLifetimeMinutes: 10,
+        outputPath: "resources/pdfs/generated/"
     },
 
     excelGenerator: {
-        cachePath: 'xlsx/'
+        templatePath: 'templates/xlsx',
+        cacheLifetimeMinutes: 10,
+        outputPath: 'resources/xlsx/generated/'
     }
 };
 
@@ -403,16 +405,16 @@ var schema = {
                 allowEmpty: false
             },
 
-            cachePath: {
-                type: 'string',
-                required: true,
-                allowEmpty: false
-            },
-
             cacheLifetimeMinutes: {
                 type: 'number',
                 required: true,
                 allowEmpty: false
+            },
+
+            outputPath: {
+              type: 'string',
+              required: true,
+              allowEmpty: false
             }
         },
 
@@ -420,7 +422,20 @@ var schema = {
             type: 'object',
             required: false,
             properties: {
-                cachePath: {
+
+                templatePath: {
+                    type: 'string',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                cacheLifetimeMinutes: {
+                    type: 'number',
+                    required: true,
+                    allowEmpty: false
+                },
+
+                outputPath: {
                     type: 'string',
                     required: false,
                     allowEmpty: false

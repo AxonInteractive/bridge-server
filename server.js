@@ -253,7 +253,9 @@ if ( config.server.mode === "https" ) {
         http.createServer( app );
 
         app.get( '*', function ( req, res ) {
+          if ( req.protocol === 'http' ) {
             res.redirect( "https://" + config.server.hostname + req.url );
+          }
         } );
     }
 

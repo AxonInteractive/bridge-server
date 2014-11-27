@@ -10,40 +10,10 @@ var Q         = require( 'q' );
 var _         = require( 'lodash')._;
 var ejs       = require( 'ejs' );
 var uri       = require( 'uri-js' );
+var utilities = require( './utilities' );
 
 var config = server.config;
 var app    = server.app;
-
-function deleteFile( pathToPDF, timesCalled ) {
-
-    if ( _.isUndefined( timesCalled ) ) {
-        timesCalled = 0;
-    }
-
-    if ( !_.isNumber( timesCalled ) ) {
-        timesCalled = 0;
-    }
-
-    fs.exists( pathToPDF )
-        .then( function( exists ) {
-            if ( exists ) {
-                fs.remove( pathToPDF )
-                    .then( function( err ) {
-                        app.log.debug( "Successfully deleted file: " + pathToPDF );
-                    } )
-                    .fail( function( err ) {
-                        app.log.warn( "Could not delete file: " + pathToPDF );
-                        timesCalled += 1;
-                        setTimeout( deleteFile, 10000, pathToPDF, timesCalled );
-                        throw err;
-                    });
-            }
-        } )
-        .fail( function( err ) {
-            app.log.debug( 'fs exists failed: ', err );
-            return;
-        });
-}
 
 // Normal module behaviour here if wkhtmltopdf is found
 function wkHTMLToPDFFound() {
@@ -51,8 +21,7 @@ function wkHTMLToPDFFound() {
 
     // Normalize the path locations to remove abnormalities
     config.pdfGenerator.templatePath = path.normalize( config.pdfGenerator.templatePath );
-    config.pdfGenerator.cachePath    = path.normalize( config.pdfGenerator.cachePath );
-
+    config.pdfGenerator.outputPath   = path.normalize( config.pdfGenerator.outputPath );
     var dir;
 
     if ( config.pdfGenerator.templatePath[ 0 ] === '/' ) {
@@ -78,10 +47,10 @@ function wkHTMLToPDFFound() {
         app.log.verbose( "PDF template directory found." );
     }
 
-    if ( config.pdfGenerator.cachePath[ 0 ] === '/' ) {
-        dir = path.resolve( config.pdfGenerator.cachePath );
+    if ( config.pdfGenerator.outputPath[ 0 ] === '/' ) {
+        dir = path.resolve( config.pdfGenerator.outputPath );
     } else {
-        dir = path.resolve( path.join( path.dirname( require.main.filename ), config.pdfGenerator.cachePath ) );
+        dir = path.resolve( path.join( path.dirname( require.main.filename ), config.pdfGenerator.outputPath ) );
     }
 
     app.log.verbose( "Verifying that PDF cache directory exists..." );
@@ -119,13 +88,25 @@ function wkHTMLToPDFFound() {
                 return;
             }
 
-            var folderPath = path.join( config.server.wwwRoot, config.pdfGenerator.cachePath, folder );
+            var folderPath = path.join( config.server.wwwRoot, config.pdfGenerator.outputPath, folder );
+
+            var outputPath = config.pdfGenerator.outputPath;
+
+            if ( outputPath.substr( -1 ) !== '/' ) {
+              outputPath = outputPath + '/';
+            }
+
+            var wwwPath = outputPath.split( path.sep ).join('/') + folder;
+
+            if ( wwwPath.substr( -1 ) !== '/' ) {
+              wwwPath = wwwPath + '/';
+            }
 
             app.log.debug( folderPath );
 
-
             var pathToPDF = "";
             var pathToPDFWithoutExtentsion = "";
+
             var fileIterations = 0;
 
             var makeUniquePath = function( path ) {
@@ -169,6 +150,27 @@ function wkHTMLToPDFFound() {
                     return makeUniquePath( pathToPDF );
                 } )
                 .then( function() {
+                    return Q.Promise( function ( resolve, reject ) {
+                        var cssPath = path.join( config.pdfGenerator.templatePath, 'style.css' );
+                        fs.exists( cssPath )
+                        .then( function ( exists ) {
+                            if ( exists ) {
+                                return fs.read( cssPath );
+                            } else {
+                                return false;
+                            }
+                        } )
+                        .then( function ( data ) {
+                            if ( data ) {
+                                variables.css = data;
+                            } else {
+                                variables.css = "";
+                            }
+                            resolve();
+                        } );
+                    } );
+                } )
+                .then( function() {
                     var ejsPath = path.join( config.pdfGenerator.templatePath, ejsTemplate );
 
                     ejsPath = path.resolve( ejsPath );
@@ -176,23 +178,24 @@ function wkHTMLToPDFFound() {
                     return fs.read( ejsPath );
                 } )
                 .then( function( text ) {
+
+                    app.log.debug( "EJS Render Variables: ", variables );
+                    variables.filename = path.resolve( path.join( config.pdfGenerator.templatePath, ejsTemplate ) );
                     var html = ejs.render( text, variables );
+
 
                     htmlToPdf( html, { output: pathToPDF }, function( code, signal ) {
 
-                        setTimeout( deleteFile, config.pdfGenerator.cacheLifetimeMinutes * 60 * 1000, pathToPDF );
+                        setTimeout( utilities.deleteFile, config.pdfGenerator.cacheLifetimeMinutes * 60 * 1000, pathToPDF );
 
+                        var pdfPathParts = pathToPDF.split( path.sep );
+                        wwwPath = wwwPath + pdfPathParts[ pdfPathParts.length -1 ];
 
+                        var url = uri.parse( app.get( 'rootURL' ) );
 
-                        var pdfURL = _.cloneDeep( app.get( 'uriObject' ) ) + config.pdfGenerator.cachePath;
+                        url.path = wwwPath;
 
-                        var urlPathToFile = path.join( config.pdfGenerator.cachePath, folder, path.basename( pathToPDF ) );
-
-                        pdfURL = url.resolve( pdfURL, urlPathToFile );
-
-                        pdfURL = pdfURL.replace( /\\+/g, '/');
-
-                        resolve( pdfURL );
+                        resolve( uri.serialize( url ) );
 
                     } );
                 } )

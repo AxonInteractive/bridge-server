@@ -3,7 +3,7 @@
     "server": {
 
         // The email to display to the users to contact for help..
-        "supportEmail": "theteam@axoninteractive.ca"
+        "supportEmail": "theteam@axoninteractive.ca",
 
         // The domain name of the server to act like its from that address. This is used to make
         // links to the server.
@@ -24,7 +24,7 @@
         "emailVerification": true,
 
          // The path to the root foler to be hosted by the server
-        "wwwRoot": "client/",
+        "wwwRoot": "client/build",
 
         // The list of folders that require you to be logged into to access
         // "protectedFolders": [
@@ -178,15 +178,15 @@
 
     // Configuration settings for the PDF generator
     "pdfGenerator": {
-        "templatePath": "templates/pdfs",  // Path to the ejs template files to use for creating PDF's
-        "cachePath": "pdfs/",              // Path to a cache directory to store created files.
-                                           // Note* This path is appended to the www Root.
-        "cacheLifetimeMinutes": 10         // The amount of time a file should remain alive inside of the cache
+        "templatePath": "templates/pdfs",         // Path to the ejs template files to use for creating PDF's
+        "cacheLifetimeMinutes": 10,               // The amount of time a file should remain alive inside of the cache
+        "outputPath": "resources/pdfs/generated/" // The path relative to the www root to write PDFs to.
     },
 
     // Configuration settings for the excel generator
     "excelGenerator": {
-        // The folder to use to store xlsx files that are created.
-        "cachePath": "xlsx/"
+        "templatePath": "templates/xlsx",           // The folder where the templates are stored.
+        "cacheLifetimeMinutes": 10,                 // The amount of minutes before a generated file is deleted.
+        "outputPath": "resources/xlsx/generated/"   // The folder to use to store xlsx files that are created.
     }
 }
