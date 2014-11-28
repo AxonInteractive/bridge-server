@@ -55,7 +55,8 @@ exports.errorCodeMap = {
     "museBeAnonymous"        : 24,
     "invalidToken"           : 25,
     "missingCookie"          : 26,
-    "invalidRegCode"         : 27
+    "invalidRegCode"         : 27,
+    "currentPasswordInvalid" : 28
 };
 
 /**

@@ -83,6 +83,14 @@ function validateUpdateUserRequest( req ) {
             return;
         }
 
+        // if password exists then make sure current password also exists
+        if ( _.has( req.headers.bridge, 'password' ) ) {
+            if ( !_.has( req.headers.bridge, 'currentPassword' ) ) {
+                reject( error.createError( 400, 'currentPasswordInvalid', 'Current password is missing from the request' ) );
+                return;
+            }
+        }
+
         resolve();
     } );
 }
@@ -100,7 +108,7 @@ function validateUpdateUserRequest( req ) {
  *
  * @return {Promise}   A Q style promise object
  */
-function sendUpdatedUserEmail( user, emailVariables, fieldsUpdated ) {
+function sendUpdatedUserEmail( user, fieldsUpdated ) {
     return Q.Promise( function ( resolve, reject ) {
 
         // Determine if a non AppData
@@ -108,23 +116,29 @@ function sendUpdatedUserEmail( user, emailVariables, fieldsUpdated ) {
 
         var emailsToSend = [];
 
-        _.each( fieldsUpdated, function ( element, index ) {
+        _.forEach( fieldsUpdated, function ( value, key ) {
 
-            if ( element === 'FIRST_NAME' ) {
-                if ( !_.contains( emailsToSend, 'info' ) ) {
-                    emailsToSend.push( 'info' );
+            if ( key === 'FIRST_NAME' ) {
+                if ( user.FIRST_NAME !== value ) {
+                    if ( !_.contains( emailsToSend, 'info' ) ) {
+                        emailsToSend.push( 'info' );
+                    }
                 }
             }
 
-            if ( element === 'LAST_NAME' ) {
-                if ( !_.contains( emailsToSend, 'info' ) ) {
-                    emailsToSend.push( 'info' );
+            if ( key === 'LAST_NAME' ) {
+                if ( user.LAST_NAME !== value ) {
+                    if ( !_.contains( emailsToSend, 'info' ) ) {
+                        emailsToSend.push( 'info' );
+                    }
                 }
             }
 
-            if ( element === 'PASSWORD' ) {
-                if ( !_.contains( emailsToSend, 'password' ) ) {
-                    emailsToSend.push( 'password' );
+            if ( key === 'PASSWORD' ) {
+                if ( user.PASSWORD !== value ) {
+                    if ( !_.contains( emailsToSend, 'password' ) ) {
+                        emailsToSend.push( 'password' );
+                    }
                 }
             }
 
@@ -135,44 +149,38 @@ function sendUpdatedUserEmail( user, emailVariables, fieldsUpdated ) {
             return;
         }
 
-
-        var url = app.get( 'uriObject' );
-
-        var footerImageURL     = _.cloneDeep( url );// + 'resources/email/peir-footer.png';
-        var headerImageURL     = _.cloneDeep( url );// + 'resources/email/peir-header.png';
-        var backgroundImageURL = _.cloneDeep( url );// url + 'resources/email/right-gradient.png';
-
-        footerImageURL.path = '/resources/email/peir-footer.png';
-        footerImageURL.path = '/resources/email/peir-header.png';
-        footerImageURL.path = '/resources/email/reight-gradient.png';
-
-        var variables = {
-            email: user.EMAIL,
-            name: _.capitalize( user.FIRST_NAME + ' ' + user.LAST_NAME ),
-            footerImageURL: uri.serialize( footerImageURL ),
-            headerImageURL: uri.serialize( headerImageURL ),
-            backgroundImageURL: uri.serialize( backgroundImageURL )
-        };
-
-        app.log.debug( 'Update user email variables: ', variables );
-
         var mailerTracker = {};
 
         function sendMailComplete() {
-            if ( mailerTracker.info.sending ) {
-                if ( !mailerTracker.info.isSent ) {
-                    return;
+            if ( mailerTracker.info ) {
+                if ( mailerTracker.info.sending ) {
+                    if ( !mailerTracker.info.isSent ) {
+                        return;
+                    }
                 }
             }
 
-            if ( mailerTracker.password.sending ) {
-                if ( !mailerTracker.password.isSent ) {
-                    return;
+            if ( mailerTracker.password ) {
+                if ( mailerTracker.password.sending ) {
+                    if ( !mailerTracker.password.isSent ) {
+                        return;
+                    }
                 }
             }
 
             resolve();
         }
+
+        user = _.transform( user, function ( result, value, key ) {
+            key = key.toLowerCase();
+            var arr = key.split( '_' );
+            for ( var i = 1; i < arr.length; i += 1 ) {
+                arr[ i ] = arr[ i ].charAt( 0 ).toUpperCase() + arr[ i ].slice( 1 );
+            }
+            key = arr.join( '' );
+            result[ key ] = value;
+        } );
+
 
         if ( _.contains( emailsToSend, 'info' ) ) {
 
@@ -180,13 +188,13 @@ function sendUpdatedUserEmail( user, emailVariables, fieldsUpdated ) {
             mailerTracker.info.sending = true;
 
             var mail = {
-                to: user.EMAIL,
+                to: user.email,
                 subject: config.mailer.updatedUserInfoEmail.subject
             };
 
             var viewName = config.mailer.updatedUserInfoEmail.viewName;
 
-            mailer.sendMail( viewName, variables, mail, user )
+            mailer.sendMail( viewName, {}, mail, user )
                 .then( function () {
                     mailerTracker.info.isSent = true;
                     sendMailComplete();
@@ -203,13 +211,13 @@ function sendUpdatedUserEmail( user, emailVariables, fieldsUpdated ) {
             mailerTracker.password.sending = true;
 
             var passwordMail = {
-                to: user.Email,
+                to: user.email,
                 subject: config.mailer.updatedUserPasswordEmail.subject
             };
 
-            var passwordViewName = config.mailers.updatedUserPasswordEmail.viewName;
+            var passwordViewName = config.mailer.updatedUserPasswordEmail.viewName;
 
-            mailer.sendMail( passwordViewName, variables, passwordMail, user )
+            mailer.sendMail( passwordViewName, {}, passwordMail, user )
                 .then( function () {
                     mailerTracker.password.isSent = true;
                     sendMailComplete();
@@ -270,13 +278,8 @@ function sendResponse( res ) {
 
 module.exports = function ( req, res, next ) {
 
-    // The request must be in a Logged In State
-    util.mustBeLoggedIn( req )
-
     // Validate the request to conform with an UpdateUser Request
-    .then( function () {
-        return validateUpdateUserRequest( req );
-    } )
+    validateUpdateUserRequest( req )
 
     // Update the user object inside of the database.
     .then( function () {
@@ -284,15 +287,11 @@ module.exports = function ( req, res, next ) {
     } )
 
     .then( function( updatedFields ) {
-        var userFunc = app.get( 'updateUserMiddleware' );
         res.updatedFields = updatedFields;
-        if ( _.isFunction( userFunc ) ) {
-            return userFunc( req.bridge.user, req, res );
-        }
     } )
 
-    .then( function ( emailVariables ) {
-        return sendUpdatedUserEmail( req.bridge.user, emailVariables, res.updatedFields );
+    .then( function () {
+        return sendUpdatedUserEmail( req.bridge.user, res.updatedFields );
     } )
 
     .then( function() {

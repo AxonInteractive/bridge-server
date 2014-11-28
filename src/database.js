@@ -166,7 +166,7 @@ exports.registerUser = function ( req, user ) {
  * @return {Undefined}
  */
 exports.updateUser = function( req ) {
-    return Q.Promise(function(resolve, reject){
+    return Q.Promise( function ( resolve, reject ){
 
         var updateUserError;
 
@@ -213,7 +213,12 @@ exports.updateUser = function( req ) {
         // Password Check
         if ( _.has( content, 'password' ) ) {
             if ( !_.isEmpty( content.password ) ) {
-                updateFields.PASSWORD = content.password;
+                if ( req.bridge.auth.password === content.currentPassword ) {
+                    updateFields.PASSWORD = content.password;
+                } else {
+                    reject( bridgeError.createError( 400, 'hmacMismatch', "current password is invalid" ) );
+                    return;
+                }
             }
         }
 
