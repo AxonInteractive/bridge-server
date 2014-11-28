@@ -397,7 +397,7 @@ function clearUserHash( userID ) {
     }
 
     var query = "UPDATE users SET STATUS = ?, USER_HASH = ? WHERE ID = ?";
-    var values = [ 'normal', '', userID ];
+    var values = [ 'normal', '0', userID ];
 
     connection.query( query, values, function( err, rows ) {
         if ( err ) {
@@ -431,7 +431,9 @@ exports.forgotPassword = function( user ) {
                 return;
             }
 
-            recoveryStateUserMap[ user.ID ] = setTimeout( clearUserHash, config.accounts.recoveryStateDuration );
+            user.USER_HASH = userHash;
+
+            recoveryStateUserMap[ user.ID ] = setTimeout( clearUserHash, moment.duration( config.accounts.recoveryStateDuration ).asMilliseconds() );
 
             resolve();
 

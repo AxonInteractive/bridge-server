@@ -60,7 +60,7 @@ function validateVerifyEmailRequest( req ) {
 }
 
 function sendWelcomeEmail( user, emailVariables ) {
-    return Q.Promise( function( resolve, reject ) {
+    return Q.Promise( function ( resolve, reject ) {
 
         var url = URLModule.format( {
             protocol: config.server.mode,
@@ -78,13 +78,23 @@ function sendWelcomeEmail( user, emailVariables ) {
             emailVariables = {};
         }
 
-        mailer.sendMail( viewName, emailVariables, mail, user )
-        .then( function() {
-            resolve();
-        } )
-        .fail( function( err ) {
-            reject( err );
+        user = _.transform( user, function ( result, value, key ) {
+            key = key.toLowerCase();
+            var arr = key.split( '_' );
+            for ( var i = 1; i < arr.length; i += 1 ) {
+                arr[ i ] = arr[ i ].charAt( 0 ).toUpperCase() + arr[ i ].slice( 1 );
+            }
+            key = arr.join( '' );
+            result[ key ] = value;
         } );
+
+        mailer.sendMail( viewName, emailVariables, mail, user )
+            .then( function () {
+                resolve();
+            } )
+            .fail( function ( err ) {
+                reject( err );
+            } );
 
     } );
 }

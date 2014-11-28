@@ -9,6 +9,7 @@ var mkdirp        = require( 'mkdirp' );
 var _             = require( 'lodash' )._;
 var nodemailer    = require( 'nodemailer' );
 var smtpTransport = require( 'nodemailer-smtp-transport' );
+var htmlToText    = require( 'nodemailer-html-to-text' ).htmlToText;
 
 var app      = server.app;
 var error    = server.error;
@@ -17,6 +18,8 @@ var config   = server.config;
 var options = config.mailer.options;
 
 var transport = nodemailer.createTransport( smtpTransport( options ) );
+
+transport.use( 'compile', htmlToText( { tables:[ '#content' ] } ) );
 
 ////////////////////////////////////////////////////
 // Verify that the template directory exists
@@ -87,15 +90,7 @@ exports.sendMail = function( viewName, variables, mail, user ) {
             return Q.Promise( function( resolve, reject ) {
                 variables.siteURL = app.get( 'rootURL' );
                 variables.supportEmail = config.server.supportEmail;
-                variables.user = _.transform( user, function( result, value, key ) {
-                  key = key.toLowerCase();
-                  var arr = key.split('_');
-                  for ( var i = 1; i < arr.length; i += 1 ) {
-                    arr[ i ] = arr[ i ].charAt(0).toUpperCase() + arr[ i ].slice(1);
-                  }
-                  key = arr.join('');
-                  result[ key ] = value;
-                } );
+                variables.user = user;
 
                 var clientFunc = app.get( 'emailVariables' );
                 var clientVars = {};

@@ -97,9 +97,20 @@ function sendPasswordUpdateEmail( user, emailVariables ) {
             subject: config.mailer.updatedUserPasswordEmail.subject
         };
 
-         if ( !_.isObject( emailVariables ) ) {
+        if ( !_.isObject( emailVariables ) ) {
             emailVariables = {};
         }
+
+        user = _.transform( user, function ( result, value, key ) {
+            key = key.toLowerCase();
+            var arr = key.split( '_' );
+            for ( var i = 1; i < arr.length; i += 1 ) {
+                arr[ i ] = arr[ i ].charAt( 0 ).toUpperCase() + arr[ i ].slice( 1 );
+            }
+            key = arr.join( '' );
+            result[ key ] = value;
+        } );
+
 
         mailer.sendMail( viewName, emailVariables, mail, user )
         .then( function() {
@@ -127,12 +138,8 @@ function sendReponse( res ) {
 
 module.exports = function ( req, res, next ) {
 
-    util.mustBeAnonymous( req )
-
     // Validate the request structure related to Recover Password requests
-    .then( function () {
-        return validateRecoverPasswordRequest( req );
-    } )
+    validateRecoverPasswordRequest( req )
 
     // Attempt to set the password to the new password after verifying the user hash.
     .then( function() {

@@ -115,14 +115,23 @@ function sendForgotPasswordEMail( user ) {
             subject: config.mailer.recoverAccountEmail.subject
         };
 
-        mailer.sendMail( viewName, variables, mail, user )
-        .then( function() {
-            resolve();
-        } )
-        .fail( function( err ) {
-            reject( err );
+        user = _.transform( user, function ( result, value, key ) {
+            key = key.toLowerCase();
+            var arr = key.split( '_' );
+            for ( var i = 1; i < arr.length; i += 1 ) {
+                arr[ i ] = arr[ i ].charAt( 0 ).toUpperCase() + arr[ i ].slice( 1 );
+            }
+            key = arr.join( '' );
+            result[ key ] = value;
         } );
 
+        mailer.sendMail( viewName, variables, mail, user )
+            .then( function () {
+                resolve();
+            } )
+            .fail( function ( err ) {
+                reject( err );
+            } );
     } );
 }
 
