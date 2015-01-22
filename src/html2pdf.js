@@ -70,7 +70,7 @@ function wkHTMLToPDFFound() {
         app.log.verbose( "PDF cache directory found." );
     }
 
-    module.exports = function( ejsTemplate, variables, folder, fileName ) {
+    module.exports = function( ejsTemplate, variables, folder, fileName, title ) {
         return Q.Promise( function( resolve, reject ) {
 
             var extentsion = path.extname( fileName );
@@ -78,6 +78,9 @@ function wkHTMLToPDFFound() {
             if ( extentsion !== '.pdf' ) {
                 fileName = fileName.append( ".pdf" );
             }
+
+            variables.siteURL = app.get( 'rootURL' );
+            variables.title = title;
 
             var invalidCharacterRegex = /(\/|\\|:|\*|\?|"|<|>|\|)/;
 
