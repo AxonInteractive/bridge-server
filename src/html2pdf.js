@@ -186,6 +186,8 @@ function wkHTMLToPDFFound() {
                     variables.filename = path.resolve( path.join( config.pdfGenerator.templatePath, ejsTemplate ) );
                     var html = ejs.render( text, variables );
 
+                    fs.write( 'debug.html', html );
+
 
                     htmlToPdf( html, { output: pathToPDF }, function( code, signal ) {
 
@@ -280,4 +282,9 @@ for ( var i = 0; i < pathLocations.length; i+=1 ) {
         // don't need to search more files than necessary
         break;
     }
+
+}
+
+if ( found === false ) {
+  wkHTMLToPDFNotFound();
 }
