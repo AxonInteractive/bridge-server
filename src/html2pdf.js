@@ -186,9 +186,6 @@ function wkHTMLToPDFFound() {
                     variables.filename = path.resolve( path.join( config.pdfGenerator.templatePath, ejsTemplate ) );
                     var html = ejs.render( text, variables );
 
-                    fs.write( 'debug.html', html );
-
-
                     htmlToPdf( html, { output: pathToPDF }, function( code, signal ) {
 
                         setTimeout( utilities.deleteFile, config.pdfGenerator.cacheLifetimeMinutes * 60 * 1000, pathToPDF );
