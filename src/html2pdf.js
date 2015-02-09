@@ -11,7 +11,7 @@ var _         = require( 'lodash')._;
 var ejs       = require( 'ejs' );
 var uri       = require( 'uri-js' );
 var utilities = require( './utilities' );
-var exec      = require( 'child_process' ).exec;
+var shelljs   = require('shelljs');
 
 var config = server.config;
 var app    = server.app;
@@ -229,10 +229,16 @@ function wkHTMLToPDFNotFound() {
     };
 }
 
-exec( "wkhtmltopdf -V", function( error, stdout, stderr ) {
-    if ( error ) {
-        wkHTMLToPDFNotFound();
-    } else {
-        wkHTMLToPDFFound();
-    }
-} );
+var execStatus = shelljs.exec( "wkhtmltopdf -V", { silent: true } ).code;
+
+if ( execStatus !== 0 ) {
+    wkHTMLToPDFNotFound();
+} else {
+    wkHTMLToPDFFound();
+}
+
+
+//wkHTMLToPDFNotFound();
+
+//wkHTMLToPDFFound();
+
