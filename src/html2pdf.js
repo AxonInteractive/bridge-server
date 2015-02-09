@@ -11,6 +11,7 @@ var _         = require( 'lodash')._;
 var ejs       = require( 'ejs' );
 var uri       = require( 'uri-js' );
 var utilities = require( './utilities' );
+var exec      = require( 'child_process' ).exec;
 
 var config = server.config;
 var app    = server.app;
@@ -70,13 +71,17 @@ function wkHTMLToPDFFound() {
         app.log.verbose( "PDF cache directory found." );
     }
 
-    module.exports = function( ejsTemplate, variables, folder, fileName, title ) {
+    module.exports = function( ejsTemplate, variables, folder, fileName, title, args ) {
         return Q.Promise( function( resolve, reject ) {
 
             var extentsion = path.extname( fileName );
 
             if ( extentsion !== '.pdf' ) {
                 fileName = fileName.append( ".pdf" );
+            }
+
+            if ( _.isUndefined( args ) || !_.isObject( args ) ) {
+                args = {};
             }
 
             variables.siteURL = app.get( 'rootURL' );
@@ -182,11 +187,14 @@ function wkHTMLToPDFFound() {
                 } )
                 .then( function( text ) {
 
-                    app.log.debug( "EJS Render Variables: ", variables );
                     variables.filename = path.resolve( path.join( config.pdfGenerator.templatePath, ejsTemplate ) );
                     var html = ejs.render( text, variables );
 
-                    htmlToPdf( html, { output: pathToPDF }, function( code, signal ) {
+                    fs.write( 'debug.html', html );
+
+                    args.output = pathToPDF;
+
+                    htmlToPdf( html, args, function( code, signal ) {
 
                         setTimeout( utilities.deleteFile, config.pdfGenerator.cacheLifetimeMinutes * 60 * 1000, pathToPDF );
 
@@ -221,67 +229,10 @@ function wkHTMLToPDFNotFound() {
     };
 }
 
-// Make a variable to track if wkhtmltopdf has been found on the system
-var found = false;
-
-// The regex to use to check for wkhtmltopdf as the filename of a file in the PATH variable
-var wkhtml2pdfRegex = /^wkhtmltopdf($|\.exe$)/;
-
-// Get all the path locations on the current machine.
-var pathLocations = process.env.PATH.split( path.delimiter );
-
-// iterate though each path location
-for ( var i = 0; i < pathLocations.length; i+=1 ) {
-
-    // if wkhtmltopdf has been found break the loop.
-    // no need to continue searching for it.
-    if ( found ) {
-        break;
-    }
-
-    try {
-        // read each dir from the PATH variable and call findwkhtmltopdf on it to find wkhtmltopdf
-        var files = nodeFs.readdirSync( path.normalize( pathLocations[ i ] ) );
-    } catch ( err ) {
-        continue;
-    }
-
-    // Check if there are no files
-    if ( _.isUndefined( files ) ) {
-        return;
-    }
-
-    // If the file has been found stop looking
-    if ( found ) {
-        return;
-    }
-
-    // Iterate through each file in the files array
-    for ( var j = 0; j < files.length; j+=1 ) {
-
-        // Check against the regex
-        var result = wkhtml2pdfRegex.exec( files[ j ] );
-
-        // continue the loop if the regex failed the check
-        if ( _.isUndefined( result ) || _.isNull( result ) ) {
-            continue;
-        }
-
-        // If regex passed set found to true
-        found = true;
-
-        // log that the file has been found
-        app.log.verbose( "wkhtmltopdf FOUND!" );
-
+exec( "wkhtmltopdf -V", function( error, stdout, stderr ) {
+    if ( error ) {
+        wkHTMLToPDFNotFound();
+    } else {
         wkHTMLToPDFFound();
-
-        // break the for loop. once wkhtmltopdf has been found.
-        // don't need to search more files than necessary
-        break;
     }
-
-}
-
-if ( found === false ) {
-  wkHTMLToPDFNotFound();
-}
+} );
