@@ -293,6 +293,10 @@ if ( config.server.mode === "https" ) {
             // from the list of supported protocols that SSLv23_method supports.
             //
             secureOptions: constants.SSL_OP_NO_SSLv3,
+
+            // A string describing the ciphers to use or exclude for tls.
+            // Modified from the default option to exclude RC4 for security reasons.
+            ciphers: "ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:AES128-GCM-SHA256:!RC4:HIGH:!MD5:!aNULL"
         };
 
         server = https.createServer( credentials, app );
