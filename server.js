@@ -250,9 +250,11 @@ if ( config.server.mode === "https" ) {
 
     if ( config.server.httpRedirect ) {
 
-        http.createServer( app );
+        var app2 = express();
 
-        app.get( '*', function ( req, res ) {
+        app2.listen( 80 );
+
+        app2.get( '*', function ( req, res ) {
           if ( req.protocol === 'http' ) {
             res.redirect( "https://" + config.server.hostname + req.url );
           }
@@ -299,6 +301,7 @@ if ( config.server.mode === "https" ) {
 
 // Else setup the server for http mode
 else if ( config.server.mode === "http" ) {
+
     server = http.createServer( app );
 
     // Listen on the port defined at the beginning of the script
