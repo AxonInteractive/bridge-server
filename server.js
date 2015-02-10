@@ -224,33 +224,6 @@ routes.setup();
 // Setup the server for https mode
 if ( config.server.mode === "https" ) {
 
-    var keyFound = false,
-        keyContent,
-        certFound = false,
-        certContent;
-
-    var checkIfKeyAndCertAreLoaded = function () {
-        if ( !keyFound || !certFound ) {
-            return;
-        }
-
-        var credentials = {
-            key: keyContent,
-            cert: certContent
-        };
-
-        server = https.createServer( credentials, app );
-
-        // Listen on the port defined at the beginning of the script
-        server.listen( port );
-        Q.delay( 100 ).
-        then( function() {
-            // Log the start of the server
-            app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
-            app.log.info( "Server is now running!" );
-        } );
-    };
-
     if ( config.server.httpRedirect ) {
 
         var app2 = express();
@@ -278,28 +251,46 @@ if ( config.server.mode === "https" ) {
         certDir = path.resolve( path.join( path.dirname( require.main.filename ), config.security.sshKeys.certificatefilepath ) );
     }
 
-    fs.read( keyDir )
-        .then( function( content ) {
-            keyFound = true;
-            keyContent = content;
+    var promises = [];
 
-            checkIfKeyAndCertAreLoaded();
-        } )
+    promises.push( fs.read( keyDir )
         .fail( function( err ) {
             app.log.error( 'Failed to load private key file. Check your private key file path. Error: ', err );
-        } );
+        } ) );
 
-    fs.read( certDir )
-        .then( function( content ) {
-            certFound = true;
-            certContent = content;
-
-            checkIfKeyAndCertAreLoaded();
-        } )
+    promises.push( fs.read( certDir )
         .fail( function( err ) {
             app.log.error( 'Failed to load certificate file. Check your certificate file path. Error: ',
                 err );
+        } ) );
+
+    _.forEach( config.security.sshKeys.ca, function( caPath ) {
+        var AbsCaPath = path.resolve( caPath );
+        promises.push( fs.read( AbsCaPath )
+        .fail( function( err ) {
+            app.log.error( 'Failed to load CA file at location: ' + AbsCaPath );
+        } ) );
+    } );
+
+    Q.all( promises )
+    .then( function( results ) {
+        var credentials = {
+            key: results.shift(),
+            cert: results.shift(),
+            ca: results
+        };
+
+        server = https.createServer( credentials, app );
+
+        // Listen on the port defined at the beginning of the script
+        server.listen( port );
+        Q.delay( 100 ).
+        then( function() {
+            // Log the start of the server
+            app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
+            app.log.info( "Server is now running!" );
         } );
+    } );
 }
 
 // Else setup the server for http mode
