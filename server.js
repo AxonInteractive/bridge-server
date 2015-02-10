@@ -14,6 +14,7 @@ var bodyParser = require( 'body-parser' );
 var onHeaders  = require( 'on-headers'  );
 var userAgent  = require( 'express-useragent' );
 var moment     = require( 'moment' );
+var compress = require('compression');
 
 Q.longStackSupport = true;
 
@@ -164,6 +165,8 @@ app.use( function ( req, res, next ) {
 } );
 
 app.use( bridgeWare.applyDefaultSecuityPolicyHeader );
+
+app.use( compress() );
 
 // Static hosting Middleware
 app.use( bridgeWare.staticHostFiles() );
