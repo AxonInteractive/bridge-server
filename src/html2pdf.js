@@ -240,8 +240,6 @@ var pathLocations = process.env.PATH.split( path.delimiter );
 // iterate though each path location
 for ( var i = 0; i < pathLocations.length; i+=1 ) {
 
-    app.log.debug( "Path location: ", pathLocations[ i ] );
-
     // if wkhtmltopdf has been found break the loop.
     // no need to continue searching for it.
     if ( found ) {
