@@ -296,7 +296,12 @@ if ( config.server.mode === "https" ) {
 
             // A string describing the ciphers to use or exclude for tls.
             // Modified from the default option to exclude RC4 for security reasons.
-            ciphers: "ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:AES128-GCM-SHA256:!RC4:HIGH:!MD5:!aNULL"
+            ciphers: "ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:AES128-GCM-SHA256:!RC4:HIGH:!MD5:!aNULL",
+
+            // When choosing a cipher, use the server's preferences instead of the client preferences.
+            // Although, this option is disabled by default, it is recommended that you use this option
+            // in conjunction with the ciphers option to mitigate BEAST attacks.
+            honorCipherOrder: true
         };
 
         server = https.createServer( credentials, app );

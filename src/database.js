@@ -199,14 +199,18 @@ exports.updateUser = function( req ) {
         // First Name Check
         if ( _.has( content, 'firstName' ) ) {
             if ( !_.isEmpty( content.firstName ) ) {
-                updateFields.FIRST_NAME = _.capitalize( content.firstName );
+                if ( content.firstName !== req.bridge.user.FIRST_NAME ){
+                    updateFields.FIRST_NAME = _.capitalize( content.firstName );
+                }
             }
         }
 
         // Last Name Check
         if ( _.has( content, 'lastName' ) ) {
             if ( !_.isEmpty( content.lastName ) ) {
-                updateFields.LAST_NAME = _.capitalize( content.lastName );
+                if ( content.lastName !== req.bridge.user.LAST_NAME ) {
+                    updateFields.LAST_NAME = _.capitalize( content.lastName );
+                }
             }
         }
 
@@ -253,7 +257,7 @@ exports.updateUser = function( req ) {
         // Remove the last two characters
         query = query.slice( 0, -2 );
 
-        query = query.concat( " WHERE EMAIL = ?" );
+        query = query.concat( " WHERE EMAIL = ? AND DELETED = 0" );
 
         values.push( req.bridge.user.EMAIL.toLowerCase() );
 
