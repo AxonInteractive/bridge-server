@@ -189,8 +189,6 @@ function wkHTMLToPDFFound() {
                     variables.filename = path.resolve( path.join( config.pdfGenerator.templatePath, ejsTemplate ) );
                     var html = ejs.render( text, variables );
 
-                    fs.write( 'debug.html', html );
-
                     args.output = pathToPDF;
 
                     htmlToPdf( html, args, function( code, signal ) {
