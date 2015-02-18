@@ -53,7 +53,7 @@
         // The amount of time that a token is valid for before it expires and a user will have to
         // login again. If remember me is not selected the cookie will last until the user closes
         // their browser.
-        "tokenExpiryDurationRememberMe": { "days": 7 },
+        "tokenExpiryDurationRememberMe": { "days": 14 },
 
         // Settings used if the server is in https mode
         "sshKeys": {
@@ -104,7 +104,7 @@
 
         // The address that will be used to send mail.
         // e.g. "Bridge <no-reply@bridge.ca>"
-       "fromAddress": "PEIR <admin@peir.ca>",
+        "fromAddress": "Axon Interactive <theteam@axoninteractive.ca>",
 
         // The path from the application root to the folder containing the view to be rendered
         "templateDirectory": "templates/email",
@@ -113,7 +113,7 @@
         "verificationEmail": {
 
             // The subject of the email that the user will see in their inbox
-            "subject": "Bridge Example Email Verification",
+            "subject": "Verify Your Email Address",
             // The file name of the ejs file in the template directory to be sent as an email html content
             "viewName": "registration.ejs"
         },
@@ -123,7 +123,7 @@
         "recoverAccountEmail": {
             // The subject of the email that the user will see in their email inbox when they forget
             // their password
-            "subject": "Bridge Example Account Recovery",
+            "subject": "Account Recovery",
             // The file name of the ejs file that will be sent as the HTML content for the bridge
             // account recovery email.
             "viewName": "recoverPassword.ejs"
@@ -135,7 +135,7 @@
         "updatedUserInfoEmail": {
             // The subject of the email that is sent when the users account information is updated
             // inside of the database.
-            "subject": "Your account information has been updated",
+            "subject": "Your Account Details Have Been Updated",
             // The file name of the email template that is to be rendered when this email is sent to
             // the user when their information is updated.
             "viewName": "updatedUserInformation.ejs"
@@ -146,7 +146,7 @@
         "welcomeEmail": {
             // The subject of this email that the user will see in their inbox when they receive
             // this email
-            "subject": "Welcome to the site",
+            "subject": "Your Account Has Been Activated",
             // The file name of the email template that is to be rendered when this email is sent to
             // the user when their information is updated.
             "viewName": "welcome.ejs"
@@ -157,7 +157,7 @@
         "updatedUserPasswordEmail": {
             // The subject of this email that the user will see in their inbox when they receive
             // this email.
-            "subject": "Your Password has been updated",
+            "subject": "Your Account Password Has Been Changed",
             // The file name of the email template that is in the template directory  and is to be
             // rendered to the html content of the email.
             "viewName": "updatedUserPassword.ejs"
@@ -170,8 +170,8 @@
         "options": {
             "service": "gmail",
             "auth": {             // The authentication to use for the GMail Service
-                "user": "BridgeSMTPTest@gmail.com",
-                "pass": "passwordGoesHere"
+                "user": "",
+                "pass": ""
             }
         }
     },

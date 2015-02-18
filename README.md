@@ -1,19 +1,21 @@
-[Bridge Client]:https://bitbucket.org/axoninteractive/bridge-client
-[Wiki]:https://bitbucket.org/axoninteractive/bridge-server/wiki
 # Bridge Server
 
-The bridge server is paired with the [bridge client][Bridge Client] to form a secure means of communication between a client and a server and is the basis for a small to medium sized site with a high level of customization. 
+Written by Jeff Rose and James Zinger (mostly James!) of Axon Interactive
 
-[Click here to go to the Wiki][Wiki]
+## Description
 
-Version: v0.0.1
+This node.js module provides an API development framework for browser-based webapps. It features a broad range of commonly-used features from authentication to analytics to email notifications. While it is targeted at Axon's websites and eLearning portals, it can handle a wide array of websites and API needs.
 
-## Standard API Functionality
+## Usage
 
-* [Login](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/login)
-* [Register](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/register)
-* [Forgot Password](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/forgot-password)
-* [Recover Password](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/recover=password)
-* [Verify Email](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/verify-email)
-* [Update User](https://bitbucket.org/axoninteractive/bridge-server/wiki/Requests/update-user)
+This module is available from the npm package registry. Install it with the following command:
 
+```bash
+npm install axon-bridge-server
+```
+
+Once installed, simply require axon-bridge-server into your project: 
+
+`<node_modules>/axon-bridge-server/lib/server.js` 
+
+Further instructions will be posted eventually...
