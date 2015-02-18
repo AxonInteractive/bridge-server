@@ -70,7 +70,7 @@ function wkHTMLToPDFFound() {
         app.log.verbose( "PDF cache directory found." );
     }
 
-    module.exports = function( ejsTemplate, variables, folder, fileName ) {
+    module.exports = function( ejsTemplate, variables, folder, fileName, title, args ) {
         return Q.Promise( function( resolve, reject ) {
 
             var extentsion = path.extname( fileName );
@@ -78,6 +78,13 @@ function wkHTMLToPDFFound() {
             if ( extentsion !== '.pdf' ) {
                 fileName = fileName.append( ".pdf" );
             }
+
+            if ( _.isUndefined( args ) || !_.isObject( args ) ) {
+                args = {};
+            }
+
+            variables.siteURL = app.get( 'rootURL' );
+            variables.title = title;
 
             var invalidCharacterRegex = /(\/|\\|:|\*|\?|"|<|>|\|)/;
 
@@ -179,12 +186,12 @@ function wkHTMLToPDFFound() {
                 } )
                 .then( function( text ) {
 
-                    app.log.debug( "EJS Render Variables: ", variables );
                     variables.filename = path.resolve( path.join( config.pdfGenerator.templatePath, ejsTemplate ) );
                     var html = ejs.render( text, variables );
 
+                    args.output = pathToPDF;
 
-                    htmlToPdf( html, { output: pathToPDF }, function( code, signal ) {
+                    htmlToPdf( html, args, function( code, signal ) {
 
                         setTimeout( utilities.deleteFile, config.pdfGenerator.cacheLifetimeMinutes * 60 * 1000, pathToPDF );
 
@@ -277,4 +284,9 @@ for ( var i = 0; i < pathLocations.length; i+=1 ) {
         // don't need to search more files than necessary
         break;
     }
+
+}
+
+if ( found === false ) {
+  wkHTMLToPDFNotFound();
 }

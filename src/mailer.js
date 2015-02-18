@@ -122,6 +122,9 @@ exports.sendMail = function( viewName, variables, mail, user ) {
                 transport.sendMail( mail, function( err, info ) {
                     if ( err ) {
                         app.log.error( 'Mail failed to send. Error: ', err );
+                        if ( err.message ) {
+                            app.log.error( 'Error Message: ', err.message );
+                        }
                         reject( error.createError( 500, 'internalServerError', err ) );
                         return;
                     }

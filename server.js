@@ -14,6 +14,8 @@ var bodyParser = require( 'body-parser' );
 var onHeaders  = require( 'on-headers'  );
 var userAgent  = require( 'express-useragent' );
 var moment     = require( 'moment' );
+var compress   = require('compression');
+var constants  = require('constants');
 
 Q.longStackSupport = true;
 
@@ -165,6 +167,8 @@ app.use( function ( req, res, next ) {
 
 app.use( bridgeWare.applyDefaultSecuityPolicyHeader );
 
+app.use( compress() );
+
 // Static hosting Middleware
 app.use( bridgeWare.staticHostFiles() );
 
@@ -221,38 +225,13 @@ routes.setup();
 // Setup the server for https mode
 if ( config.server.mode === "https" ) {
 
-    var keyFound = false,
-        keyContent,
-        certFound = false,
-        certContent;
-
-    var checkIfKeyAndCertAreLoaded = function () {
-        if ( !keyFound || !certFound ) {
-            return;
-        }
-
-        var credentials = {
-            key: keyContent,
-            cert: certContent
-        };
-
-        server = https.createServer( credentials, app );
-
-        // Listen on the port defined at the beginning of the script
-        server.listen( port );
-        Q.delay( 100 ).
-        then( function() {
-            // Log the start of the server
-            app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
-            app.log.info( "Server is now running!" );
-        } );
-    };
-
     if ( config.server.httpRedirect ) {
 
-        http.createServer( app );
+        var app2 = express();
 
-        app.get( '*', function ( req, res ) {
+        app2.listen( 80 );
+
+        app2.get( '*', function ( req, res ) {
           if ( req.protocol === 'http' ) {
             res.redirect( "https://" + config.server.hostname + req.url );
           }
@@ -273,32 +252,74 @@ if ( config.server.mode === "https" ) {
         certDir = path.resolve( path.join( path.dirname( require.main.filename ), config.security.sshKeys.certificatefilepath ) );
     }
 
-    fs.read( keyDir )
-        .then( function( content ) {
-            keyFound = true;
-            keyContent = content;
+    var promises = [];
 
-            checkIfKeyAndCertAreLoaded();
-        } )
+    promises.push( fs.read( keyDir )
         .fail( function( err ) {
             app.log.error( 'Failed to load private key file. Check your private key file path. Error: ', err );
-        } );
+        } ) );
 
-    fs.read( certDir )
-        .then( function( content ) {
-            certFound = true;
-            certContent = content;
-
-            checkIfKeyAndCertAreLoaded();
-        } )
+    promises.push( fs.read( certDir )
         .fail( function( err ) {
             app.log.error( 'Failed to load certificate file. Check your certificate file path. Error: ',
                 err );
+        } ) );
+
+    _.forEach( config.security.sshKeys.ca, function( caPath ) {
+        var AbsCaPath = path.resolve( caPath );
+        promises.push( fs.read( AbsCaPath )
+        .fail( function( err ) {
+            app.log.error( 'Failed to load CA file at location: ' + AbsCaPath );
+        } ) );
+    } );
+
+    Q.all( promises )
+    .then( function( results ) {
+        var credentials = {
+            key: results.shift(),
+            cert: results.shift(),
+            ca: results,
+            //
+            // This is the default secureProtocol used by Node.js, but it might be
+            // sane to specify this by default as it's required if you want to
+            // remove supported protocols from the list. This protocol supports:
+            //
+            // - SSLv2, SSLv3, TLSv1, TLSv1.1 and TLSv1.2
+            //
+            secureProtocol: 'SSLv23_method',
+
+            //
+            // Supply `SSL_OP_NO_SSLv3` constant as secureOption to disable SSLv3
+            // from the list of supported protocols that SSLv23_method supports.
+            //
+            secureOptions: constants.SSL_OP_NO_SSLv3,
+
+            // A string describing the ciphers to use or exclude for tls.
+            // Modified from the default option to exclude RC4 for security reasons.
+            ciphers: "ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:AES128-GCM-SHA256:!RC4:HIGH:!MD5:!aNULL",
+
+            // When choosing a cipher, use the server's preferences instead of the client preferences.
+            // Although, this option is disabled by default, it is recommended that you use this option
+            // in conjunction with the ciphers option to mitigate BEAST attacks.
+            honorCipherOrder: true
+        };
+
+        server = https.createServer( credentials, app );
+
+        // Listen on the port defined at the beginning of the script
+        server.listen( port );
+        Q.delay( 100 ).
+        then( function() {
+            // Log the start of the server
+            app.log.info( "Express server listening on port %d in %s mode", port, config.server.environment );
+            app.log.info( "Server is now running!" );
         } );
+    } );
 }
 
 // Else setup the server for http mode
 else if ( config.server.mode === "http" ) {
+
     server = http.createServer( app );
 
     // Listen on the port defined at the beginning of the script

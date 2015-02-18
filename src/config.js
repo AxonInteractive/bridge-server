@@ -31,7 +31,8 @@ var defaults = {
         tokenSecret: '!$Th3_X<OSgS0T^{RA4BVRZV$E&aA5NAugzO1)tV<8*LP}sAaHxd9#1eIeg69k>!lUVIf*UB6Ne8SGXzgCFdK%]pSIvfF*xSW0jaIix<45-Hr)$l}beFskzm',
         sshKeys: {
             privateKeyfilepath: 'key.pem',
-            certificatefilepath: 'cert.pem'
+            certificatefilepath: 'cert.pem',
+            ca: []
         }
     },
 
@@ -263,6 +264,11 @@ var schema = {
                             type: 'string',
                             required: true,
                             allowEmpty: false
+                        },
+                        ca: {
+                            type: 'array',
+                            required: false,
+                            allowEmpty: true
                         }
                     }
                 },

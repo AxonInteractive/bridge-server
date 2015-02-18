@@ -166,13 +166,13 @@ exports.staticHostFiles = function () {
         //  Determine if the request is a protected. if so get the protected object related to it
 
         // if there is no protected Resources array just act like normal
-        if ( !_.has( config.server, 'protectedResources' ) ) {
+        if ( !_.has( config.server, 'protectedFolders' ) ) {
             staticHost( req, res, next );
             return;
         }
 
         // Find if the req is asking for a path that is protected
-        _( config.server.protectedResources ).forEach( function (
+        _( config.server.protectedFolders ).forEach( function (
             element, index ) {
             if ( req.path.indexOf( element.path ) > -1 ) {
                 protectedObject = element;
@@ -290,19 +290,19 @@ exports.bridgeErrorHandler = function () {
 
         app.log.verbose( 'Sending Error', err );
 
-        // if ( config.server.environment === 'development' ) {
-        res.json( {
-            content: err
-        } );
-        // } else {
-        //     res.json( {
-        //         content: {
-        //             status: err.status,
-        //             errorCode: err.errorCode,
-        //             time: err.time
-        //         }
-        //     } );
-        // }
+        if ( config.server.environment === 'development' ) {
+            res.json( {
+                content: err
+            } );
+        } else {
+            res.json( {
+                content: {
+                    status: err.status,
+                    errorCode: err.errorCode,
+                    time: err.time
+                }
+            } );
+        }
 
         //next( errContext );
     };
