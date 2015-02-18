@@ -1,6 +1,6 @@
 {
   "name": "axon-bridge-server",
-  "version": "0.2.10",
+  "version": "0.2.12",
   "description": "The node.js library portion of Bridge, a simple uniform interface for providing API services to browser-based applications.",
   "constibutors": [
     {
