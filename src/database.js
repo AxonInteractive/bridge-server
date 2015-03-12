@@ -13,7 +13,7 @@ var mailer = require( './mailer' );
 var app         = server.app;
 var bridgeError = server.error;
 var config      = server.config;
-var connection  = null;
+var pool        = null;
 
 var recoveryStateUserMap = {};
 
@@ -21,16 +21,16 @@ var dbConfig = _.merge( server.config.database, {
     dateStrings: true
 } );
 
-connection = mysql.createConnection( dbConfig );
+pool = mysql.createPool( dbConfig );
 
-connection.connect( function(err) {
-    if (err) {
+pool.getConnection( function( err, connection ) {
+    if ( err ) {
         app.log.error( "Could not connect to database. ", err );
         app.log.error( "Connection Information: ", server.config.database );
         return;
     }
-
-    app.log.info( "Connected to database successfully as id " + connection.threadId );
+    app.log.info( "Connected to database successfully" );
+    connection.release();
 } );
 
 function createUserHash( email, momentDate ) {
@@ -57,7 +57,7 @@ exports.authenticateUser = function ( email, password ) {
         //     return;
         // }
 
-        connection.query( 'SELECT * FROM users WHERE EMAIL = lower(?) AND DELETED = ?', [ email, 0 ], function ( err, rows ) {
+        pool.query( 'SELECT * FROM users WHERE EMAIL = lower(?) AND DELETED = ?', [ email, 0 ], function ( err, rows ) {
 
             if ( err ) {
                 var databaseError = bridgeError.createError( 403, 'databaseError', "Database query error. see log files for more information" );
@@ -88,7 +88,7 @@ exports.authenticateUser = function ( email, password ) {
             }
 
             if ( user.STATUS === 'recovery' ) {
-                connection.query( 'UPDATE users SET STATUS = ?, USER_HASH = ? WHERE ID = ?', [ 'normal', '0', user.ID ], function ( err, rows ) {
+                pool.query( 'UPDATE users SET STATUS = ?, USER_HASH = ? WHERE ID = ?', [ 'normal', '0', user.ID ], function ( err, rows ) {
                     if ( err ) {
                         reject( bridgeError.createError( 500, 'databaseError', 'Database error, See server log for more details' ) );
                         app.log.error( "Could not update user status from 'recovery' to 'normal'" );
@@ -130,7 +130,7 @@ exports.registerUser = function ( req, user ) {
                         state,
                         user.hash ];
 
-        connection.query( userInsertionQuery, values, function ( err, retObj ) {
+        pool.query( userInsertionQuery, values, function ( err, retObj ) {
             if ( err ) {
 
                 if ( err.code === "ER_DUP_ENTRY" ) {
@@ -265,7 +265,7 @@ exports.updateUser = function( req ) {
         app.log.debug( "Query: ", query );
         app.log.debug( "Values: ", values );
 
-        connection.query( query, values, function ( err, retObj ) {
+        pool.query( query, values, function ( err, retObj ) {
 
             if ( err ) {
                 // Create the Error
@@ -297,7 +297,7 @@ exports.verifyEmail = function ( req ) {
         var query = "SELECT * FROM users WHERE USER_HASH = ? AND DELETED = 0";
         var values = [ req.headers.bridge.hash ];
 
-        connection.query( query, values, function ( err, rows ) {
+        pool.query( query, values, function ( err, rows ) {
             if ( err ) {
                 verifyEmailError = bridgeError.createError( 500, 'databaseError', "Database query failed. See log for more details" );
                 app.log.error( "Database Error: " + err );
@@ -324,7 +324,7 @@ exports.verifyEmail = function ( req ) {
             var query2 = "UPDATE users SET STATUS = 'normal' WHERE id = ?";
             var values2 = [ rows[ 0 ].ID ];
 
-            connection.query( query2, values2, function ( err2, rows2 ) {
+            pool.query( query2, values2, function ( err2, rows2 ) {
                 if ( err2 ) {
                     verifyEmailError( 500, 'databaseError', "Database query failed, See log for more details" );
                     app.log.error( 'Database query error: ', err2 );
@@ -359,7 +359,7 @@ exports.recoverPassword = function ( userHash, newPasswordHash, req ) {
         var query = "SELECT * FROM users WHERE USER_HASH = ? AND STATUS = ? AND DELETED = ?";
         var values = [ userHash, 'recovery', 0 ];
 
-        connection.query( query, values, function ( err, rows ) {
+        pool.query( query, values, function ( err, rows ) {
             if (err) {
                 recoverPasswordError = bridgeError.createError( 500, 'databaseError', "Database error, See log for more details" );
                 app.log.error( "Database Error: " + err );
@@ -379,7 +379,7 @@ exports.recoverPassword = function ( userHash, newPasswordHash, req ) {
             var query2 = "UPDATE users SET PASSWORD = ?, STATUS = ?, USER_HASH = ? WHERE id = ?";
             var values2 = [ newPasswordHash, 'normal', '', rows[ 0 ].ID ];
 
-            connection.query( query2, values2, function ( err2, updateResults ) {
+            pool.query( query2, values2, function ( err2, updateResults ) {
                 if ( err2 ) {
                     recoverPasswordError = bridgeError.createError( 500, 'databaseError', "Database query error, See log for more details" );
                     app.log.error( "Database Error: " + err2 );
@@ -408,7 +408,7 @@ function clearUserHash( userID ) {
     var query = "UPDATE users SET STATUS = ?, USER_HASH = ? WHERE ID = ?";
     var values = [ 'normal', '0', userID ];
 
-    connection.query( query, values, function( err, rows ) {
+    pool.query( query, values, function( err, rows ) {
         if ( err ) {
             app.log.error( "Cannot clear user hash from user", userID, "Database Error: ", err );
             return;
@@ -432,7 +432,7 @@ exports.forgotPassword = function( user ) {
 
         var values = [ 'recovery', userHash, user.EMAIL, 0 ];
 
-        connection.query( query, values, function( err, rows ) {
+        pool.query( query, values, function( err, rows ) {
 
             if ( err ) {
                 reject( bridgeError.createError( 500, 'databaseError', "Database error, See server log for more details" ) );
@@ -479,7 +479,7 @@ exports.query = function ( query, values ) {
             return;
         }
 
-        connection.query( query, values, function ( err, rows ) {
+        pool.query( query, values, function ( err, rows ) {
             if ( err ) {
                 reject( err );
                 return;
@@ -496,7 +496,9 @@ exports.query = function ( query, values ) {
  */
 exports.close = function() {
     app.log.info( "Closing Database connection" );
-    connection.end();
+    pool.end( function( err ) {
+        app.log.error( "Could not close connection pool. Error: ", err );
+    } );
 };
 
 /**
@@ -538,7 +540,7 @@ exports.insertIntoTable = function( table, values ) {
 
         query = query.concat( " )" );
 
-        connection.query( query, values, function( err, result ) {
+        pool.query( query, values, function( err, result ) {
 
             if ( err ) {
                 reject( bridgeError.createError( 500, 'databaseError', "Database Error, See error log for more details." ) );
@@ -746,7 +748,7 @@ exports.selectWithQueryObject = function( selectQueryObj ) {
 
         }
 
-        connection.query( query, values, function( err, rows ) {
+        pool.query( query, values, function( err, rows ) {
 
             if ( err ) {
                 reject( bridgeError.createError( 500, 'databaseError', 'Database query error, see the error log for more information.' ) );

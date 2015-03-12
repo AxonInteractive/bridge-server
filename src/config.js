@@ -40,7 +40,8 @@ var defaults = {
         user    : 'root',
         password: '',
         host    : 'localhost',
-        database: 'peir'
+        database: 'peir',
+        connectionLimit: 10
     },
 
     logger: {
@@ -301,6 +302,11 @@ var schema = {
                     type: 'string',
                     required: true,
                     allowEmpty: false
+                },
+
+                connectionLimit: {
+                    type: 'integer',
+                    required: false
                 }
             }
         },
