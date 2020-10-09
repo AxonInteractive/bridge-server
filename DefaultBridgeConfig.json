@@ -3,7 +3,7 @@
     "server": {
 
         // The email to display to the users to contact for help..
-        "supportEmail": "theteam@axoninteractive.ca",
+        "supportEmail": "someone@somewhere.com",
 
         // The domain name of the server to act like its from that address. This is used to make
         // links to the server.
@@ -48,7 +48,7 @@
     "security": {
         // The secret string used for token signing and encoding and decoding of JWT's.
         // This is not shared with any application and should be kept a secret from any application.
-        "tokenSecret": "!$Th3_X<OSgS0T^{RA4BVRZV$E&aA5NAugzO1)tV<8*LP}sAaHxd9#1eIeg69k>!lUVIf*UB6Ne8SGXzgCFdK%]pSIvfF*xSW0jaIix<45-Hr)$l}beFskzm",
+        "tokenSecret": "",
 
         // The amount of time that a token is valid for before it expires and a user will have to
         // login again. If remember me is not selected the cookie will last until the user closes
@@ -59,7 +59,10 @@
         "sshKeys": {
             "privateKeyfilepath" : "privatekey.pem", // The path to the private key file for the ssl connection.
             "certificatefilepath": "certificate.pem" // The path to the certificate file for the ssl connection.
-        }
+        },
+
+        // PEM passphrase to unlock the SSL certificate.
+        "passphrase": ""
     },
 
     // Configuration settings about the database connection
@@ -67,7 +70,7 @@
         "user"     : "root",        // The username that should be used to connect to the database
         "password" : "",            // The password for that user that should be used
         "host"     : "localhost",   // The location of the database
-        "database" : "peir"         // The name of the database to use for the bridge structure
+        "database" : "root"         // The name of the database to use for the bridge structure
     },
 
     // Configuration settings about logging and verbosity
@@ -104,7 +107,7 @@
 
         // The address that will be used to send mail.
         // e.g. "Bridge <no-reply@bridge.ca>"
-        "fromAddress": "Axon Interactive <theteam@axoninteractive.ca>",
+        "fromAddress": "Someone's Name <someone@somewhere.com>",
 
         // The path from the application root to the folder containing the view to be rendered
         "templateDirectory": "templates/email",

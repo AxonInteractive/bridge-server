@@ -52,5 +52,16 @@
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": []
+  "keywords": [],
+  "readme": "# Bridge Server\r\n\r\nWritten by Jeff Rose and James Zinger (mostly James!) of Axon Interactive\r\n\r\n## Description\r\n\r\nThis node.js module provides an API development framework for browser-based webapps. It features a broad range of commonly-used features from authentication to analytics to email notifications. While it is targeted at Axon's websites and eLearning portals, it can handle a wide array of websites and API needs.\r\n\r\nThis version of bridge-server (v0.2.12) in intended to be compatible with v0.2.12 of bridge-client (the counterpart client-side library).\r\n\r\n## Usage\r\n\r\nThis module is available from the npm package registry. Install it with the following command:\r\n\r\n```bash\r\nnpm install axon-bridge-server\r\n```\r\n\r\nOnce installed, simply require axon-bridge-server into your project: \r\n\r\n`<node_modules>/axon-bridge-server/lib/server.js` \r\n\r\nFurther instructions will be posted eventually...",
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/AxonInteractive/bridge-server/issues"
+  },
+  "_id": "axon-bridge-server@0.2.13",
+  "dist": {
+    "shasum": "1894ea8777244d5bde5d4dff3ec04c5f1ddd54db"
+  },
+  "_from": "axon-bridge-server@0.2.13",
+  "_resolved": "https://registry.npmjs.org/axon-bridge-server/-/axon-bridge-server-0.2.13.tgz"
 }

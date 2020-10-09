@@ -301,7 +301,10 @@ if ( config.server.mode === "https" ) {
             // When choosing a cipher, use the server's preferences instead of the client preferences.
             // Although, this option is disabled by default, it is recommended that you use this option
             // in conjunction with the ciphers option to mitigate BEAST attacks.
-            honorCipherOrder: true
+            honorCipherOrder: true,
+
+            // The PEM passphrase to use for the certificate.
+            passphrase: config.security.passphrase
         };
 
         server = https.createServer( credentials, app );
