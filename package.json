@@ -43,7 +43,7 @@
     "q": "1.1.2",
     "q-io": "1.11.6",
     "revalidator": "0.2.0",
-    "underscore.string": "2.4.0",
+    "underscore.string": "3.3.5",
     "uri-js": "1.4.2",
     "winston": "0.7.3",
     "wkhtmltopdf": "0.1.5"
